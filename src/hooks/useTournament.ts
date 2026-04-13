@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchTournament } from '../lib/api'
 import type { TournamentData } from '../lib/types'
+import { MOCK_TOURNAMENT } from '../lib/mockData'
 
 const POLL_INTERVAL_MS = 15_000
 
@@ -23,6 +24,7 @@ export function useTournament(apiUrl: string) {
 
   useEffect(() => {
     if (!apiUrl) {
+      setData(MOCK_TOURNAMENT)
       setLoading(false)
       return
     }
