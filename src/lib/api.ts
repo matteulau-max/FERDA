@@ -1,7 +1,7 @@
 import type { SaveScorePayload, TournamentData } from './types'
 
 export async function fetchTournament(apiUrl: string): Promise<TournamentData> {
-  const res = await fetch(`${apiUrl}?action=getTournament`)
+  const res = await fetch(`${apiUrl}?action=getTournament`, { credentials: 'omit' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json() as Promise<TournamentData>
 }
