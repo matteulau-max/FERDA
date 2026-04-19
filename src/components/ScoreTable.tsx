@@ -1,3 +1,4 @@
+import React from 'react'
 import type { Course, Format, Match, Player } from '../lib/types'
 import { ScoreInput } from './ScoreInput'
 import { TEAM_COLORS } from '../lib/constants'
@@ -136,29 +137,54 @@ export function ScoreTable({ match, format, players, course, side, localScores, 
             }, 0)
 
             return (
-              <tr key={`${row.teamSide}-${row.player}`} style={{ borderBottom: '1px solid #f0ece0' }}>
-                <td
-                  className="font-body text-xs font-semibold py-2 px-2 text-left"
-                  style={{ color: row.color, borderLeft: `3px solid ${row.color}`, paddingLeft: 6 }}
-                >
-                  {row.label}
-                </td>
-                {holes.map((h) => {
-                  const gross = localScores[h.number]?.[row.teamSide]?.[row.player]
-                  const strokes = row.strokes[h.number] ?? 0
-                  return (
-                    <ScoreInput
-                      key={h.number}
-                      value={gross ?? ''}
-                      strokes={strokes}
-                      onChange={(val) => onScoreChange(h.number, row.teamSide, row.player, val)}
-                    />
-                  )
-                })}
-                <td className={`${tdStyle} font-semibold`} style={{ color: rowTotal > 0 ? '#222' : '#ccc' }}>
-                  {rowTotal > 0 ? rowTotal : '–'}
-                </td>
-              </tr>
+              <React.Fragment key={`${row.teamSide}-${row.player}`}>
+                <tr style={{ borderBottom: '1px solid #f0ece0' }}>
+                  <td
+                    className="font-body text-xs font-semibold py-2 px-2 text-left"
+                    style={{ color: row.color, borderLeft: `3px solid ${row.color}`, paddingLeft: 6 }}
+                  >
+                    {row.label}
+                  </td>
+                  {holes.map((h) => {
+                    const gross = localScores[h.number]?.[row.teamSide]?.[row.player]
+                    const strokes = row.strokes[h.number] ?? 0
+                    return (
+                      <ScoreInput
+                        key={h.number}
+                        value={gross ?? ''}
+                        strokes={strokes}
+                        onChange={(val) => onScoreChange(h.number, row.teamSide, row.player, val)}
+                      />
+                    )
+                  })}
+                  <td className={`${tdStyle} font-semibold`} style={{ color: rowTotal > 0 ? '#222' : '#ccc' }}>
+                    {rowTotal > 0 ? rowTotal : '–'}
+                  </td>
+                </tr>
+                {/* Stroke indicator row */}
+                <tr style={{ borderBottom: '2px solid #e8e5d8', background: '#faf9f5' }}>
+                  <td
+                    className="font-body py-0.5 px-2 text-left"
+                    style={{ fontSize: 9, color: '#aaa', borderLeft: `3px solid ${row.color}`, paddingLeft: 6 }}
+                  >
+                    strokes
+                  </td>
+                  {holes.map((h) => {
+                    const strokes = row.strokes[h.number] ?? 0
+                    return (
+                      <td key={h.number} className="text-center p-0" style={{ height: 16 }}>
+                        {strokes === 1 && (
+                          <span style={{ color: row.color, fontSize: 14, lineHeight: 1 }}>●</span>
+                        )}
+                        {strokes >= 2 && (
+                          <span style={{ color: row.color, fontSize: 10, lineHeight: 1, letterSpacing: -2 }}>●●</span>
+                        )}
+                      </td>
+                    )
+                  })}
+                  <td />
+                </tr>
+              </React.Fragment>
             )
           })}
 
