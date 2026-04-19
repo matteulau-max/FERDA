@@ -33,13 +33,6 @@ export function ScoreInput({ value, strokes, onChange, disabled }: Props) {
             MozAppearance: 'textfield',
           }}
         />
-        {/* Stroke dot */}
-        {hasStroke && (
-          <div
-            className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full"
-            style={{ width: 5, height: 5, background: '#e6c800' }}
-          />
-        )}
       </div>
     </td>
   )
