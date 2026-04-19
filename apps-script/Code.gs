@@ -1,0 +1,117 @@
+/**
+ * Code.gs
+ * Main entry point for the Apps Script web app.
+ * Deploy as: Execute as "Me", Access "Anyone".
+ */
+
+// ---------------------------------------------------------------------------
+// HTTP handlers
+// ---------------------------------------------------------------------------
+
+function doGet(e) {
+  var action = e.parameter.action;
+  try {
+    if (action === 'getTournament') return jsonResponse(getTournament());
+    if (action === 'getScores')     return jsonResponse(getScores(e.parameter.match));
+    return jsonResponse({ error: 'Unknown action: ' + action });
+  } catch (err) {
+    return jsonResponse({ error: err.message });
+  }
+}
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    if (data.action === 'saveScore') return jsonResponse(saveScore(data));
+    return jsonResponse({ error: 'Unknown action: ' + data.action });
+  } catch (err) {
+    return jsonResponse({ error: err.message });
+  }
+}
+
+function jsonResponse(data) {
+  var output = ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+  return output;
+}
+
+// ---------------------------------------------------------------------------
+// getTournament — assembles full JSON response
+// ---------------------------------------------------------------------------
+
+function getTournament() {
+  var course   = getCourse();
+  var teams    = getTeams();
+  var players  = getPlayers();
+  var sessions = getSessions();
+  var matches  = getMatches();
+  var allScores = getAllScores();
+
+  // Sort sessions by sortOrder
+  sessions.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+
+  // Group matches into sessions
+  var sessionMap = {};
+  sessions.forEach(function(s) {
+    sessionMap[s.name] = { name: s.name, format: s.format, sortOrder: s.sortOrder, matches: [] };
+  });
+
+  matches.forEach(function(m) {
+    var sess = sessionMap[m.sessionName];
+    if (!sess) return; // orphaned match — skip
+    sess.matches.push({
+      id:           m.id,
+      team1Players: m.team1Players,
+      team2Players: m.team2Players,
+      sortOrder:    m.sortOrder,
+      scores:       allScores[m.id] || {}
+    });
+  });
+
+  // Sort matches within each session
+  Object.values(sessionMap).forEach(function(s) {
+    s.matches.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+  });
+
+  return {
+    course:   course,
+    teams:    teams,
+    players:  players,
+    sessions: sessions.map(function(s) { return sessionMap[s.name]; })
+  };
+}
+
+// ---------------------------------------------------------------------------
+// getScores — scores for a single match
+// ---------------------------------------------------------------------------
+
+function getScores(matchId) {
+  if (!matchId) return { error: 'matchId required' };
+  return { matchId: matchId, scores: getScoresForMatch(matchId) };
+}
+
+// ---------------------------------------------------------------------------
+// saveScore — upsert one player/hole score
+// ---------------------------------------------------------------------------
+
+function saveScore(data) {
+  var matchId    = data.matchId;
+  var hole       = parseInt(data.hole, 10);
+  var side       = data.side;       // 'team1' or 'team2'
+  var player     = data.player;
+  var grossScore = parseInt(data.grossScore, 10);
+
+  if (!matchId || !hole || !side || !player || isNaN(grossScore)) {
+    return { success: false, error: 'Missing required fields' };
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    upsertScore(matchId, hole, side, player, grossScore);
+    return { success: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
