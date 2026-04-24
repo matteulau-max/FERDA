@@ -10,6 +10,7 @@
 
 function doGet(e) {
   var action = e.parameter.action;
+  var callback = e.parameter.callback;
   var result;
   try {
     if (action === 'getTournament')      result = getTournament();
@@ -19,22 +20,31 @@ function doGet(e) {
   } catch (err) {
     result = { error: err.message };
   }
-  return respond(result);
+  return respond(result, callback);
 }
 
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    if (data.action === 'saveScore') return respond(saveScore(data));
-    return respond({ error: 'Unknown action: ' + data.action });
+    if (data.action === 'saveScore') return respond(saveScore(data), null);
+    return respond({ error: 'Unknown action: ' + data.action }, null);
   } catch (err) {
-    return respond({ error: err.message });
+    return respond({ error: err.message }, null);
   }
 }
 
-function respond(data) {
+// The `/**<!---->/` prefix on the JSONP path is a CORB workaround: Chrome sniffs
+// the response body and will block it as JSON if it starts with `{` or `[`, even
+// when Content-Type is application/javascript.
+function respond(data, callback) {
+  var json = JSON.stringify(data);
+  if (callback) {
+    return ContentService
+      .createTextOutput('/**/' + callback + '(' + json + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
   return ContentService
-    .createTextOutput(JSON.stringify(data))
+    .createTextOutput(json)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
