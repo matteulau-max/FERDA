@@ -10,7 +10,6 @@
 
 function doGet(e) {
   var action = e.parameter.action;
-  var callback = e.parameter.callback;
   var result;
   try {
     if (action === 'getTournament')      result = getTournament();
@@ -20,46 +19,25 @@ function doGet(e) {
   } catch (err) {
     result = { error: err.message };
   }
-  return respond(result, callback);
+  return respond(result);
 }
 
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    if (data.action === 'saveScore') return respond(saveScore(data), null);
-    return respond({ error: 'Unknown action: ' + data.action }, null);
+    if (data.action === 'saveScore') return respond(saveScore(data));
+    return respond({ error: 'Unknown action: ' + data.action });
   } catch (err) {
-    return respond({ error: err.message }, null);
+    return respond({ error: err.message });
   }
 }
 
-/**
- * If a callback is provided, wrap the JSON in a JSONP function call
- * so the frontend can use <script> tag injection to bypass CORS.
- */
-function respond(data, callback) {
-  var json = JSON.stringify(data);
-  if (callback) {
-    return ContentService
-      .createTextOutput(callback + '(' + json + ')')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  return ContentService
-    .createTextOutput(json)
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// Kept for back-compat (not used by new JSONP frontend)
-function jsonResponse(data) {
+function respond(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * Allow saveScore via URL params (GET) so the frontend can use
- * <script> tag injection for writes too — avoids POST CORS issues.
- */
 function saveScoreFromParams(params) {
   return saveScore({
     matchId:    params.matchId,
