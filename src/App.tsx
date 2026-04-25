@@ -4,7 +4,7 @@ import { Scorecard } from './pages/Scorecard'
 
 export default function App() {
   return (
-    <BrowserRouter basename="/FERDA">
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Leaderboard />} />
         <Route path="/match/:matchId" element={<Scorecard />} />
