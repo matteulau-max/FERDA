@@ -1,7 +1,4 @@
 {
-  "functions": {
-    "api/exec.ts": { "runtime": "nodejs20.x" }
-  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
