@@ -10,32 +10,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = `${appsScriptUrl}?${qs}`
 
   try {
-    // Use manual redirect to see where Apps Script actually sends us
+    // Apps Script /exec issues a redirect. Using redirect:'manual' then
+    // following the Location header ourselves avoids receiving an HTML page
+    // that redirect:'follow' can land on in server-to-server contexts.
     const first = await fetch(url, { redirect: 'manual' })
-    const location = first.headers.get('location')
-
-    // If it redirects to accounts.google.com it's demanding auth
-    if (location) {
-      const isLoginRedirect = location.includes('accounts.google.com')
-      if (isLoginRedirect) {
-        return res.status(403).json({
-          error: 'Apps Script requires authentication — deployment is not set to "Anyone (even anonymous)"',
-          redirectsTo: location,
-        })
-      }
-      // Follow the redirect manually
-      const second = await fetch(location, { redirect: 'follow' })
-      const text = await second.text()
-      const data = JSON.parse(text)
-      if (req.method === 'GET') {
-        res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=5')
-      }
-      return res.status(200).json(data)
-    }
-
-    // No redirect — read directly
-    const text = await first.text()
-    const data = JSON.parse(text)
+    const location = first.headers.get('location') ?? url
+    const second = await fetch(location, { redirect: 'follow' })
+    const data = await second.json()
     if (req.method === 'GET') {
       res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=5')
     }
