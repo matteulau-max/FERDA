@@ -6,7 +6,7 @@ export async function fetchTournament(apiUrl: string): Promise<TournamentData> {
   return res.json() as Promise<TournamentData>
 }
 
-export function saveScore(apiUrl: string, payload: SaveScorePayload): void {
+export async function saveScore(apiUrl: string, payload: SaveScorePayload): Promise<void> {
   const params = new URLSearchParams({
     action:     'saveScore',
     matchId:    payload.matchId,
@@ -15,7 +15,8 @@ export function saveScore(apiUrl: string, payload: SaveScorePayload): void {
     player:     payload.player,
     grossScore: String(payload.grossScore),
   })
-  fetch(`${apiUrl}?${params}`).catch((err) => {
-    console.warn('saveScore failed:', err)
-  })
+  const res = await fetch(`${apiUrl}?${params}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = await res.json() as { success: boolean; error?: string }
+  if (!data.success) throw new Error(data.error ?? 'Save failed')
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTournament } from '../hooks/useTournament'
 import { useScoreSave } from '../hooks/useScoreSave'
@@ -18,6 +18,11 @@ export function Scorecard() {
   // Local optimistic scores state
   const [localScores, setLocalScores] = useState<MatchScores>({})
 
+  // Save status indicator
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const inFlightRef = useRef(0)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>()
+
   // Find the match + session
   const session = data?.sessions.find((s) => s.matches.some((m) => m.id === matchId))
   const match = session?.matches.find((m) => m.id === matchId)
@@ -30,7 +35,7 @@ export function Scorecard() {
   }, [match?.scores]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleScoreChange = useCallback(
-    (hole: number, side: 'team1' | 'team2', player: string, gross: number | '') => {
+    async (hole: number, side: 'team1' | 'team2', player: string, gross: number | '') => {
       if (gross === '' || gross === 0) return
 
       // Optimistic update
@@ -44,8 +49,23 @@ export function Scorecard() {
         return updated
       })
 
-      // Fire-and-forget POST
-      save({ matchId: matchId!, hole, side, player, grossScore: gross as number })
+      inFlightRef.current++
+      setSaveStatus('saving')
+      clearTimeout(savedTimerRef.current)
+
+      try {
+        await save({ matchId: matchId!, hole, side, player, grossScore: gross as number })
+      } catch {
+        inFlightRef.current--
+        setSaveStatus('error')
+        return
+      }
+
+      inFlightRef.current--
+      if (inFlightRef.current === 0) {
+        setSaveStatus('saved')
+        savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000)
+      }
     },
     [matchId, save],
   )
@@ -88,6 +108,22 @@ export function Scorecard() {
           <p className="text-white/60 font-body text-xs">{session.name} · {session.format}</p>
         </div>
       </div>
+
+      {saveStatus !== 'idle' && (
+        <div
+          className="px-4 py-1.5 text-xs font-body flex items-center gap-1.5"
+          style={{
+            background: saveStatus === 'error' ? '#fef3f2' : '#e8f5ef',
+            color: saveStatus === 'error' ? '#c41e3a' : '#006747',
+            borderBottom: '1px solid',
+            borderColor: saveStatus === 'error' ? '#fcd5d0' : '#c3e6d5',
+          }}
+        >
+          {saveStatus === 'saving' && 'Saving...'}
+          {saveStatus === 'saved' && 'Saved'}
+          {saveStatus === 'error' && 'Save failed — check your connection'}
+        </div>
+      )}
 
       <StatusBanner status={status} team1={data.teams.team1} team2={data.teams.team2} />
 
