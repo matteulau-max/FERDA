@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const appsScriptUrl = process.env.APPS_SCRIPT_URL
+  const appsScriptUrl = process.env.APPS_SCRIPT_URL?.trim()
   if (!appsScriptUrl) {
     return res.status(500).json({ error: 'APPS_SCRIPT_URL not configured' })
   }

@@ -2,7 +2,6 @@
   "name": "ferda-invitational",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
   "engines": { "node": "20.x" },
   "scripts": {
     "dev": "vite",
