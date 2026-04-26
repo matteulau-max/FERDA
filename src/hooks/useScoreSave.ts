@@ -4,9 +4,9 @@ import type { SaveScorePayload } from '../lib/types'
 
 export function useScoreSave(apiUrl: string) {
   const save = useCallback(
-    (payload: Omit<SaveScorePayload, 'action'>) => {
-      if (!apiUrl) return
-      apiSaveScore(apiUrl, { ...payload, action: 'saveScore' })
+    (payload: Omit<SaveScorePayload, 'action'>): Promise<void> => {
+      if (!apiUrl) return Promise.resolve()
+      return apiSaveScore(apiUrl, { ...payload, action: 'saveScore' })
     },
     [apiUrl],
   )
