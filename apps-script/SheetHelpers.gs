@@ -11,10 +11,11 @@ function getSheet_(name) {
 }
 
 // ---------------------------------------------------------------------------
-// Course
+// Course(s)
 // ---------------------------------------------------------------------------
-function getCourse() {
-  var sheet = getSheet_('Course');
+
+// Read one course from an already-resolved sheet object.
+function readCourse_(sheet) {
   var data = sheet.getDataRange().getValues();
 
   // Row 2 (index 1): name, rating, slope, par
@@ -35,6 +36,19 @@ function getCourse() {
   }
 
   return { name: name, rating: rating, slope: slope, par: par, holes: holes };
+}
+
+// Return all courses — every sheet tab whose name starts with "Course".
+function getCourses() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  var courses = [];
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].getName().indexOf('Course') === 0) {
+      courses.push(readCourse_(sheets[i]));
+    }
+  }
+  return courses;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,9 +95,10 @@ function getSessions() {
     var row = data[i];
     if (!row[0] || String(row[0]).trim() === '') continue;
     sessions.push({
-      name:      String(row[0]).trim(),
-      format:    String(row[1]).trim(),
-      sortOrder: parseInt(row[2], 10)
+      name:       String(row[0]).trim(),
+      format:     String(row[1]).trim(),
+      sortOrder:  parseInt(row[2], 10),
+      courseName: String(row[3] || '').trim()
     });
   }
   return sessions;

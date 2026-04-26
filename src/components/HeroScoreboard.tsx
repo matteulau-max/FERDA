@@ -6,8 +6,8 @@ interface Props {
 }
 
 export function HeroScoreboard({ tournament }: Props) {
-  const { course, teams, players, sessions } = tournament
-  const pts = totalPoints(sessions, players, course)
+  const { courses, teams, players, sessions } = tournament
+  const pts = totalPoints(sessions, players, courses)
 
   return (
     <div
@@ -52,7 +52,7 @@ export function HeroScoreboard({ tournament }: Props) {
         </div>
       </div>
 
-      <p className="text-center text-xs mt-3 font-body opacity-60">{course.name}</p>
+      <p className="text-center text-xs mt-3 font-body opacity-60">{courses.map((c) => c.name).join(' · ')}</p>
     </div>
   )
 }

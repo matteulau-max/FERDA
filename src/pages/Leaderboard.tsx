@@ -37,7 +37,7 @@ export function Leaderboard() {
     )
   }
 
-  const { teams, players, course, sessions } = data
+  const { teams, players, courses, sessions } = data
 
   return (
     <div className="min-h-screen" style={{ background: '#FDF8E8' }}>
@@ -46,16 +46,19 @@ export function Leaderboard() {
       <div className="px-3 py-4 flex flex-col gap-4">
         {[...sessions]
           .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((session) => (
-            <SessionCard
-              key={session.name}
-              session={session}
-              players={players}
-              course={course}
-              team1={teams.team1}
-              team2={teams.team2}
-            />
-          ))}
+          .map((session) => {
+            const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+            return (
+              <SessionCard
+                key={session.name}
+                session={session}
+                players={players}
+                course={course}
+                team1={teams.team1}
+                team2={teams.team2}
+              />
+            )
+          })}
       </div>
 
       <footer className="text-center text-xs font-body text-gray-400 py-6">

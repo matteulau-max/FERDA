@@ -216,13 +216,14 @@ export function matchPoints(status: MatchStatus): { team1: number; team2: number
 }
 
 export function totalPoints(
-  sessions: Array<{ format: Format; matches: Match[] }>,
+  sessions: Array<{ format: Format; matches: Match[]; courseName: string }>,
   players: Player[],
-  course: Course,
+  courses: Course[],
 ): { team1: number; team2: number } {
   let t1 = 0
   let t2 = 0
   for (const session of sessions) {
+    const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
     for (const match of session.matches) {
       const status = calcMatchStatus(match, session.format, players, course)
       const pts = matchPoints(status)

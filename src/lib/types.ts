@@ -28,6 +28,7 @@ export interface Session {
   name: string
   format: Format
   sortOrder: number
+  courseName: string
   matches: Match[]
 }
 
@@ -63,7 +64,7 @@ export interface MatchStatus {
 }
 
 export interface TournamentData {
-  course: Course
+  courses: Course[]
   teams: { team1: Team; team2: Team }
   players: Player[]
   sessions: Session[]
