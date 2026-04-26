@@ -63,11 +63,13 @@ export function Scorecard() {
     )
   }
 
+  const course = data.courses.find((c) => c.name === session.courseName) ?? data.courses[0]
+
   const status = calcMatchStatus(
     { ...match, scores: localScores },
     session.format,
     data.players,
-    data.course,
+    course,
   )
 
   const matchWithLocal: Match = { ...match, scores: localScores }
@@ -96,7 +98,7 @@ export function Scorecard() {
             match={matchWithLocal}
             format={session.format}
             players={data.players}
-            course={data.course}
+            course={course}
             side="front"
             localScores={localScores}
             onScoreChange={handleScoreChange}
@@ -107,7 +109,7 @@ export function Scorecard() {
             match={matchWithLocal}
             format={session.format}
             players={data.players}
-            course={data.course}
+            course={course}
             side="back"
             localScores={localScores}
             onScoreChange={handleScoreChange}
@@ -120,7 +122,7 @@ export function Scorecard() {
           match={match}
           format={session.format}
           players={data.players}
-          course={data.course}
+          course={course}
         />
       </div>
 

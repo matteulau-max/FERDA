@@ -63,7 +63,7 @@ function saveScoreFromParams(params) {
 // ---------------------------------------------------------------------------
 
 function getTournament() {
-  var course   = getCourse();
+  var courses  = getCourses();
   var teams    = getTeams();
   var players  = getPlayers();
   var sessions = getSessions();
@@ -97,7 +97,7 @@ function getTournament() {
   });
 
   return {
-    course:   course,
+    courses:  courses,
     teams:    teams,
     players:  players,
     sessions: sessions.map(function(s) { return sessionMap[s.name]; })
