@@ -21,40 +21,56 @@ export function MatchRow({ match, format, players, course, team1, team2 }: Props
   let borderColor = '#e8e5d8'
   let badgeBg = '#f5f5f5'
   let badgeText = '#666'
+  let cardBg = '#fff'
+  let cardTextColor: string | undefined = undefined
 
   if (status.isComplete && status.result) {
     if (status.result.winner === 'team1') {
       borderColor = TEAM_COLORS.team1
       badgeBg = TEAM_COLORS.team1
       badgeText = '#fff'
+      cardBg = TEAM_COLORS.team1
+      cardTextColor = '#fff'
     } else if (status.result.winner === 'team2') {
       borderColor = TEAM_COLORS.team2
       badgeBg = TEAM_COLORS.team2
       badgeText = '#fff'
+      cardBg = TEAM_COLORS.team2
+      cardTextColor = '#fff'
+    } else {
+      borderColor = TEAM_COLORS.team1
+      badgeBg = 'rgba(0,0,0,0.25)'
+      badgeText = '#fff'
+      cardBg = `linear-gradient(to right, ${TEAM_COLORS.team1} 50%, ${TEAM_COLORS.team2} 50%)`
+      cardTextColor = '#fff'
     }
   } else if (status.holesPlayed > 0) {
     if (status.t1Up > 0) {
       borderColor = TEAM_COLORS.team1
+      badgeBg = TEAM_COLORS.team1
+      badgeText = '#fff'
     } else if (status.t1Up < 0) {
       borderColor = TEAM_COLORS.team2
+      badgeBg = TEAM_COLORS.team2
+      badgeText = '#fff'
     }
   }
 
   return (
     <button
       onClick={() => navigate(`/match/${match.id}`)}
-      className="w-full text-left bg-white rounded-lg px-3 py-3 border-l-4 shadow-sm active:opacity-80 transition-opacity"
-      style={{ borderLeftColor: borderColor, borderTopColor: '#e8e5d8', borderRightColor: '#e8e5d8', borderBottomColor: '#e8e5d8', borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1 }}
+      className="w-full text-left rounded-lg px-3 py-3 border-l-4 shadow-sm active:opacity-80 transition-opacity"
+      style={{ background: cardBg, borderLeftColor: borderColor, borderTopColor: '#e8e5d8', borderRightColor: '#e8e5d8', borderBottomColor: '#e8e5d8', borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1 }}
     >
       <div className="flex items-center justify-between gap-2">
         {/* Players */}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1 flex-wrap">
-            <span className="font-body text-sm font-medium" style={{ color: TEAM_COLORS.team1 }}>
+            <span className="font-body text-sm font-medium" style={{ color: cardTextColor ?? TEAM_COLORS.team1 }}>
               {match.team1Players.join(' / ')}
             </span>
-            <span className="text-gray-400 text-xs">vs</span>
-            <span className="font-body text-sm font-medium" style={{ color: TEAM_COLORS.team2 }}>
+            <span className="text-xs" style={{ color: cardTextColor ?? '#9ca3af' }}>vs</span>
+            <span className="font-body text-sm font-medium" style={{ color: cardTextColor ?? TEAM_COLORS.team2 }}>
               {match.team2Players.join(' / ')}
             </span>
           </div>
