@@ -57,8 +57,11 @@ export function calcMatchStatus(
   match: Match,
   format: Format,
   players: Player[],
-  course: Course,
+  course: Course | undefined,
 ): MatchStatus {
+  if (!course) {
+    return { t1Up: 0, holesPlayed: 0, holesRemaining: 18, isComplete: false, result: null }
+  }
   const totalHoles = course.holes.length // 18
 
   // --- Compute playing handicap strokes per player / team ---
@@ -224,6 +227,7 @@ export function totalPoints(
   let t2 = 0
   for (const session of sessions) {
     const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+    if (!course) continue
     for (const match of session.matches) {
       const status = calcMatchStatus(match, session.format, players, course)
       const pts = matchPoints(status)
