@@ -76,7 +76,7 @@ function getTournament() {
   // Group matches into sessions
   var sessionMap = {};
   sessions.forEach(function(s) {
-    sessionMap[s.name] = { name: s.name, format: s.format, sortOrder: s.sortOrder, matches: [] };
+    sessionMap[s.name] = { name: s.name, format: s.format, sortOrder: s.sortOrder, courseName: s.courseName, matches: [] };
   });
 
   matches.forEach(function(m) {
