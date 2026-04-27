@@ -5,9 +5,9 @@
 
 import type { Course, Format, Match, MatchScores, MatchStatus, Player } from './types'
 import {
+  matchPlayingHandicaps,
   perPlayerHoleStrokes,
   scrambleSideHandicaps,
-  sidePlayingHandicaps,
   strokesOnHole,
 } from './handicap'
 import { scrambleTeamHandicap, courseHandicap } from './handicap'
@@ -82,8 +82,9 @@ export function calcMatchStatus(
       t2TeamStrokesPerHole[hole.number] = strokesOnHole(team2Ph, hole.strokeIndex)
     }
   } else {
-    const t1Phs = sidePlayingHandicaps(match.team1Players, players, course, format)
-    const t2Phs = sidePlayingHandicaps(match.team2Players, players, course, format)
+    const { t1Phs, t2Phs } = matchPlayingHandicaps(
+      match.team1Players, match.team2Players, players, course, format,
+    )
     t1PlayerStrokes = perPlayerHoleStrokes(match.team1Players, t1Phs, course)
     t2PlayerStrokes = perPlayerHoleStrokes(match.team2Players, t2Phs, course)
   }
