@@ -3,8 +3,8 @@ import type { Course, Format, Match, Player } from '../lib/types'
 import { ScoreInput } from './ScoreInput'
 import { TEAM_COLORS } from '../lib/constants'
 import {
+  matchPlayingHandicaps,
   perPlayerHoleStrokes,
-  sidePlayingHandicaps,
   scrambleSideHandicaps,
   strokesOnHole,
 } from '../lib/handicap'
@@ -26,12 +26,9 @@ export function ScoreTable({ match, format, players, course, side, localScores, 
     .sort((a, b) => a.number - b.number)
 
   // --- Compute strokes ---
-  const t1Phs = format !== 'Scramble'
-    ? sidePlayingHandicaps(match.team1Players, players, course, format as 'Singles' | 'Best Ball')
-    : []
-  const t2Phs = format !== 'Scramble'
-    ? sidePlayingHandicaps(match.team2Players, players, course, format as 'Singles' | 'Best Ball')
-    : []
+  const { t1Phs, t2Phs } = format !== 'Scramble'
+    ? matchPlayingHandicaps(match.team1Players, match.team2Players, players, course, format as 'Singles' | 'Best Ball')
+    : { t1Phs: [], t2Phs: [] }
 
   const t1PlayerStrokes = format !== 'Scramble'
     ? perPlayerHoleStrokes(match.team1Players, t1Phs, course)

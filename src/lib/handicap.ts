@@ -169,6 +169,39 @@ export function scrambleSideHandicaps(
 }
 
 /**
+ * Compute per-player playing handicaps (after offset) for both sides of a
+ * Singles or Best Ball match.  The lowest PH across all players in the match
+ * plays at scratch; everyone else receives the difference.  This follows
+ * USGA Rules of Handicapping Section 9-4b (Four-Ball) and Section 9-3 (Singles).
+ */
+export function matchPlayingHandicaps(
+  team1Players: string[],
+  team2Players: string[],
+  allPlayers: Player[],
+  course: Course,
+  format: 'Singles' | 'Best Ball',
+): { t1Phs: number[]; t2Phs: number[] } {
+  const playerMap = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
+
+  const toPhs = (names: string[]) =>
+    names.map((name) => {
+      const p = playerMap.get(name.toLowerCase())
+      const ch = p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
+      return format === 'Singles' ? singlesPlayingHandicap(ch) : bestBallPlayingHandicap(ch)
+    })
+
+  const t1RawPhs = toPhs(team1Players)
+  const t2RawPhs = toPhs(team2Players)
+
+  const foursomeMin = Math.min(...t1RawPhs, ...t2RawPhs)
+
+  return {
+    t1Phs: t1RawPhs.map((ph) => ph - foursomeMin),
+    t2Phs: t2RawPhs.map((ph) => ph - foursomeMin),
+  }
+}
+
+/**
  * Per-hole strokes for each player on a side, keyed by player name then hole number.
  * Used for rendering stroke dots in the scorecard.
  */

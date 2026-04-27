@@ -1,5 +1,5 @@
 import type { Course, Format, Match, Player } from '../lib/types'
-import { courseHandicap, sidePlayingHandicaps } from '../lib/handicap'
+import { courseHandicap, matchPlayingHandicaps } from '../lib/handicap'
 import { TEAM_COLORS, SCRAMBLE_ALLOWANCES, BEST_BALL_ALLOWANCE } from '../lib/constants'
 
 interface Props {
@@ -14,7 +14,12 @@ export function HandicapInfo({ match, format, players, course }: Props) {
 
   const getPlayer = (name: string) => playerMap.get(name.toLowerCase())
 
+  const { t1Phs, t2Phs } = (format === 'Singles' || format === 'Best Ball')
+    ? matchPlayingHandicaps(match.team1Players, match.team2Players, players, course, format)
+    : { t1Phs: [] as number[], t2Phs: [] as number[] }
+
   const renderSide = (names: string[], teamSide: 'team1' | 'team2') => {
+    const phs = teamSide === 'team1' ? t1Phs : t2Phs
     const color = TEAM_COLORS[teamSide]
 
     if (format === 'Scramble') {
@@ -53,7 +58,6 @@ export function HandicapInfo({ match, format, players, course }: Props) {
     }
 
     // Singles or Best Ball
-    const phs = sidePlayingHandicaps(names, players, course, format as 'Singles' | 'Best Ball')
     const allowancePct = format === 'Best Ball' ? Math.round(BEST_BALL_ALLOWANCE * 100) : 100
 
     return (
