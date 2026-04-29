@@ -17,30 +17,34 @@ export function MatchRow({ match, format, players, course }: Props) {
   const status = calcMatchStatus(match, format, players, course)
 
   let borderColor = '#e8e5d8'
-  let cardBg = '#fff'
-  let cardTextColor: string | undefined = undefined
+  let leftBg = 'transparent'
+  let rightBg = 'transparent'
+  let leftTextColor: string | undefined = undefined
+  let rightTextColor: string | undefined = undefined
 
   if (status.isComplete && status.result) {
     if (status.result.winner === 'team1') {
       borderColor = TEAM_COLORS.team1
-      cardBg = TEAM_COLORS.team1
-      cardTextColor = '#fff'
+      leftBg = TEAM_COLORS.team1
+      leftTextColor = '#fff'
     } else if (status.result.winner === 'team2') {
       borderColor = TEAM_COLORS.team2
-      cardBg = TEAM_COLORS.team2
-      cardTextColor = '#fff'
+      rightBg = TEAM_COLORS.team2
+      rightTextColor = '#fff'
     } else {
       borderColor = TEAM_COLORS.team1
-      cardBg = `linear-gradient(to right, ${TEAM_COLORS.team1} 50%, ${TEAM_COLORS.team2} 50%)`
-      cardTextColor = '#fff'
+      leftBg = TEAM_COLORS.team1
+      rightBg = TEAM_COLORS.team2
+      leftTextColor = '#fff'
+      rightTextColor = '#fff'
     }
   } else if (status.holesPlayed > 0) {
     if (status.t1Up > 0) {
       borderColor = TEAM_COLORS.team1
-      cardBg = 'rgba(0, 103, 71, 0.08)'
+      leftBg = 'rgba(0, 103, 71, 0.10)'
     } else if (status.t1Up < 0) {
       borderColor = TEAM_COLORS.team2
-      cardBg = 'rgba(196, 30, 58, 0.08)'
+      rightBg = 'rgba(196, 30, 58, 0.10)'
     }
   }
 
@@ -72,7 +76,7 @@ export function MatchRow({ match, format, players, course }: Props) {
       onClick={() => navigate(`/match/${match.id}`)}
       className="w-full text-left rounded-lg border-l-4 shadow-sm active:opacity-80 transition-opacity overflow-hidden"
       style={{
-        background: cardBg,
+        background: '#fff',
         borderLeftColor: borderColor,
         borderTopColor: '#e8e5d8',
         borderRightColor: '#e8e5d8',
@@ -82,35 +86,41 @@ export function MatchRow({ match, format, players, course }: Props) {
         borderBottomWidth: 1,
       }}
     >
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 px-3 py-3">
+      <div className="grid grid-cols-[1fr_auto_1fr]">
 
         {/* LEFT — team1 side, right-aligned */}
-        <div className="flex flex-col items-end min-w-0">
+        <div
+          className="flex flex-col items-end justify-center min-w-0 px-3 py-3"
+          style={{ background: leftBg }}
+        >
           {leftScore && (
-            <span className="font-body text-sm font-bold mb-0.5" style={{ color: cardTextColor ?? '#111' }}>
+            <span className="font-body text-sm font-bold mb-0.5" style={{ color: leftTextColor ?? '#111' }}>
               {leftScore}
             </span>
           )}
-          <span className="font-body text-sm font-medium text-right leading-snug" style={{ color: cardTextColor ?? TEAM_COLORS.team1 }}>
+          <span className="font-body text-sm font-medium text-right leading-snug" style={{ color: leftTextColor ?? TEAM_COLORS.team1 }}>
             {match.team1Players.join(' / ')}
           </span>
         </div>
 
         {/* CENTER — narrow status */}
-        <div className="flex flex-col items-center flex-shrink-0 px-1">
-          <span className="font-body text-xs font-semibold whitespace-nowrap" style={{ color: cardTextColor ? 'rgba(255,255,255,0.85)' : '#555' }}>
+        <div className="flex flex-col items-center justify-center flex-shrink-0 px-2 py-3">
+          <span className="font-body text-xs font-semibold whitespace-nowrap" style={{ color: '#555' }}>
             {centerText}
           </span>
         </div>
 
         {/* RIGHT — team2 side, left-aligned */}
-        <div className="flex flex-col items-start min-w-0">
+        <div
+          className="flex flex-col items-start justify-center min-w-0 px-3 py-3"
+          style={{ background: rightBg }}
+        >
           {rightScore && (
-            <span className="font-body text-sm font-bold mb-0.5" style={{ color: cardTextColor ?? '#111' }}>
+            <span className="font-body text-sm font-bold mb-0.5" style={{ color: rightTextColor ?? '#111' }}>
               {rightScore}
             </span>
           )}
-          <span className="font-body text-sm font-medium leading-snug" style={{ color: cardTextColor ?? TEAM_COLORS.team2 }}>
+          <span className="font-body text-sm font-medium leading-snug" style={{ color: rightTextColor ?? TEAM_COLORS.team2 }}>
             {match.team2Players.join(' / ')}
           </span>
         </div>
