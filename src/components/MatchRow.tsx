@@ -102,9 +102,11 @@ export function MatchRow({ match, format, players, course }: Props) {
           className="flex flex-col items-end justify-center min-w-0 px-2 py-3"
           style={{ background: leftBg }}
         >
-          <span className="font-body text-sm font-medium text-right leading-snug" style={{ color: leftTextColor ?? TEAM_COLORS.team1 }}>
-            {match.team1Players.join(' / ')}
-          </span>
+          {match.team1Players.map((name, i) => (
+            <div key={i} className="font-body text-sm font-medium text-right leading-snug" style={{ color: leftTextColor ?? TEAM_COLORS.team1 }}>
+              {name}{i < match.team1Players.length - 1 ? ' /' : ''}
+            </div>
+          ))}
         </div>
 
         {/* Col 3 — center status */}
@@ -119,9 +121,11 @@ export function MatchRow({ match, format, players, course }: Props) {
           className="flex flex-col items-start justify-center min-w-0 px-2 py-3"
           style={{ background: rightBg }}
         >
-          <span className="font-body text-sm font-medium leading-snug" style={{ color: rightTextColor ?? TEAM_COLORS.team2 }}>
-            {match.team2Players.join(' / ')}
-          </span>
+          {match.team2Players.map((name, i) => (
+            <div key={i} className="font-body text-sm font-medium leading-snug" style={{ color: rightTextColor ?? TEAM_COLORS.team2 }}>
+              {name}{i < match.team2Players.length - 1 ? ' /' : ''}
+            </div>
+          ))}
         </div>
 
         {/* Col 5 — team2 score, white area outside colored section */}
