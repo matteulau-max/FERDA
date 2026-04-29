@@ -88,23 +88,34 @@ export function MatchRow({ match, format, players, course }: Props) {
     >
       <div className="grid grid-cols-[2.5rem_1fr_auto_1fr_2.5rem]">
 
-        {/* Col 1 — team1 score, white area outside colored section */}
-        <div className="flex items-center justify-center py-3">
+        {/* Col 1 — team1 score, fills same bg as team1 column */}
+        <div className="flex items-center justify-center py-3" style={{ background: leftBg }}>
           {leftScore && (
-            <span className="font-body text-xs font-bold whitespace-nowrap" style={{ color: TEAM_COLORS.team1 }}>
+            <span className="font-body text-xs font-bold whitespace-nowrap" style={{ color: leftTextColor ?? TEAM_COLORS.team1 }}>
               {leftScore}
             </span>
           )}
         </div>
 
-        {/* Col 2 — team1 player name */}
+        {/* Col 2 — team1 player names */}
         <div
           className="flex flex-col items-end justify-center min-w-0 px-2 py-3"
           style={{ background: leftBg }}
         >
           {match.team1Players.map((name, i) => (
-            <div key={i} className="font-body text-sm font-medium text-right leading-snug" style={{ color: leftTextColor ?? TEAM_COLORS.team1 }}>
-              {name}{i < match.team1Players.length - 1 ? ' /' : ''}
+            <div
+              key={i}
+              className="font-body font-medium text-right"
+              style={{
+                color: leftTextColor ?? TEAM_COLORS.team1,
+                fontSize: 'clamp(10px, 3.5vw, 13px)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}
+            >
+              {name}
             </div>
           ))}
         </div>
@@ -116,22 +127,33 @@ export function MatchRow({ match, format, players, course }: Props) {
           </span>
         </div>
 
-        {/* Col 4 — team2 player name */}
+        {/* Col 4 — team2 player names */}
         <div
           className="flex flex-col items-start justify-center min-w-0 px-2 py-3"
           style={{ background: rightBg }}
         >
           {match.team2Players.map((name, i) => (
-            <div key={i} className="font-body text-sm font-medium leading-snug" style={{ color: rightTextColor ?? TEAM_COLORS.team2 }}>
-              {name}{i < match.team2Players.length - 1 ? ' /' : ''}
+            <div
+              key={i}
+              className="font-body font-medium"
+              style={{
+                color: rightTextColor ?? TEAM_COLORS.team2,
+                fontSize: 'clamp(10px, 3.5vw, 13px)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}
+            >
+              {name}
             </div>
           ))}
         </div>
 
-        {/* Col 5 — team2 score, white area outside colored section */}
-        <div className="flex items-center justify-center py-3">
+        {/* Col 5 — team2 score, fills same bg as team2 column */}
+        <div className="flex items-center justify-center py-3" style={{ background: rightBg }}>
           {rightScore && (
-            <span className="font-body text-xs font-bold whitespace-nowrap" style={{ color: TEAM_COLORS.team2 }}>
+            <span className="font-body text-xs font-bold whitespace-nowrap" style={{ color: rightTextColor ?? TEAM_COLORS.team2 }}>
               {rightScore}
             </span>
           )}
