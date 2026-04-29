@@ -62,12 +62,6 @@ export function MatchWormChart({ match, format, players, course, team1, team2 }:
         </p>
       </div>
 
-      {/* Team name labels */}
-      <div className="flex justify-between px-3 pb-0" style={{ fontSize: 10, fontFamily: 'Lora, serif' }}>
-        <span style={{ color: TEAM_COLORS.team1, fontWeight: 600 }}>↑ {team1.name}</span>
-        <span style={{ color: TEAM_COLORS.team2, fontWeight: 600 }}>{team2.name} ↑</span>
-      </div>
-
       <svg
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         width="100%"
@@ -77,6 +71,14 @@ export function MatchWormChart({ match, format, players, course, team1, team2 }:
         {/* Faint background bands */}
         <rect x={PAD_LEFT} y={PAD_TOP} width={CHART_W} height={CHART_H / 2} fill={TEAM_COLORS.team1} fillOpacity={0.04} />
         <rect x={PAD_LEFT} y={CENTER_Y} width={CHART_W} height={CHART_H / 2} fill={TEAM_COLORS.team2} fillOpacity={0.04} />
+
+        {/* Team labels inside the chart bands */}
+        <text x={PAD_LEFT + 4} y={PAD_TOP + 9} fontSize={8} fill={TEAM_COLORS.team1} fontFamily="Lora, serif" fontWeight="600" opacity={0.7}>
+          ↑ {team1.name}
+        </text>
+        <text x={PAD_LEFT + 4} y={PAD_TOP + CHART_H - 3} fontSize={8} fill={TEAM_COLORS.team2} fontFamily="Lora, serif" fontWeight="600" opacity={0.7}>
+          ↓ {team2.name}
+        </text>
 
         {/* Center line */}
         <line
