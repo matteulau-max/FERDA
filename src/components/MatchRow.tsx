@@ -62,6 +62,14 @@ export function MatchRow({ match, format, players, course, team1, team2 }: Props
       className="w-full text-left rounded-lg px-3 py-3 border-l-4 shadow-sm active:opacity-80 transition-opacity"
       style={{ background: cardBg, borderLeftColor: borderColor, borderTopColor: '#e8e5d8', borderRightColor: '#e8e5d8', borderBottomColor: '#e8e5d8', borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1 }}
     >
+      {status.isComplete && (
+        <div
+          className="font-body font-semibold tracking-widest uppercase mb-1"
+          style={{ fontSize: 9, color: cardTextColor ? 'rgba(255,255,255,0.7)' : '#999', letterSpacing: '0.1em' }}
+        >
+          ★ Final Result
+        </div>
+      )}
       <div className="flex items-center justify-between gap-2">
         {/* Players */}
         <div className="flex-1 min-w-0">
