@@ -72,72 +72,68 @@ export function MatchRow({ match, format, players, course }: Props) {
       : `thru ${status.holesPlayed}`
 
   return (
-    <div className="flex items-center gap-2">
+    <button
+      onClick={() => navigate(`/match/${match.id}`)}
+      className="w-full text-left rounded-lg border-l-4 shadow-sm active:opacity-80 transition-opacity overflow-hidden"
+      style={{
+        background: '#fff',
+        borderLeftColor: borderColor,
+        borderTopColor: '#e8e5d8',
+        borderRightColor: '#e8e5d8',
+        borderBottomColor: '#e8e5d8',
+        borderTopWidth: 1,
+        borderRightWidth: 1,
+        borderBottomWidth: 1,
+      }}
+    >
+      <div className="grid grid-cols-[2.5rem_1fr_auto_1fr_2.5rem]">
 
-      {/* Outside left score label */}
-      <div className="w-10 flex-shrink-0 text-right">
-        {leftScore && (
-          <span className="font-body text-xs font-bold" style={{ color: TEAM_COLORS.team1 }}>
-            {leftScore}
-          </span>
-        )}
-      </div>
-
-      <button
-        onClick={() => navigate(`/match/${match.id}`)}
-        className="flex-1 min-w-0 text-left rounded-lg border-l-4 shadow-sm active:opacity-80 transition-opacity overflow-hidden"
-        style={{
-          background: '#fff',
-          borderLeftColor: borderColor,
-          borderTopColor: '#e8e5d8',
-          borderRightColor: '#e8e5d8',
-          borderBottomColor: '#e8e5d8',
-          borderTopWidth: 1,
-          borderRightWidth: 1,
-          borderBottomWidth: 1,
-        }}
-      >
-        <div className="grid grid-cols-[1fr_auto_1fr]">
-
-          {/* LEFT — team1 side, right-aligned */}
-          <div
-            className="flex flex-col items-end justify-center min-w-0 px-3 py-3"
-            style={{ background: leftBg }}
-          >
-            <span className="font-body text-sm font-medium text-right leading-snug" style={{ color: leftTextColor ?? TEAM_COLORS.team1 }}>
-              {match.team1Players.join(' / ')}
+        {/* Col 1 — team1 score, white area outside colored section */}
+        <div className="flex items-center justify-center py-3">
+          {leftScore && (
+            <span className="font-body text-xs font-bold whitespace-nowrap" style={{ color: TEAM_COLORS.team1 }}>
+              {leftScore}
             </span>
-          </div>
-
-          {/* CENTER — narrow status */}
-          <div className="flex flex-col items-center justify-center flex-shrink-0 px-2 py-3">
-            <span className="font-body text-xs font-semibold whitespace-nowrap" style={{ color: '#555' }}>
-              {centerText}
-            </span>
-          </div>
-
-          {/* RIGHT — team2 side, left-aligned */}
-          <div
-            className="flex flex-col items-start justify-center min-w-0 px-3 py-3"
-            style={{ background: rightBg }}
-          >
-            <span className="font-body text-sm font-medium leading-snug" style={{ color: rightTextColor ?? TEAM_COLORS.team2 }}>
-              {match.team2Players.join(' / ')}
-            </span>
-          </div>
-
+          )}
         </div>
-      </button>
 
-      {/* Outside right score label */}
-      <div className="w-10 flex-shrink-0 text-left">
-        {rightScore && (
-          <span className="font-body text-xs font-bold" style={{ color: TEAM_COLORS.team2 }}>
-            {rightScore}
+        {/* Col 2 — team1 player name */}
+        <div
+          className="flex flex-col items-end justify-center min-w-0 px-2 py-3"
+          style={{ background: leftBg }}
+        >
+          <span className="font-body text-sm font-medium text-right leading-snug" style={{ color: leftTextColor ?? TEAM_COLORS.team1 }}>
+            {match.team1Players.join(' / ')}
           </span>
-        )}
-      </div>
+        </div>
 
-    </div>
+        {/* Col 3 — center status */}
+        <div className="flex items-center justify-center flex-shrink-0 px-2 py-3">
+          <span className="font-body text-xs font-semibold whitespace-nowrap" style={{ color: '#555' }}>
+            {centerText}
+          </span>
+        </div>
+
+        {/* Col 4 — team2 player name */}
+        <div
+          className="flex flex-col items-start justify-center min-w-0 px-2 py-3"
+          style={{ background: rightBg }}
+        >
+          <span className="font-body text-sm font-medium leading-snug" style={{ color: rightTextColor ?? TEAM_COLORS.team2 }}>
+            {match.team2Players.join(' / ')}
+          </span>
+        </div>
+
+        {/* Col 5 — team2 score, white area outside colored section */}
+        <div className="flex items-center justify-center py-3">
+          {rightScore && (
+            <span className="font-body text-xs font-bold whitespace-nowrap" style={{ color: TEAM_COLORS.team2 }}>
+              {rightScore}
+            </span>
+          )}
+        </div>
+
+      </div>
+    </button>
   )
 }
