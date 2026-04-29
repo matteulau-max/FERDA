@@ -12,8 +12,7 @@ interface InputStyle {
   color: string
   borderRadius: string
   borderWidth: string
-  outline?: string
-  outlineOffset?: string
+  boxShadow?: string
 }
 
 function scoreStyle(scoreToPar: number | null, hasStroke: boolean): InputStyle {
@@ -27,15 +26,14 @@ function scoreStyle(scoreToPar: number | null, hasStroke: boolean): InputStyle {
     }
   }
   if (scoreToPar <= -2) {
-    // Eagle or better: double red ring
+    // Eagle: double red ring via box-shadow (stays within layout, no clipping)
     return {
       background: '#fff',
       borderColor: '#DC2626',
       color: '#DC2626',
       borderRadius: '50%',
       borderWidth: '2px',
-      outline: '2px solid #DC2626',
-      outlineOffset: '2px',
+      boxShadow: '0 0 0 2px #fff, 0 0 0 4px #DC2626',
     }
   }
   if (scoreToPar === -1) {
@@ -69,24 +67,23 @@ function scoreStyle(scoreToPar: number | null, hasStroke: boolean): InputStyle {
     }
   }
   if (scoreToPar === 2) {
-    // Double bogey: double black square
+    // Double bogey: double black square via box-shadow
     return {
-      background: '#fff',
+      background: '#f9fafb',
       borderColor: '#111827',
       color: '#111827',
       borderRadius: '2px',
       borderWidth: '2px',
-      outline: '2px solid #111827',
-      outlineOffset: '2px',
+      boxShadow: '0 0 0 2px #fff, 0 0 0 4px #111827',
     }
   }
-  // Triple bogey or worse: filled dark
+  // Triple+: light red fill — keeps number readable
   return {
-    background: '#374151',
-    borderColor: '#374151',
-    color: '#fff',
+    background: '#fecaca',
+    borderColor: '#DC2626',
+    color: '#7f1d1d',
     borderRadius: '2px',
-    borderWidth: '2px',
+    borderWidth: '1px',
   }
 }
 
@@ -97,7 +94,8 @@ export function ScoreInput({ value, strokes, par, onChange, disabled }: Props) {
 
   return (
     <td className="p-0 relative" style={{ minWidth: 36 }}>
-      <div className="relative flex flex-col items-center">
+      {/* 2px padding gives box-shadow room without clipping into adjacent cells */}
+      <div className="flex items-center justify-center" style={{ padding: '2px' }}>
         <input
           type="number"
           inputMode="numeric"
@@ -111,7 +109,7 @@ export function ScoreInput({ value, strokes, par, onChange, disabled }: Props) {
             const n = parseInt(v, 10)
             if (!isNaN(n) && n >= 1) onChange(n)
           }}
-          className="w-9 h-9 text-center text-sm font-body font-semibold appearance-none"
+          className="w-8 h-8 text-center text-sm font-body font-semibold appearance-none"
           style={{
             background: style.background,
             borderColor: style.borderColor,
@@ -119,9 +117,8 @@ export function ScoreInput({ value, strokes, par, onChange, disabled }: Props) {
             borderRadius: style.borderRadius,
             borderWidth: style.borderWidth,
             borderStyle: 'solid',
-            outline: style.outline,
-            outlineOffset: style.outlineOffset,
-            // Remove spin buttons
+            boxShadow: style.boxShadow,
+            outline: 'none',
             MozAppearance: 'textfield',
           }}
         />
