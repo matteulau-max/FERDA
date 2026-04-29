@@ -5,6 +5,7 @@ import { useScoreSave } from '../hooks/useScoreSave'
 import { StatusBanner } from '../components/StatusBanner'
 import { ScoreTable } from '../components/ScoreTable'
 import { HandicapInfo } from '../components/HandicapInfo'
+import { MatchWormChart } from '../components/MatchWormChart'
 import { calcMatchStatus } from '../lib/matchPlay'
 import type { Match, MatchScores } from '../lib/types'
 
@@ -152,6 +153,20 @@ export function Scorecard() {
           />
         </div>
       </div>
+
+      {/* Worm chart — only shown once at least 1 hole is scored */}
+      {status.holesPlayed > 0 && (
+        <div className="mx-3 mb-1">
+          <MatchWormChart
+            match={matchWithLocal}
+            format={session.format}
+            players={data.players}
+            course={course}
+            team1={data.teams.team1}
+            team2={data.teams.team2}
+          />
+        </div>
+      )}
 
       <div className="mx-3">
         <HandicapInfo

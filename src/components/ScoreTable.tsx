@@ -8,7 +8,7 @@ import {
   scrambleSideHandicaps,
   strokesOnHole,
 } from '../lib/handicap'
-import { calcMatchStatus } from '../lib/matchPlay'
+import { runningStatusByHole } from '../lib/matchPlay'
 
 interface Props {
   match: Match
@@ -50,7 +50,9 @@ export function ScoreTable({ match, format, players, course, side, localScores, 
   }
 
   // Running match status up to current hole (for status row)
-  const statusByHole = computeRunningStatus(match, localScores, format, players, course)
+  const statusPoints = runningStatusByHole({ ...match, scores: localScores }, format, players, course)
+  const statusByHole: Record<number, number> = {}
+  for (const { hole, t1Up } of statusPoints) statusByHole[hole] = t1Up
 
   // Build rows to render
   // team1Players rows, then team2Players rows (for Singles/BestBall)
@@ -150,6 +152,7 @@ export function ScoreTable({ match, format, players, course, side, localScores, 
                         key={h.number}
                         value={gross ?? ''}
                         strokes={strokes}
+                        par={h.par}
                         onChange={(val) => onScoreChange(h.number, row.teamSide, row.player, val)}
                       />
                     )
@@ -217,29 +220,4 @@ interface RowDef {
   player: string
   strokes: Record<number, number>
   color: string
-}
-
-/** Returns map of hole number → t1Up after that hole */
-function computeRunningStatus(
-  match: Match,
-  localScores: Match['scores'],
-  format: Format,
-  players: Player[],
-  course: Course,
-): Record<number, number> {
-  // Build a temporary match with localScores to feed into calcMatchStatus incrementally
-  const result: Record<number, number> = {}
-  const sortedHoles = [...course.holes].sort((a, b) => a.number - b.number)
-
-  // We recompute using running hole-by-hole match with a partial scores object
-  const partialScores: Match['scores'] = {}
-  for (const hole of sortedHoles) {
-    const hs = localScores[hole.number]
-    if (!hs) continue
-    partialScores[hole.number] = hs
-    const partial: Match = { ...match, scores: partialScores }
-    const st = calcMatchStatus(partial, format, players, course)
-    result[hole.number] = st.t1Up
-  }
-  return result
 }

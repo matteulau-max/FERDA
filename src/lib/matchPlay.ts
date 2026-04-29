@@ -239,6 +239,35 @@ export function totalPoints(
   return { team1: t1, team2: t2 }
 }
 
+// ---------------------------------------------------------------------------
+// Hole-by-hole running status (for worm chart / status row)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the cumulative t1Up value after each played hole, in order.
+ * Pass a match with already-merged local scores.
+ */
+export function runningStatusByHole(
+  match: Match,
+  format: Format,
+  players: Player[],
+  course: Course,
+): Array<{ hole: number; t1Up: number }> {
+  const result: Array<{ hole: number; t1Up: number }> = []
+  const sortedHoles = [...course.holes].sort((a, b) => a.number - b.number)
+  const partialScores: Match['scores'] = {}
+
+  for (const hole of sortedHoles) {
+    const hs = match.scores[hole.number]
+    if (!hs) continue
+    partialScores[hole.number] = hs
+    const partial: Match = { ...match, scores: partialScores }
+    const st = calcMatchStatus(partial, format, players, course)
+    result.push({ hole: hole.number, t1Up: st.t1Up })
+  }
+  return result
+}
+
 // Re-export for convenience
 export { scrambleTeamHandicap, courseHandicap }
 export type { MatchScores }

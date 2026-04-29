@@ -22,6 +22,22 @@ body {
   box-shadow: 0 0 40px rgba(0,0,0,0.08);
 }
 
+/* Match completion shimmer sweep */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(200%); }
+}
+
+.shimmer-sweep {
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 60%
+  );
+  animation: shimmer-sweep 2.8s ease-in-out infinite;
+}
+
 /* Remove number input spinners */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
