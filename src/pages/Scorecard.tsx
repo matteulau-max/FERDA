@@ -91,6 +91,7 @@ export function Scorecard() {
     session.format,
     data.players,
     course,
+    session.scoring ?? 'Match Play',
   )
 
   const matchWithLocal: Match = { ...match, scores: localScores }
@@ -106,7 +107,9 @@ export function Scorecard() {
           <p className="text-white font-serif font-semibold text-sm leading-tight">
             {match.team1Players.join(' / ')} vs {match.team2Players.join(' / ')}
           </p>
-          <p className="text-white/60 font-body text-xs">{session.name} · {session.format}</p>
+          <p className="text-white/60 font-body text-xs">
+            {session.name} · {session.format}{session.scoring === 'Stroke Play' ? ' · Stroke Play' : ''}
+          </p>
         </div>
       </div>
 
@@ -134,6 +137,7 @@ export function Scorecard() {
           <ScoreTable
             match={matchWithLocal}
             format={session.format}
+            scoring={session.scoring}
             players={data.players}
             course={course}
             side="front"
@@ -145,6 +149,7 @@ export function Scorecard() {
           <ScoreTable
             match={matchWithLocal}
             format={session.format}
+            scoring={session.scoring}
             players={data.players}
             course={course}
             side="back"
@@ -160,6 +165,7 @@ export function Scorecard() {
           <MatchWormChart
             match={matchWithLocal}
             format={session.format}
+            scoring={session.scoring}
             players={data.players}
             course={course}
             team1={data.teams.team1}

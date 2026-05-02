@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Course, Format, Match, Player } from '../lib/types'
+import type { Course, Format, Match, Player, Scoring } from '../lib/types'
 import { ScoreInput } from './ScoreInput'
 import { TEAM_COLORS } from '../lib/constants'
 import {
@@ -13,6 +13,7 @@ import { runningStatusByHole } from '../lib/matchPlay'
 interface Props {
   match: Match
   format: Format
+  scoring?: Scoring
   players: Player[]
   course: Course
   side: 'front' | 'back'
@@ -20,7 +21,7 @@ interface Props {
   onScoreChange: (hole: number, side: 'team1' | 'team2', player: string, gross: number | '') => void
 }
 
-export function ScoreTable({ match, format, players, course, side, localScores, onScoreChange }: Props) {
+export function ScoreTable({ match, format, scoring = 'Match Play', players, course, side, localScores, onScoreChange }: Props) {
   const holeNumbers = side === 'front' ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [10, 11, 12, 13, 14, 15, 16, 17, 18]
   const holes = course.holes.filter((h) => holeNumbers.includes(h.number))
     .sort((a, b) => a.number - b.number)
@@ -50,7 +51,7 @@ export function ScoreTable({ match, format, players, course, side, localScores, 
   }
 
   // Running match status up to current hole (for status row)
-  const statusPoints = runningStatusByHole({ ...match, scores: localScores }, format, players, course)
+  const statusPoints = runningStatusByHole({ ...match, scores: localScores }, format, players, course, scoring)
   const statusByHole: Record<number, number> = {}
   for (const { hole, t1Up } of statusPoints) statusByHole[hole] = t1Up
 

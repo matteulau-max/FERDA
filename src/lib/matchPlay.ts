@@ -3,7 +3,7 @@
  * Match status calculation — pure functions, no side effects.
  */
 
-import type { Course, Format, Match, MatchScores, MatchStatus, Player } from './types'
+import type { Course, Format, Match, MatchScores, MatchStatus, Player, Scoring } from './types'
 import {
   matchPlayingHandicaps,
   perPlayerHoleStrokes,
@@ -58,10 +58,12 @@ export function calcMatchStatus(
   format: Format,
   players: Player[],
   course: Course | undefined,
+  scoring: Scoring = 'Match Play',
 ): MatchStatus {
-  if (!course) {
-    return { t1Up: 0, holesPlayed: 0, holesRemaining: 18, isComplete: false, result: null }
+  const emptyStatus: MatchStatus = {
+    t1Up: 0, holesPlayed: 0, holesRemaining: 18, isComplete: false, scoring, result: null,
   }
+  if (!course) return emptyStatus
   const totalHoles = course.holes.length // 18
 
   // --- Compute playing handicap strokes per player / team ---
@@ -130,31 +132,41 @@ export function calcMatchStatus(
     }
 
     holesPlayed++
-    const hr = holeResult(t1Net, t2Net)
-    if (hr === 1) t1Up++
-    else if (hr === 0) t1Up--
-    // 0.5 = halved, no change
 
-    const holesRemaining = totalHoles - holesPlayed
-    const lead = Math.abs(t1Up)
+    if (scoring === 'Stroke Play') {
+      // Accumulate raw net stroke differential (lower net = better)
+      t1Up += t2Net - t1Net
+    } else {
+      // Match Play: +1 for hole win, -1 for hole loss
+      const hr = holeResult(t1Net, t2Net)
+      if (hr === 1) t1Up++
+      else if (hr === 0) t1Up--
 
-    // Auto-close check
-    if (lead > holesRemaining) {
-      isComplete = true
-      const winner = t1Up > 0 ? 'team1' : 'team2'
-      // e.g. "4&3" means 4 up with 3 to play
-      result = { winner, text: `${lead}&${holesRemaining}` }
-      break
+      // Auto-close: match is over when lead exceeds holes remaining
+      const holesRemaining = totalHoles - holesPlayed
+      const lead = Math.abs(t1Up)
+      if (lead > holesRemaining) {
+        isComplete = true
+        const winner = t1Up > 0 ? 'team1' : 'team2'
+        result = { winner, text: `${lead}&${holesRemaining}` }
+        break
+      }
     }
   }
 
-  // Check if all 18 holes played without auto-close
+  // Check if all holes played (or stroke play reached 18)
   if (!isComplete && holesPlayed === totalHoles) {
     isComplete = true
     if (t1Up > 0) {
-      result = { winner: 'team1', text: '1 UP' }
+      result = {
+        winner: 'team1',
+        text: scoring === 'Stroke Play' ? `by ${t1Up}` : '1 UP',
+      }
     } else if (t1Up < 0) {
-      result = { winner: 'team2', text: '1 UP' }
+      result = {
+        winner: 'team2',
+        text: scoring === 'Stroke Play' ? `by ${Math.abs(t1Up)}` : '1 UP',
+      }
     } else {
       result = { winner: 'halved', text: 'HALVED' }
     }
@@ -165,6 +177,7 @@ export function calcMatchStatus(
     holesPlayed,
     holesRemaining: totalHoles - holesPlayed,
     isComplete,
+    scoring,
     result,
   }
 }
@@ -188,6 +201,9 @@ export function matchStatusText(status: MatchStatus): string {
   if (status.t1Up === 0) return `AS thru ${status.holesPlayed}`
   const lead = Math.abs(status.t1Up)
   const side = status.t1Up > 0 ? 'T1' : 'T2'
+  if (status.scoring === 'Stroke Play') {
+    return `${side} leads by ${lead} thru ${status.holesPlayed}`
+  }
   return `${side} ${lead} UP thru ${status.holesPlayed}`
 }
 
@@ -205,6 +221,9 @@ export function matchStatusTextWithNames(
   if (status.t1Up === 0) return `All Square thru ${status.holesPlayed}`
   const lead = Math.abs(status.t1Up)
   const leaderName = status.t1Up > 0 ? team1Name : team2Name
+  if (status.scoring === 'Stroke Play') {
+    return `${leaderName} leads by ${lead} thru ${status.holesPlayed}`
+  }
   return `${leaderName} ${lead} UP thru ${status.holesPlayed}`
 }
 
@@ -220,7 +239,7 @@ export function matchPoints(status: MatchStatus): { team1: number; team2: number
 }
 
 export function totalPoints(
-  sessions: Array<{ format: Format; matches: Match[]; courseName: string }>,
+  sessions: Array<{ format: Format; scoring?: Scoring; matches: Match[]; courseName: string }>,
   players: Player[],
   courses: Course[],
 ): { team1: number; team2: number } {
@@ -230,7 +249,7 @@ export function totalPoints(
     const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
     if (!course) continue
     for (const match of session.matches) {
-      const status = calcMatchStatus(match, session.format, players, course)
+      const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
       const pts = matchPoints(status)
       t1 += pts.team1
       t2 += pts.team2
@@ -252,6 +271,7 @@ export function runningStatusByHole(
   format: Format,
   players: Player[],
   course: Course,
+  scoring: Scoring = 'Match Play',
 ): Array<{ hole: number; t1Up: number }> {
   const result: Array<{ hole: number; t1Up: number }> = []
   const sortedHoles = [...course.holes].sort((a, b) => a.number - b.number)
@@ -262,7 +282,7 @@ export function runningStatusByHole(
     if (!hs) continue
     partialScores[hole.number] = hs
     const partial: Match = { ...match, scores: partialScores }
-    const st = calcMatchStatus(partial, format, players, course)
+    const st = calcMatchStatus(partial, format, players, course, scoring)
     result.push({ hole: hole.number, t1Up: st.t1Up })
   }
   return result

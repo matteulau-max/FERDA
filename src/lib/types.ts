@@ -23,10 +23,12 @@ export interface Player {
 }
 
 export type Format = 'Singles' | 'Best Ball' | 'Scramble'
+export type Scoring = 'Match Play' | 'Stroke Play'
 
 export interface Session {
   name: string
   format: Format
+  scoring?: Scoring
   sortOrder: number
   courseName: string
   matches: Match[]
@@ -51,14 +53,16 @@ export interface HoleScores {
 export type MatchScores = Record<number, HoleScores>
 
 export interface MatchStatus {
-  /** Positive = team1 leads, negative = team2 leads */
+  /** Positive = team1 leads, negative = team2 leads.
+   *  Match Play: holes up. Stroke Play: cumulative net stroke differential. */
   t1Up: number
   holesPlayed: number
   holesRemaining: number
   isComplete: boolean
+  scoring: Scoring
   result: {
     winner: 'team1' | 'team2' | 'halved'
-    /** e.g. "3&2", "1 UP", "HALVED" */
+    /** Match Play: "3&2", "1 UP", "HALVED". Stroke Play: "by 3", "HALVED". */
     text: string
   } | null
 }

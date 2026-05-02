@@ -30,3 +30,8 @@ export const FORMAT_LABELS: Record<string, string> = {
   'Best Ball': 'Best Ball',
   Scramble: 'Scramble',
 }
+
+export const SCORING_LABELS: Record<string, string> = {
+  'Match Play': 'Match Play',
+  'Stroke Play': 'Stroke Play',
+}
