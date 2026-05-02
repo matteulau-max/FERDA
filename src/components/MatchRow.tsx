@@ -1,20 +1,21 @@
 import { useNavigate } from 'react-router-dom'
-import type { Course, Format, Match, Player, Team } from '../lib/types'
+import type { Course, Format, Match, Player, Scoring, Team } from '../lib/types'
 import { calcMatchStatus } from '../lib/matchPlay'
 import { TEAM_COLORS } from '../lib/constants'
 
 interface Props {
   match: Match
   format: Format
+  scoring?: Scoring
   players: Player[]
   course: Course
   team1: Team
   team2: Team
 }
 
-export function MatchRow({ match, format, players, course }: Props) {
+export function MatchRow({ match, format, scoring = 'Match Play', players, course }: Props) {
   const navigate = useNavigate()
-  const status = calcMatchStatus(match, format, players, course)
+  const status = calcMatchStatus(match, format, players, course, scoring)
 
   let borderColor = '#e8e5d8'
   let leftBg = 'transparent'
@@ -48,18 +49,21 @@ export function MatchRow({ match, format, players, course }: Props) {
     }
   }
 
+  const inProgressLabel = (lead: number) =>
+    status.scoring === 'Stroke Play' ? `by ${lead}` : `${lead} UP`
+
   const leftScore: string | null =
     status.isComplete && status.result?.winner === 'team1'
       ? status.result.text
       : !status.isComplete && status.t1Up > 0
-      ? `${status.t1Up} UP`
+      ? inProgressLabel(status.t1Up)
       : null
 
   const rightScore: string | null =
     status.isComplete && status.result?.winner === 'team2'
       ? status.result.text
       : !status.isComplete && status.t1Up < 0
-      ? `${Math.abs(status.t1Up)} UP`
+      ? inProgressLabel(Math.abs(status.t1Up))
       : null
 
   const centerText: string =

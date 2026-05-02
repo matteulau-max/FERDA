@@ -1,10 +1,11 @@
-import type { Course, Format, Match, Player, Team } from '../lib/types'
+import type { Course, Format, Match, Player, Scoring, Team } from '../lib/types'
 import { runningStatusByHole } from '../lib/matchPlay'
 import { TEAM_COLORS } from '../lib/constants'
 
 interface Props {
   match: Match
   format: Format
+  scoring?: Scoring
   players: Player[]
   course: Course
   team1: Team
@@ -20,26 +21,28 @@ const PAD_BOTTOM = 20
 const CHART_W = VIEW_W - PAD_LEFT - PAD_RIGHT  // 280
 const CHART_H = VIEW_H - PAD_TOP - PAD_BOTTOM  // 54
 const CENTER_Y = PAD_TOP + CHART_H / 2          // 41
-const MAX_UP = 7  // y-range: ±7 holes up
+const MAX_UP_MATCH = 7    // y-range for match play: ±7 holes up
+const MAX_UP_STROKE = 20  // y-range for stroke play: ±20 strokes
 
 function holeX(hole: number): number {
   return PAD_LEFT + ((hole - 0.5) / 18) * CHART_W
 }
 
-function t1UpY(t1Up: number): number {
-  const clamped = Math.max(-MAX_UP, Math.min(MAX_UP, t1Up))
-  return CENTER_Y - (clamped / MAX_UP) * (CHART_H / 2)
+function t1UpY(t1Up: number, maxUp: number): number {
+  const clamped = Math.max(-maxUp, Math.min(maxUp, t1Up))
+  return CENTER_Y - (clamped / maxUp) * (CHART_H / 2)
 }
 
-export function MatchWormChart({ match, format, players, course, team1, team2 }: Props) {
-  const statusData = runningStatusByHole(match, format, players, course)
+export function MatchWormChart({ match, format, scoring = 'Match Play', players, course, team1, team2 }: Props) {
+  const statusData = runningStatusByHole(match, format, players, course, scoring)
+  const maxUp = scoring === 'Stroke Play' ? MAX_UP_STROKE : MAX_UP_MATCH
 
   if (statusData.length === 0) return null
 
   // Build path points: start at All Square before hole 1
   const points: Array<{ x: number; y: number; t1Up: number }> = [
     { x: PAD_LEFT, y: CENTER_Y, t1Up: 0 },
-    ...statusData.map(({ hole, t1Up }) => ({ x: holeX(hole), y: t1UpY(t1Up), t1Up })),
+    ...statusData.map(({ hole, t1Up }) => ({ x: holeX(hole), y: t1UpY(t1Up, maxUp), t1Up })),
   ]
 
   const lastPoint = points[points.length - 1]
@@ -161,7 +164,9 @@ export function MatchWormChart({ match, format, players, course, team1, team2 }:
         <span style={{ color: leaderColor, fontWeight: 600 }}>
           {currentT1Up === 0
             ? 'All Square'
-            : `${currentT1Up > 0 ? team1.name : team2.name} ${Math.abs(currentT1Up)} UP`}
+            : scoring === 'Stroke Play'
+              ? `${currentT1Up > 0 ? team1.name : team2.name} leads by ${Math.abs(currentT1Up)}`
+              : `${currentT1Up > 0 ? team1.name : team2.name} ${Math.abs(currentT1Up)} UP`}
         </span>
         <span style={{ color: '#aaa' }}>
           {' '}· thru {statusData.length}

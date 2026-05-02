@@ -164,12 +164,55 @@ export const MOCK_TOURNAMENT: TournamentData = {
     },
 
     // -------------------------------------------------------------------------
+    // Best Ball Stroke Play
+    // -------------------------------------------------------------------------
+    {
+      name: 'Stroke Play Best Ball',
+      format: 'Best Ball',
+      scoring: 'Stroke Play',
+      sortOrder: 3,
+      courseName: 'Pebble Beach',
+      matches: [
+        {
+          id: 'M009',
+          team1Players: ['Tyler', 'Chris'],
+          team2Players: ['Alex', 'Nick'],
+          sortOrder: 1,
+          scores: {
+            1:  { team1: { Tyler: 4, Chris: 5 }, team2: { Alex: 4, Nick: 5 } },
+            2:  { team1: { Tyler: 5, Chris: 6 }, team2: { Alex: 6, Nick: 5 } },
+            3:  { team1: { Tyler: 4, Chris: 4 }, team2: { Alex: 3, Nick: 5 } },
+            4:  { team1: { Tyler: 3, Chris: 4 }, team2: { Alex: 4, Nick: 4 } },
+            5:  { team1: { Tyler: 3, Chris: 4 }, team2: { Alex: 4, Nick: 4 } },
+            6:  { team1: { Tyler: 3, Chris: 4 }, team2: { Alex: 3, Nick: 4 } },
+            7:  { team1: { Tyler: 4, Chris: 5 }, team2: { Alex: 5, Nick: 4 } },
+            8:  { team1: { Tyler: 4, Chris: 5 }, team2: { Alex: 5, Nick: 5 } },
+            9:  { team1: { Tyler: 4, Chris: 5 }, team2: { Alex: 4, Nick: 5 } },
+          },
+        },
+        {
+          id: 'M010',
+          team1Players: ['Matt', 'Jake'],
+          team2Players: ['Danny', 'Sam'],
+          sortOrder: 2,
+          scores: {
+            1:  { team1: { Matt: 5, Jake: 6 }, team2: { Danny: 4, Sam: 5 } },
+            2:  { team1: { Matt: 5, Jake: 6 }, team2: { Danny: 5, Sam: 6 } },
+            3:  { team1: { Matt: 4, Jake: 5 }, team2: { Danny: 4, Sam: 5 } },
+            4:  { team1: { Matt: 3, Jake: 4 }, team2: { Danny: 3, Sam: 4 } },
+            5:  { team1: { Matt: 5, Jake: 6 }, team2: { Danny: 4, Sam: 5 } },
+          },
+        },
+      ],
+    },
+
+    // -------------------------------------------------------------------------
     // Sunday Singles
     // -------------------------------------------------------------------------
     {
       name: 'Sunday Singles',
       format: 'Singles',
-      sortOrder: 3,
+      sortOrder: 4,
       courseName: 'Augusta National',
       matches: [
         {

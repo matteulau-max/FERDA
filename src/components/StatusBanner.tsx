@@ -75,10 +75,14 @@ export function StatusBanner({ status, team1, team2 }: Props) {
     const lead = Math.abs(status.t1Up)
     if (status.t1Up > 0) {
       bg = TEAM_COLORS.team1
-      text = `${team1.name} ${lead} UP thru ${status.holesPlayed}`
+      text = status.scoring === 'Stroke Play'
+        ? `${team1.name} leads by ${lead} thru ${status.holesPlayed}`
+        : `${team1.name} ${lead} UP thru ${status.holesPlayed}`
     } else {
       bg = TEAM_COLORS.team2
-      text = `${team2.name} ${lead} UP thru ${status.holesPlayed}`
+      text = status.scoring === 'Stroke Play'
+        ? `${team2.name} leads by ${lead} thru ${status.holesPlayed}`
+        : `${team2.name} ${lead} UP thru ${status.holesPlayed}`
     }
   }
 

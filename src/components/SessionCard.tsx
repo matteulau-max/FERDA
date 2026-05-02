@@ -29,7 +29,7 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
   let startedCount = 0
 
   for (const match of session.matches) {
-    const status = calcMatchStatus(match, session.format, players, course)
+    const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
     if (status.isComplete && status.result) {
       startedCount++
       if (status.result.winner === 'team1') {
@@ -64,12 +64,22 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
         <h2 className="font-serif font-semibold text-base" style={{ color: '#333' }}>
           {session.name}
         </h2>
-        <span
-          className="text-xs font-body font-semibold px-2 py-0.5 rounded-full text-white"
-          style={{ background: badgeColor }}
-        >
-          {session.format}
-        </span>
+        <div className="flex items-center gap-1">
+          <span
+            className="text-xs font-body font-semibold px-2 py-0.5 rounded-full text-white"
+            style={{ background: badgeColor }}
+          >
+            {session.format}
+          </span>
+          {session.scoring === 'Stroke Play' && (
+            <span
+              className="text-xs font-body font-semibold px-2 py-0.5 rounded-full text-white"
+              style={{ background: '#6b21a8' }}
+            >
+              Stroke
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Tug-of-war bar — only shown once play has begun */}
@@ -98,6 +108,7 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
             key={match.id}
             match={match}
             format={session.format}
+            scoring={session.scoring}
             players={players}
             course={course}
             team1={team1}
