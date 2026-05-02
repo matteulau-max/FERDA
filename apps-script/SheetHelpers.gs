@@ -94,12 +94,15 @@ function getSessions() {
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
     if (!row[0] || String(row[0]).trim() === '') continue;
-    sessions.push({
+    var scoringVal = String(row[4] || '').trim();
+    var session = {
       name:       String(row[0]).trim(),
       format:     String(row[1]).trim(),
       sortOrder:  parseInt(row[2], 10),
       courseName: String(row[3] || '').trim()
-    });
+    };
+    if (scoringVal === 'Stroke Play') session.scoring = 'Stroke Play';
+    sessions.push(session);
   }
   return sessions;
 }
