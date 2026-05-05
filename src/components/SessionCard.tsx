@@ -70,16 +70,10 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
           </span>
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span
-            className="text-xs font-body font-semibold px-2 py-0.5 rounded-full text-white"
-            style={{ background: badgeColor }}
-          >
+          <span className="font-body text-xs font-semibold leading-tight" style={{ color: badgeColor }}>
             {session.format}
           </span>
-          <span
-            className="text-xs font-body font-semibold px-2 py-0.5 rounded-full text-white"
-            style={{ background: session.scoring === 'Stroke Play' ? '#6b21a8' : '#374151' }}
-          >
+          <span className="font-body text-xs leading-tight" style={{ color: '#777' }}>
             {session.scoring === 'Stroke Play' ? 'Stroke' : 'Match'}
           </span>
         </div>
