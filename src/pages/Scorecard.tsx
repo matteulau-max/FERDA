@@ -37,7 +37,18 @@ export function Scorecard() {
 
   const handleScoreChange = useCallback(
     async (hole: number, side: 'team1' | 'team2', player: string, gross: number | '') => {
-      if (gross === '' || gross === 0) return
+      if (gross === 0) return
+      if (gross === '') {
+        setLocalScores((prev) => {
+          const updated = { ...prev }
+          if (!updated[hole]) return prev
+          const side_ = { ...updated[hole][side] }
+          delete side_[player]
+          updated[hole] = { ...updated[hole], [side]: side_ }
+          return updated
+        })
+        return
+      }
 
       // Optimistic update
       setLocalScores((prev) => {
