@@ -61,24 +61,27 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
     >
       {/* Header */}
       <div className="px-4 py-3 flex items-center justify-between" style={{ background: '#f9f7f1', borderBottom: startedCount > 0 ? 'none' : '1px solid #e8e5d8' }}>
-        <h2 className="font-serif font-semibold text-base" style={{ color: '#333' }}>
-          {session.name}
-        </h2>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="font-serif font-semibold text-base leading-tight" style={{ color: '#333' }}>
+            {session.name}
+          </h2>
+          <span className="font-body text-xs leading-tight" style={{ color: '#777' }}>
+            {session.courseName}
+          </span>
+        </div>
+        <div className="flex flex-col items-end gap-0.5">
           <span
             className="text-xs font-body font-semibold px-2 py-0.5 rounded-full text-white"
             style={{ background: badgeColor }}
           >
             {session.format}
           </span>
-          {session.scoring === 'Stroke Play' && (
-            <span
-              className="text-xs font-body font-semibold px-2 py-0.5 rounded-full text-white"
-              style={{ background: '#6b21a8' }}
-            >
-              Stroke
-            </span>
-          )}
+          <span
+            className="text-xs font-body font-semibold px-2 py-0.5 rounded-full text-white"
+            style={{ background: session.scoring === 'Stroke Play' ? '#6b21a8' : '#374151' }}
+          >
+            {session.scoring === 'Stroke Play' ? 'Stroke' : 'Match'}
+          </span>
         </div>
       </div>
 
