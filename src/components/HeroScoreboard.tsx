@@ -83,21 +83,39 @@ export function HeroScoreboard({ tournament }: Props) {
 
       {/* Converging progress bar — shown once any match has started */}
       {startedCount > 0 && (
-        <div className="mt-4 flex items-center gap-2 px-2">
-          <span className="font-body text-xs font-bold w-6 text-right tabular-nums" style={{ color: '#4ade80' }}>
-            {fmt(t1Proj)}
-          </span>
-          <div className="flex-1 relative h-2 rounded-full overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.15)' }}>
-            <div className="h-full transition-all duration-500" style={{ width: `${t1LockedPct}%`, background: '#4ade80' }} />
-            <div className="h-full transition-all duration-500" style={{ width: `${t1ProjPct}%`,   background: 'rgba(77,222,128,0.35)' }} />
-            <div className="flex-1" />
-            <div className="h-full transition-all duration-500" style={{ width: `${t2ProjPct}%`,   background: 'rgba(196,30,58,0.5)' }} />
-            <div className="h-full transition-all duration-500" style={{ width: `${t2LockedPct}%`, background: '#C41E3A' }} />
-            <div className="absolute top-0 bottom-0" style={{ left: '50%', width: 1.5, background: '#fff', opacity: 0.5, transform: 'translateX(-50%)' }} />
+        <div className="mt-4 rounded-2xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.3)' }}>
+          <div className="flex items-center gap-2">
+            {/* T1 total outside */}
+            <span className="font-body text-xs font-bold w-6 text-right tabular-nums" style={{ color: '#4ade80' }}>
+              {fmt(t1Proj)}
+            </span>
+            <div className="flex-1 relative h-7 rounded-full overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              {/* T1 locked — number centered inside */}
+              <div className="h-full transition-all duration-500 flex items-center justify-center overflow-hidden" style={{ width: `${t1LockedPct}%`, background: '#4ade80', minWidth: t1Locked > 0 ? 1 : 0 }}>
+                {t1Locked > 0 && <span className="text-xs font-bold font-body leading-none tabular-nums" style={{ color: '#004d34' }}>{fmt(t1Locked)}</span>}
+              </div>
+              {/* T1 proj lead — number centered inside */}
+              <div className="h-full transition-all duration-500 flex items-center justify-center overflow-hidden" style={{ width: `${t1ProjPct}%`, background: 'rgba(77,222,128,0.35)', minWidth: (t1Proj - t1Locked) > 0 ? 1 : 0 }}>
+                {(t1Proj - t1Locked) > 0 && <span className="text-xs font-bold font-body leading-none tabular-nums" style={{ color: '#4ade80' }}>{fmt(t1Proj - t1Locked)}</span>}
+              </div>
+              {/* empty gap */}
+              <div className="flex-1" />
+              {/* T2 proj lead — number centered inside */}
+              <div className="h-full transition-all duration-500 flex items-center justify-center overflow-hidden" style={{ width: `${t2ProjPct}%`, background: 'rgba(196,30,58,0.5)', minWidth: (t2Proj - t2Locked) > 0 ? 1 : 0 }}>
+                {(t2Proj - t2Locked) > 0 && <span className="text-xs font-bold font-body leading-none tabular-nums" style={{ color: '#ffb3b3' }}>{fmt(t2Proj - t2Locked)}</span>}
+              </div>
+              {/* T2 locked — number centered inside */}
+              <div className="h-full transition-all duration-500 flex items-center justify-center overflow-hidden" style={{ width: `${t2LockedPct}%`, background: '#C41E3A', minWidth: t2Locked > 0 ? 1 : 0 }}>
+                {t2Locked > 0 && <span className="text-xs font-bold font-body leading-none tabular-nums" style={{ color: '#fff' }}>{fmt(t2Locked)}</span>}
+              </div>
+              {/* center line = winning threshold */}
+              <div className="absolute top-0 bottom-0" style={{ left: '50%', width: 1.5, background: '#fff', opacity: 0.3, transform: 'translateX(-50%)' }} />
+            </div>
+            {/* T2 total outside */}
+            <span className="font-body text-xs font-bold w-6 text-left tabular-nums" style={{ color: '#C41E3A' }}>
+              {fmt(t2Proj)}
+            </span>
           </div>
-          <span className="font-body text-xs font-bold w-6 text-left tabular-nums" style={{ color: '#C41E3A' }}>
-            {fmt(t2Proj)}
-          </span>
         </div>
       )}
 
