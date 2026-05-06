@@ -1,5 +1,5 @@
 import type { TournamentData } from '../lib/types'
-import { totalPoints } from '../lib/matchPlay'
+import { totalPoints, calcMatchStatus } from '../lib/matchPlay'
 
 interface Props {
   tournament: TournamentData
@@ -8,6 +8,35 @@ interface Props {
 export function HeroScoreboard({ tournament }: Props) {
   const { courses, teams, players, sessions } = tournament
   const pts = totalPoints(sessions, players, courses)
+
+  // Compute converging bar totals across all sessions
+  let t1Locked = 0, t2Locked = 0, t1Proj = 0, t2Proj = 0, startedCount = 0
+  let totalMatches = 0
+  for (const session of sessions) {
+    const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+    if (!course) continue
+    totalMatches += session.matches.length
+    for (const match of session.matches) {
+      const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
+      if (status.isComplete && status.result) {
+        startedCount++
+        if (status.result.winner === 'team1')      { t1Locked += 1; t1Proj += 1 }
+        else if (status.result.winner === 'team2') { t2Locked += 1; t2Proj += 1 }
+        else { t1Locked += 0.5; t2Locked += 0.5; t1Proj += 0.5; t2Proj += 0.5 }
+      } else if (status.holesPlayed > 0) {
+        startedCount++
+        if (status.t1Up > 0) t1Proj += 1
+        else if (status.t1Up < 0) t2Proj += 1
+        else { t1Proj += 0.5; t2Proj += 0.5 }
+      }
+    }
+  }
+
+  const scale = totalMatches > 0 ? 100 / totalMatches : 0
+  const t1LockedPct = t1Locked * scale
+  const t1ProjPct   = (t1Proj - t1Locked) * scale
+  const t2ProjPct   = (t2Proj - t2Locked) * scale
+  const t2LockedPct = t2Locked * scale
 
   return (
     <div
@@ -52,6 +81,26 @@ export function HeroScoreboard({ tournament }: Props) {
         </div>
       </div>
 
+      {/* Converging progress bar — shown once any match has started */}
+      {startedCount > 0 && (
+        <div className="mt-4 flex items-center gap-2 px-2">
+          <span className="font-body text-xs font-bold w-6 text-right tabular-nums" style={{ color: '#FFF200' }}>
+            {fmt(t1Proj)}
+          </span>
+          <div className="flex-1 relative h-2 rounded-full overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <div className="h-full transition-all duration-500" style={{ width: `${t1LockedPct}%`, background: '#FFF200' }} />
+            <div className="h-full transition-all duration-500" style={{ width: `${t1ProjPct}%`,   background: 'rgba(255,242,0,0.35)' }} />
+            <div className="flex-1" />
+            <div className="h-full transition-all duration-500" style={{ width: `${t2ProjPct}%`,   background: 'rgba(196,30,58,0.5)' }} />
+            <div className="h-full transition-all duration-500" style={{ width: `${t2LockedPct}%`, background: '#C41E3A' }} />
+            <div className="absolute top-0 bottom-0" style={{ left: '50%', width: 1.5, background: '#fff', opacity: 0.5, transform: 'translateX(-50%)' }} />
+          </div>
+          <span className="font-body text-xs font-bold w-6 text-left tabular-nums" style={{ color: '#C41E3A' }}>
+            {fmt(t2Proj)}
+          </span>
+        </div>
+      )}
+
       <p className="text-center text-xs mt-3 font-body opacity-60">{courses.map((c) => c.name).join(' · ')}</p>
     </div>
   )
@@ -60,3 +109,5 @@ export function HeroScoreboard({ tournament }: Props) {
 function formatPts(n: number): string {
   return n % 1 === 0 ? String(n) : String(n)
 }
+
+const fmt = (n: number) => n % 1 === 0 ? String(n) : n.toFixed(1)
