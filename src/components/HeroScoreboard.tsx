@@ -84,12 +84,12 @@ export function HeroScoreboard({ tournament }: Props) {
       {/* Converging progress bar — shown once any match has started */}
       {startedCount > 0 && (
         <div className="mt-4 flex items-center gap-2 px-2">
-          <span className="font-body text-xs font-bold w-6 text-right tabular-nums" style={{ color: '#FFF200' }}>
+          <span className="font-body text-xs font-bold w-6 text-right tabular-nums" style={{ color: '#4ade80' }}>
             {fmt(t1Proj)}
           </span>
           <div className="flex-1 relative h-2 rounded-full overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.15)' }}>
-            <div className="h-full transition-all duration-500" style={{ width: `${t1LockedPct}%`, background: '#FFF200' }} />
-            <div className="h-full transition-all duration-500" style={{ width: `${t1ProjPct}%`,   background: 'rgba(255,242,0,0.35)' }} />
+            <div className="h-full transition-all duration-500" style={{ width: `${t1LockedPct}%`, background: '#4ade80' }} />
+            <div className="h-full transition-all duration-500" style={{ width: `${t1ProjPct}%`,   background: 'rgba(77,222,128,0.35)' }} />
             <div className="flex-1" />
             <div className="h-full transition-all duration-500" style={{ width: `${t2ProjPct}%`,   background: 'rgba(196,30,58,0.5)' }} />
             <div className="h-full transition-all duration-500" style={{ width: `${t2LockedPct}%`, background: '#C41E3A' }} />
