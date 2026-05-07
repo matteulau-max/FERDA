@@ -38,6 +38,18 @@ export function HeroScoreboard({ tournament }: Props) {
   const t2ProjPct   = (t2Proj - t2Locked) * scale
   const t2LockedPct = t2Locked * scale
 
+  // Win probability: sigmoid over expected final points vs win threshold
+  const t1WinProb = (() => {
+    if (totalMatches === 0 || startedCount === 0) return 0.5
+    const winThreshold = totalMatches / 2
+    if (t1Locked > winThreshold) return 0.99
+    if (t2Locked > winThreshold) return 0.01
+    const unstarted = totalMatches - startedCount
+    const t1Exp = t1Proj + 0.5 * unstarted
+    const x = ((t1Exp - winThreshold) / (totalMatches * 0.5)) * 5
+    return 1 / (1 + Math.exp(-x))
+  })()
+
   return (
     <div
       className="text-white px-4 py-6"
@@ -80,6 +92,19 @@ export function HeroScoreboard({ tournament }: Props) {
           <p className="font-serif font-semibold text-base leading-tight">{teams.team2.name}</p>
         </div>
       </div>
+
+      {/* Win probability */}
+      {startedCount > 0 && (
+        <div className="flex justify-center items-baseline gap-2 mt-2">
+          <span className="font-body text-sm font-bold tabular-nums" style={{ color: '#4ade80' }}>
+            {Math.round(t1WinProb * 100)}%
+          </span>
+          <span className="font-body text-xs opacity-40">win probability</span>
+          <span className="font-body text-sm font-bold tabular-nums" style={{ color: '#C41E3A' }}>
+            {Math.round((1 - t1WinProb) * 100)}%
+          </span>
+        </div>
+      )}
 
       {/* Converging progress bar — shown once any match has started */}
       {startedCount > 0 && (

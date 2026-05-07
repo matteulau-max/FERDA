@@ -1,6 +1,7 @@
 import { useTournament } from '../hooks/useTournament'
 import { HeroScoreboard } from '../components/HeroScoreboard'
 import { SessionCard } from '../components/SessionCard'
+import { PlayerLeaderboard } from '../components/PlayerLeaderboard'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 
@@ -59,6 +60,7 @@ export function Leaderboard() {
               />
             )
           })}
+        <PlayerLeaderboard sessions={sessions} players={players} courses={courses} />
       </div>
 
       <footer className="text-center text-xs font-body text-gray-400 py-6">
