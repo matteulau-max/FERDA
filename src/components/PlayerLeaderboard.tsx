@@ -97,10 +97,11 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
     }
   }
 
-  // Top 5 by total points
+  // Top 5 by total points; include anyone with Best Ball holes so birdies
+  // accumulate live even before a match is finished
   const top5 = Object.values(stats)
-    .filter((s) => s.points > 0)
-    .sort((a, b) => b.points - a.points)
+    .filter((s) => s.points > 0 || s.bbHoles > 0)
+    .sort((a, b) => b.points - a.points || b.birdies - a.birdies)
     .slice(0, 5)
 
   if (top5.length === 0) return null
