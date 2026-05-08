@@ -40,6 +40,9 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
     stats[player.name] = { name: player.name, team: player.team, points: 0, birdies: 0, pars: 0, netToPar: 0, bbHoles: 0 }
   }
 
+  // Case-insensitive lookup — mirrors the pattern used in handicap.ts
+  const statsByLower = new Map(Object.entries(stats).map(([k, v]) => [k.toLowerCase(), v]))
+
   for (const session of sessions) {
     const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
     if (!course) continue
@@ -47,17 +50,19 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
     for (const match of session.matches) {
       const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
 
+      const lookup = (name: string) => statsByLower.get(name.toLowerCase())
+
       // Points: all formats
       if (status.isComplete && status.result) {
         for (const name of match.team1Players) {
-          if (!stats[name]) continue
-          if (status.result.winner === 'team1') stats[name].points += 1
-          else if (status.result.winner === 'halved') stats[name].points += 0.5
+          const s = lookup(name); if (!s) continue
+          if (status.result.winner === 'team1') s.points += 1
+          else if (status.result.winner === 'halved') s.points += 0.5
         }
         for (const name of match.team2Players) {
-          if (!stats[name]) continue
-          if (status.result.winner === 'team2') stats[name].points += 1
-          else if (status.result.winner === 'halved') stats[name].points += 0.5
+          const s = lookup(name); if (!s) continue
+          if (status.result.winner === 'team2') s.points += 1
+          else if (status.result.winner === 'halved') s.points += 0.5
         }
       }
 
@@ -74,20 +79,18 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
           const hole = course.holes.find((h) => h.number === holeNum)
           if (!hole) continue
           for (const [name, gross] of Object.entries(holeScores.team1)) {
-            if (!stats[name] || !gross) continue
+            const s = lookup(name); if (!s || !gross) continue
             const net = gross - (t1Strokes[name]?.[holeNum] ?? 0)
-            stats[name].bbHoles++
-            stats[name].netToPar += net - hole.par
-            if (gross <= hole.par - 1) stats[name].birdies++
-            else if (gross === hole.par) stats[name].pars++
+            s.bbHoles++; s.netToPar += net - hole.par
+            if (gross <= hole.par - 1) s.birdies++
+            else if (gross === hole.par) s.pars++
           }
           for (const [name, gross] of Object.entries(holeScores.team2)) {
-            if (!stats[name] || !gross) continue
+            const s = lookup(name); if (!s || !gross) continue
             const net = gross - (t2Strokes[name]?.[holeNum] ?? 0)
-            stats[name].bbHoles++
-            stats[name].netToPar += net - hole.par
-            if (gross <= hole.par - 1) stats[name].birdies++
-            else if (gross === hole.par) stats[name].pars++
+            s.bbHoles++; s.netToPar += net - hole.par
+            if (gross <= hole.par - 1) s.birdies++
+            else if (gross === hole.par) s.pars++
           }
         }
       }
