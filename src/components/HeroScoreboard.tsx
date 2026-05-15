@@ -63,7 +63,7 @@ export function HeroScoreboard({ tournament }: Props) {
           A Tradition Unlike Any Other
         </p>
         <h1 className="font-serif italic text-2xl font-bold tracking-wide" style={{ color: '#FFF200' }}>
-          Ferda Invitational
+          Dyker Cup
         </h1>
       </div>
 
@@ -144,7 +144,9 @@ export function HeroScoreboard({ tournament }: Props) {
         </div>
       )}
 
-      <p className="text-center text-xs mt-3 font-body opacity-60">{courses.map((c) => c.name).join(' · ')}</p>
+      <p className="text-center text-xs mt-3 font-body opacity-60">
+        {[...new Set(sessions.map((s) => s.courseName))].join(' · ')}
+      </p>
     </div>
   )
 }
