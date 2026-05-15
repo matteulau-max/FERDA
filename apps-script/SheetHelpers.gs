@@ -24,12 +24,16 @@ function readCourse_(sheet) {
   var slope  = parseInt(data[1][2], 10);
   var par    = parseInt(data[1][3], 10);
 
-  // Rows 5-22 (index 4-21): hole, par, strokeIndex
+  // Rows after the course metadata: find holes by reading any row where
+  // column A is a number between 1 and 18. This is layout-agnostic so it
+  // works whether or not there is a sub-header row before the hole data.
   var holes = [];
-  for (var i = 4; i <= 21; i++) {
+  for (var i = 2; i < data.length; i++) {
     if (!data[i] || data[i][0] === '') continue;
+    var num = parseInt(data[i][0], 10);
+    if (isNaN(num) || num < 1 || num > 18) continue;
     holes.push({
-      number:      parseInt(data[i][0], 10),
+      number:      num,
       par:         parseInt(data[i][1], 10),
       strokeIndex: parseInt(data[i][2], 10)
     });
