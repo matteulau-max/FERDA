@@ -2,6 +2,7 @@ import { useTournament } from '../hooks/useTournament'
 import { HeroScoreboard } from '../components/HeroScoreboard'
 import { SessionCard } from '../components/SessionCard'
 import { PlayerLeaderboard } from '../components/PlayerLeaderboard'
+import { TabNav } from '../components/TabNav'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 
@@ -15,15 +16,18 @@ export function Leaderboard() {
       <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: '#FDF8E8' }}>
         {/* Header even in error state */}
         <div
-          className="fixed top-0 left-0 right-0 text-white text-center py-4"
+          className="fixed top-0 left-0 right-0 text-white text-center"
           style={{ background: 'linear-gradient(135deg, #004d34 0%, #006747 100%)' }}
         >
-          <p className="text-xs uppercase tracking-widest font-body" style={{ color: '#FFF200', opacity: 0.85 }}>
-            A Tradition Unlike Any Other
-          </p>
-          <h1 className="font-serif italic text-xl font-bold" style={{ color: '#FFF200' }}>
-            Ferda Invitational
-          </h1>
+          <div className="py-4">
+            <p className="text-xs uppercase tracking-widest font-body" style={{ color: '#FFF200', opacity: 0.85 }}>
+              A Tradition Unlike Any Other
+            </p>
+            <h1 className="font-serif italic text-xl font-bold" style={{ color: '#FFF200' }}>
+              Ferda Invitational
+            </h1>
+          </div>
+          <TabNav />
         </div>
         <div className="mt-24">
           <p className="font-serif text-lg text-gray-600 mb-2">Unable to load tournament</p>
@@ -43,6 +47,7 @@ export function Leaderboard() {
   return (
     <div className="min-h-screen" style={{ background: '#FDF8E8' }}>
       <HeroScoreboard tournament={data} />
+      <TabNav />
 
       <div className="px-3 py-4 flex flex-col gap-4">
         {[...sessions]
