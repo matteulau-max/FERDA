@@ -3,7 +3,7 @@ import type { TournamentData } from './types'
 export const MOCK_TOURNAMENT: TournamentData = {
   courses: [
     {
-      name: 'Augusta National',
+      name: 'Patriot Hills',
       rating: 76.2,
       slope: 148,
       par: 72,
@@ -29,7 +29,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
       ],
     },
     {
-      name: 'Pebble Beach',
+      name: 'NYCC',
       rating: 75.5,
       slope: 145,
       par: 72,
@@ -52,6 +52,32 @@ export const MOCK_TOURNAMENT: TournamentData = {
         { number: 16, par: 4, strokeIndex: 7  },
         { number: 17, par: 3, strokeIndex: 15 },
         { number: 18, par: 5, strokeIndex: 11 },
+      ],
+    },
+    {
+      name: 'Philip J Rotella',
+      rating: 74.8,
+      slope: 142,
+      par: 72,
+      holes: [
+        { number: 1,  par: 4, strokeIndex: 9  },
+        { number: 2,  par: 4, strokeIndex: 5  },
+        { number: 3,  par: 3, strokeIndex: 17 },
+        { number: 4,  par: 5, strokeIndex: 1  },
+        { number: 5,  par: 4, strokeIndex: 13 },
+        { number: 6,  par: 4, strokeIndex: 7  },
+        { number: 7,  par: 3, strokeIndex: 15 },
+        { number: 8,  par: 5, strokeIndex: 3  },
+        { number: 9,  par: 4, strokeIndex: 11 },
+        { number: 10, par: 4, strokeIndex: 10 },
+        { number: 11, par: 4, strokeIndex: 2  },
+        { number: 12, par: 3, strokeIndex: 18 },
+        { number: 13, par: 5, strokeIndex: 4  },
+        { number: 14, par: 4, strokeIndex: 14 },
+        { number: 15, par: 4, strokeIndex: 6  },
+        { number: 16, par: 3, strokeIndex: 16 },
+        { number: 17, par: 5, strokeIndex: 8  },
+        { number: 18, par: 4, strokeIndex: 12 },
       ],
     },
   ],
@@ -84,7 +110,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
       name: 'Morning Scramble',
       format: 'Scramble',
       sortOrder: 1,
-      courseName: 'Augusta National',
+      courseName: 'Patriot Hills',
       matches: [
         {
           id: 'M001',
@@ -130,7 +156,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
       name: 'Afternoon Best Ball',
       format: 'Best Ball',
       sortOrder: 2,
-      courseName: 'Pebble Beach',
+      courseName: 'NYCC',
       matches: [
         {
           id: 'M003',
@@ -171,7 +197,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
       format: 'Best Ball',
       scoring: 'Stroke Play',
       sortOrder: 3,
-      courseName: 'Pebble Beach',
+      courseName: 'Philip J Rotella',
       matches: [
         {
           id: 'M009',
@@ -213,7 +239,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
       name: 'Sunday Singles',
       format: 'Singles',
       sortOrder: 4,
-      courseName: 'Augusta National',
+      courseName: 'Patriot Hills',
       matches: [
         {
           id: 'M005',

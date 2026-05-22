@@ -69,7 +69,7 @@ export function Leaderboard() {
       </div>
 
       <footer className="text-center text-xs font-body text-gray-400 py-6">
-        Updates every 15s · Dyker Cup 2026
+        Updates every 15s · Ferda Invitational 2025
       </footer>
     </div>
   )
