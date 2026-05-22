@@ -22,6 +22,7 @@ const RULES: RuleSection[] = [
       { bold: 'No return to the tee', text: ' is required. Play continues from the drop area.' },
       { bold: 'Ball search limit', text: ' is 3 minutes. After 3 minutes, the ball is considered lost and the one-stroke drop rule applies.' },
       { bold: 'Provisional balls', text: ' are encouraged on likely OB shots to maintain pace of play.' },
+      { bold: 'Gallery Drop.', text: ' If the group unanimously agrees a ball is inbounds but cannot be located, the player receives free relief with no stroke penalty, dropping from where the group collectively agrees the ball most likely came to rest.' },
     ],
   },
   {

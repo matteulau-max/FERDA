@@ -63,7 +63,7 @@ export function HeroScoreboard({ tournament }: Props) {
           A Tradition Unlike Any Other
         </p>
         <h1 className="font-serif italic text-2xl font-bold tracking-wide" style={{ color: '#FFF200' }}>
-          Dyker Cup
+          The Ferda Invitational
         </h1>
       </div>
 
