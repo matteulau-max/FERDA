@@ -104,9 +104,6 @@ export function Rules() {
           <h1 className="font-serif italic text-2xl font-bold tracking-wide" style={{ color: '#FFF200' }}>
             Ferda Invitational
           </h1>
-          <p className="font-body text-xs tracking-widest mt-1.5 uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            1st Annual · July 9–12 · 16 Players
-          </p>
         </div>
         <TabNav />
       </div>

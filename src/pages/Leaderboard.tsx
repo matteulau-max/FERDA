@@ -46,8 +46,10 @@ export function Leaderboard() {
 
   return (
     <div className="min-h-screen" style={{ background: '#FDF8E8' }}>
-      <HeroScoreboard tournament={data} />
-      <TabNav />
+      <div className="sticky top-0 z-10">
+        <HeroScoreboard tournament={data} />
+        <TabNav />
+      </div>
 
       <div className="px-3 py-4 flex flex-col gap-4">
         {[...sessions]
