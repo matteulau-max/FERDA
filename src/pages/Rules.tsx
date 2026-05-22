@@ -29,7 +29,7 @@ const RULES: RuleSection[] = [
     num: 'RULE II',
     title: 'Maximum Score',
     items: [
-      { bold: 'No maximum score.', text: ' Every hole is played to completion. Pick-ups are not permitted in stroke play rounds.' },
+      { bold: 'Maximum score is double par.', text: ' Once a player reaches double par on any hole, pick up and record the max.' },
       { text: 'In match play formats, a player may concede a hole at any time.' },
     ],
   },
@@ -47,7 +47,6 @@ const RULES: RuleSection[] = [
     items: [
       { bold: 'Gimme distance is inside 3 feet', text: ' in all match play formats.' },
       { text: 'A putt inside 3 feet may be conceded by the opponent. It may not be conceded by the player themselves.' },
-      { text: 'In stroke play rounds, all putts must be holed.' },
     ],
   },
   {
@@ -65,7 +64,6 @@ const RULES: RuleSection[] = [
     items: [
       { bold: 'Rangefinders, GPS devices, and apps are permitted', text: ' without restriction.' },
       { text: 'Slope compensation, wind readings, and all device features are allowed.' },
-      { text: '14-club limit applies per USGA rules.' },
     ],
   },
   {
@@ -84,7 +82,6 @@ const RULES: RuleSection[] = [
       { text: 'In cases not covered by these rules, USGA Rules of Golf apply as the default standard.' },
       { text: 'Rulings made in good faith are final. No retroactive scoring adjustments after a hole is completed.' },
     ],
-    note: "When in doubt, play two balls and sort it out at the green. No one wants a rules argument holding up the group behind us.",
   },
   {
     num: 'RULE IX',
