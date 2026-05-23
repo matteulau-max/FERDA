@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const second = await fetch(location, { redirect: 'follow' })
     const data = await second.json()
     if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60')
+      res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=5')
     }
     return res.status(200).json(data)
   } catch (err) {
