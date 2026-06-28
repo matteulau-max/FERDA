@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 const TABS = [
   { label: 'Leaderboard', path: '/' },
-  { label: 'Rules', path: '/rules' },
+  { label: 'Manual', path: '/manual' },
 ]
 
 export function TabNav() {
