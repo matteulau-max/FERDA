@@ -419,17 +419,6 @@ const CONTENT: Record<string, string> = {
 
     <div style="background:#fffdf7;border:1px solid rgba(14,58,41,.14);border-radius:14px;box-shadow:0 10px 30px -18px rgba(14,58,41,.55);margin:0 0 18px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(14,58,41,.14);background:linear-gradient(180deg,#fffdf7,#fbf7ea)">
-        <span style="flex:0 0 auto;background:#efe14e;color:#0e3a29;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">Captains</span>
-        <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Run the Weekend</h2>
-      </div>
-      <ul style="list-style:none;margin:0;padding:6px 18px 10px">
-        <li style="padding:13px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;justify-content:space-between;align-items:center;gap:10px"><span><span style="display:block;font-weight:700;color:#1c5540;font-size:16px">PJ McGovern</span><span style="font-size:13px;color:#5d6b5f">Captain</span></span><a href="tel:+15164598974" style="flex:0 0 auto;color:#1c5540;text-decoration:none;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums">(516) 459-8974</a></li>
-        <li style="padding:13px 2px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span><span style="display:block;font-weight:700;color:#1c5540;font-size:16px">Matt Eulau</span><span style="font-size:13px;color:#5d6b5f">Captain</span></span><a href="tel:+16468084950" style="flex:0 0 auto;color:#1c5540;text-decoration:none;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums">(646) 808-4950</a></li>
-      </ul>
-    </div>
-
-    <div style="background:#fffdf7;border:1px solid rgba(14,58,41,.14);border-radius:14px;box-shadow:0 10px 30px -18px rgba(14,58,41,.55);margin:0 0 18px;overflow:hidden">
-      <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(14,58,41,.14);background:linear-gradient(180deg,#fffdf7,#fbf7ea)">
         <span style="flex:0 0 auto;background:#1c5540;color:#f3ecd9;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">20 Boys</span>
         <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">The Field<small style="display:block;font-family:'Iowan Old Style',Palatino,Georgia,serif;font-style:normal;font-size:12.5px;letter-spacing:.05em;color:#5d6b5f;font-weight:400;margin-top:3px">Teams drafted Thursday night · tap a number to call</small></h2>
       </div>
