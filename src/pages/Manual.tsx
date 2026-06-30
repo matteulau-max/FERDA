@@ -170,7 +170,7 @@ const CONTENT: Record<string, string> = {
         <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Concessions &amp; Gimmes</h2>
       </div>
       <div style="padding:6px 18px 8px"><ul style="list-style:none;margin:0;padding:0">
-        <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Gimmes are acceptable by the other team.</span> A putt is good only when an opponent concedes it — you can never concede your own. Customary range is inside 3 feet.</span></li>
+        <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">No gimmes — everyone must finish all putts.</span> There are no concessions on the green; every player holes out on every hole to eliminate any controversy.</span></li>
         <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span>In match play, a player may concede a hole at any time.</span></li>
       </ul></div>
     </div>
@@ -536,9 +536,7 @@ export function Manual() {
           zIndex: 20,
           background: '#0e3a29',
           display: 'flex',
-          justifyContent: 'center',
           gap: 2,
-          overflowX: 'auto',
           borderBottom: '1px solid rgba(0,0,0,.3)',
         }}
       >
@@ -549,15 +547,16 @@ export function Manual() {
               key={t.id}
               onClick={() => go(t.id)}
               style={{
-                flex: '0 0 auto',
+                flex: '1 1 0',
+                minWidth: 0,
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 textTransform: 'uppercase',
-                letterSpacing: '.16em',
-                fontSize: 12.5,
-                padding: '14px 16px 12px',
+                letterSpacing: '.06em',
+                fontSize: 11,
+                padding: '14px 4px 12px',
                 position: 'relative',
                 whiteSpace: 'nowrap',
                 minHeight: 44,
