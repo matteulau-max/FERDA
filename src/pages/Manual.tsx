@@ -222,7 +222,18 @@ const CONTENT: Record<string, string> = {
 
     <div style="background:#fffdf7;border:1px solid rgba(14,58,41,.14);border-radius:14px;box-shadow:0 10px 30px -18px rgba(14,58,41,.55);margin:0 0 18px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(14,58,41,.14);background:linear-gradient(180deg,#fffdf7,#fbf7ea)">
-        <span style="flex:0 0 auto;background:#efe14e;color:#0e3a29;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">Rule IX</span>
+        <span style="flex:0 0 auto;background:#0e3a29;color:#f3ecd9;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">Rule IX</span>
+        <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Scramble Play</h2>
+      </div>
+      <div style="padding:6px 18px 8px"><ul style="list-style:none;margin:0;padding:0">
+        <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">One club-length placement.</span> Once your team picks the shot to play, each player places their ball within <b>one club-length</b> of that spot — <b>no closer to the hole</b>.</span></li>
+        <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Same lie, same condition.</span> The placement must stay in the same type of lie as the selected shot: bunker stays in the bunker, rough stays in the rough, fairway stays in the fairway, and on the green stays on the green.</span></li>
+      </ul></div>
+    </div>
+
+    <div style="background:#fffdf7;border:1px solid rgba(14,58,41,.14);border-radius:14px;box-shadow:0 10px 30px -18px rgba(14,58,41,.55);margin:0 0 18px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(14,58,41,.14);background:linear-gradient(180deg,#fffdf7,#fbf7ea)">
+        <span style="flex:0 0 auto;background:#efe14e;color:#0e3a29;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">Rule X</span>
         <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Ferda Rules</h2>
       </div>
       <div style="padding:6px 18px 8px"><ul style="list-style:none;margin:0;padding:0">
