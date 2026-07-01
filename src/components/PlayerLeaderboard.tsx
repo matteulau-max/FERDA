@@ -1,6 +1,6 @@
 import type { Course, Player, Session } from '../lib/types'
 import { calcMatchStatus } from '../lib/matchPlay'
-import { matchPlayingHandicaps, perPlayerHoleStrokes } from '../lib/handicap'
+import { courseHandicap, perPlayerHoleStrokes } from '../lib/handicap'
 import { TEAM_COLORS } from '../lib/constants'
 
 interface Props {
@@ -66,11 +66,17 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
         }
       }
 
-      // Birdies, pars, net: Best Ball only
+      // Birdies, pars, net: Best Ball only.
+      // Net uses each player's OWN full course handicap (not the match's
+      // "lowest plays off 0" offset) so the Best Golfer net is comparable
+      // across foursomes — the best player in a group still gets their strokes.
       if (session.format === 'Best Ball') {
-        const { t1Phs, t2Phs } = matchPlayingHandicaps(
-          match.team1Players, match.team2Players, players, course, 'Best Ball',
-        )
+        const chFor = (name: string) => {
+          const p = players.find((pl) => pl.name.toLowerCase() === name.toLowerCase())
+          return p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
+        }
+        const t1Phs = match.team1Players.map(chFor)
+        const t2Phs = match.team2Players.map(chFor)
         const t1Strokes = perPlayerHoleStrokes(match.team1Players, t1Phs, course)
         const t2Strokes = perPlayerHoleStrokes(match.team2Players, t2Phs, course)
 
