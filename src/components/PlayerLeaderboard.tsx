@@ -1,22 +1,11 @@
 import type { Course, Player, Session } from '../lib/types'
-import { calcMatchStatus } from '../lib/matchPlay'
-import { courseHandicap, perPlayerHoleStrokes } from '../lib/handicap'
+import { rankBestGolfers } from '../lib/bestGolfer'
 import { TEAM_COLORS } from '../lib/constants'
 
 interface Props {
   sessions: Session[]
   players: Player[]
   courses: Course[]
-}
-
-interface PlayerStat {
-  name: string
-  team: 1 | 2
-  points: number
-  birdies: number
-  pars: number
-  netToPar: number
-  bbHoles: number
 }
 
 const fmtPts = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(1))
@@ -28,92 +17,9 @@ const fmtNet = (net: number, holes: number) => {
 }
 
 export function PlayerLeaderboard({ sessions, players, courses }: Props) {
-  const stats: Record<string, PlayerStat> = {}
-  for (const player of players) {
-    stats[player.name] = { name: player.name, team: player.team, points: 0, birdies: 0, pars: 0, netToPar: 0, bbHoles: 0 }
-  }
+  const ranked = rankBestGolfers(sessions, players, courses)
 
-  // Case-insensitive lookup — mirrors the pattern used in handicap.ts
-  const statsByLower = new Map(Object.entries(stats).map(([k, v]) => [k.toLowerCase(), v]))
-
-  for (const session of sessions) {
-    const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
-    if (!course) continue
-
-    for (const match of session.matches) {
-      const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
-
-      const lookup = (name: string) => statsByLower.get(name.toLowerCase())
-
-      // Points: all formats
-      if (status.isComplete && status.result) {
-        for (const name of match.team1Players) {
-          const s = lookup(name); if (!s) continue
-          if (status.result.winner === 'team1') s.points += 1
-          else if (status.result.winner === 'halved') s.points += 0.5
-        }
-        for (const name of match.team2Players) {
-          const s = lookup(name); if (!s) continue
-          if (status.result.winner === 'team2') s.points += 1
-          else if (status.result.winner === 'halved') s.points += 0.5
-        }
-      }
-
-      // Birdies, pars, net: Best Ball only.
-      // Net uses each player's OWN full course handicap (not the match's
-      // "lowest plays off 0" offset) so the Best Golfer net is comparable
-      // across foursomes — the best player in a group still gets their strokes.
-      if (session.format === 'Best Ball') {
-        const chFor = (name: string) => {
-          const p = players.find((pl) => pl.name.toLowerCase() === name.toLowerCase())
-          return p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
-        }
-        const t1Phs = match.team1Players.map(chFor)
-        const t2Phs = match.team2Players.map(chFor)
-        const t1Strokes = perPlayerHoleStrokes(match.team1Players, t1Phs, course)
-        const t2Strokes = perPlayerHoleStrokes(match.team2Players, t2Phs, course)
-
-        for (const [holeStr, holeScores] of Object.entries(match.scores)) {
-          const holeNum = parseInt(holeStr)
-          const hole = course.holes.find((h) => h.number === holeNum)
-          if (!hole) continue
-          for (const [name, gross] of Object.entries(holeScores.team1)) {
-            const s = lookup(name); if (!s || !gross) continue
-            const net = gross - (t1Strokes[name]?.[holeNum] ?? 0)
-            s.bbHoles++; s.netToPar += net - hole.par
-            if (gross <= hole.par - 1) s.birdies++
-            else if (gross === hole.par) s.pars++
-          }
-          for (const [name, gross] of Object.entries(holeScores.team2)) {
-            const s = lookup(name); if (!s || !gross) continue
-            const net = gross - (t2Strokes[name]?.[holeNum] ?? 0)
-            s.bbHoles++; s.netToPar += net - hole.par
-            if (gross <= hole.par - 1) s.birdies++
-            else if (gross === hole.par) s.pars++
-          }
-        }
-      }
-    }
-  }
-
-  // Top 5 by total points; include anyone with Best Ball holes so birdies
-  // accumulate live even before a match is finished
-  const top5 = Object.values(stats)
-    .filter((s) => s.points > 0 || s.bbHoles > 0)
-    .sort((a, b) => b.points - a.points || b.birdies - a.birdies)
-    .slice(0, 5)
-
-  if (top5.length === 0) return null
-
-  // Composite score: direct weighted sum of the raw metrics.
-  //   (−net × 0.50) + (team points × 0.35) + (birdies × 0.15)
-  // Net is negative when under par, so negating it makes under-par positive.
-  const composites = top5.map((s) => -s.netToPar * 0.5 + s.points * 0.35 + s.birdies * 0.15)
-
-  // Sort by composite descending
-  const ranked = top5
-    .map((s, i) => ({ ...s, composite: composites[i] }))
-    .sort((a, b) => b.composite - a.composite)
+  if (ranked.length === 0) return null
 
   const netColor = (net: number, holes: number) => {
     if (holes === 0) return '#ccc'

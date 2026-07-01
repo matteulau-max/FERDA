@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { TabNav } from '../components/TabNav'
+import { LivePayouts } from '../components/LivePayouts'
+import { useTournament } from '../hooks/useTournament'
+
+const API_URL = import.meta.env.VITE_API_URL as string
 
 // The six manual sections, ported verbatim from the design preview.
 // Inline-styled HTML so it renders identically; edit the copy here freely.
@@ -489,6 +493,7 @@ const TABS = [
 
 export function Manual() {
   const [active, setActive] = useState('schedule')
+  const { data } = useTournament(API_URL)
 
   const go = (id: string) => {
     setActive(id)
@@ -594,6 +599,7 @@ export function Manual() {
 
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '22px 16px 64px' }}>
         <div dangerouslySetInnerHTML={{ __html: CONTENT[active] }} />
+        {active === 'wagers' && data && <LivePayouts data={data} />}
         <footer
           style={{ textAlign: 'center', color: '#5d6b5f', fontSize: 12.5, padding: '8px 16px 40px', letterSpacing: '.04em' }}
         >
