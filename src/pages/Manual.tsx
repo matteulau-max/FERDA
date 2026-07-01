@@ -170,8 +170,7 @@ const CONTENT: Record<string, string> = {
         <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Concessions &amp; Gimmes</h2>
       </div>
       <div style="padding:6px 18px 8px"><ul style="list-style:none;margin:0;padding:0">
-        <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">No gimmes — everyone must finish all putts.</span> There are no concessions on the green; every player holes out on every hole to eliminate any controversy.</span></li>
-        <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span>In match play, a player may concede a hole at any time.</span></li>
+        <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">No gimmes — everyone must finish all putts.</span> There are no concessions on the green; every player holes out on every hole to eliminate any controversy.</span></li>
       </ul></div>
     </div>
 
