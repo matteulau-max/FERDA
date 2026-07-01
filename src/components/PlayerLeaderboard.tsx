@@ -27,13 +27,6 @@ const fmtNet = (net: number, holes: number) => {
   return net > 0 ? `+${net}` : String(net)
 }
 
-// Z-score normalize an array; returns 0 for all-same values
-function zScores(values: number[]): number[] {
-  const mean = values.reduce((a, b) => a + b, 0) / values.length
-  const sd = Math.sqrt(values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length) || 1
-  return values.map((v) => (v - mean) / sd)
-}
-
 export function PlayerLeaderboard({ sessions, players, courses }: Props) {
   const stats: Record<string, PlayerStat> = {}
   for (const player of players) {
@@ -112,26 +105,10 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
 
   if (top5.length === 0) return null
 
-  // Composite score: z-score normalize each metric then weight
-  // Net per hole: lower is better → negate z-score
-  // Points: higher is better
-  // Birdies: higher is better
-  const netPerHole = top5.map((s) => (s.bbHoles > 0 ? s.netToPar / s.bbHoles : 0))
-  const pointsRaw  = top5.map((s) => s.points)
-  const birdiesRaw = top5.map((s) => s.birdies)
-
-  const zNet     = zScores(netPerHole)
-  const zPoints  = zScores(pointsRaw)
-  const zBirdies = zScores(birdiesRaw)
-
-  // Raw composite z-score: -net×0.50 + points×0.35 + birdies×0.15
-  const rawComps = top5.map((_, i) => -zNet[i] * 0.50 + zPoints[i] * 0.35 + zBirdies[i] * 0.15)
-
-  // Scale to 0–10 within this group
-  const minC = Math.min(...rawComps)
-  const maxC = Math.max(...rawComps)
-  const range = maxC - minC || 1
-  const composites = rawComps.map((c) => ((c - minC) / range) * 10)
+  // Composite score: direct weighted sum of the raw metrics.
+  //   (−net × 0.50) + (team points × 0.35) + (birdies × 0.15)
+  // Net is negative when under par, so negating it makes under-par positive.
+  const composites = top5.map((s) => -s.netToPar * 0.5 + s.points * 0.35 + s.birdies * 0.15)
 
   // Sort by composite descending
   const ranked = top5
