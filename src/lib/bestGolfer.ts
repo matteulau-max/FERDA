@@ -16,7 +16,7 @@ export interface GolferStat {
   birdies: number
   pars: number
   netToPar: number
-  bbHoles: number
+  netHoles: number
 }
 
 export interface RankedGolfer extends GolferStat {
@@ -31,7 +31,7 @@ export function computeGolferStats(
 ): Record<string, GolferStat> {
   const stats: Record<string, GolferStat> = {}
   for (const player of players) {
-    stats[player.name] = { name: player.name, team: player.team, points: 0, birdies: 0, pars: 0, netToPar: 0, bbHoles: 0 }
+    stats[player.name] = { name: player.name, team: player.team, points: 0, birdies: 0, pars: 0, netToPar: 0, netHoles: 0 }
   }
 
   // Case-insensitive lookup — mirrors the pattern used in handicap.ts
@@ -60,11 +60,13 @@ export function computeGolferStats(
         }
       }
 
-      // Birdies, pars, net: Best Ball only.
+      // Birdies, pars, net: Best Ball and Singles — every format where each
+      // player holes out their own ball. Scramble is excluded (one team ball).
       // Net uses each player's OWN full course handicap (not the match's
       // "lowest plays off 0" offset) so the Best Golfer net is comparable
-      // across foursomes — the best player in a group still gets their strokes.
-      if (session.format === 'Best Ball') {
+      // across groups — the best player in a group still gets their strokes.
+      // Birdies and pars are NET so they're achievable at every handicap.
+      if (session.format === 'Best Ball' || session.format === 'Singles') {
         const chFor = (name: string) => {
           const p = players.find((pl) => pl.name.toLowerCase() === name.toLowerCase())
           return p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
@@ -81,16 +83,16 @@ export function computeGolferStats(
           for (const [name, gross] of Object.entries(holeScores.team1)) {
             const s = lookup(name); if (!s || !gross) continue
             const net = gross - (t1Strokes[name]?.[holeNum] ?? 0)
-            s.bbHoles++; s.netToPar += net - hole.par
-            if (gross <= hole.par - 1) s.birdies++
-            else if (gross === hole.par) s.pars++
+            s.netHoles++; s.netToPar += net - hole.par
+            if (net <= hole.par - 1) s.birdies++
+            else if (net === hole.par) s.pars++
           }
           for (const [name, gross] of Object.entries(holeScores.team2)) {
             const s = lookup(name); if (!s || !gross) continue
             const net = gross - (t2Strokes[name]?.[holeNum] ?? 0)
-            s.bbHoles++; s.netToPar += net - hole.par
-            if (gross <= hole.par - 1) s.birdies++
-            else if (gross === hole.par) s.pars++
+            s.netHoles++; s.netToPar += net - hole.par
+            if (net <= hole.par - 1) s.birdies++
+            else if (net === hole.par) s.pars++
           }
         }
       }
@@ -102,10 +104,11 @@ export function computeGolferStats(
 
 /**
  * Rank the top golfers by the composite formula:
- *   (−net × 0.50) + (team points × 0.35) + (birdies × 0.15)
+ *   (−net × 0.50) + (team points × 0.35) + (net birdies × 0.15)
  * Net is negative when under par, so negating it makes under-par positive.
- * Returns the top 5, sorted by composite descending. ranked[0] is the
- * current "Golfer of the Weekend" leader.
+ * Every eligible player is scored by the composite first, THEN the list is
+ * cut to the top 5 — so a strong net player can't be squeezed out by the
+ * pre-filter. ranked[0] is the current "Golfer of the Weekend" leader.
  */
 export function rankBestGolfers(
   sessions: Session[],
@@ -114,16 +117,11 @@ export function rankBestGolfers(
 ): RankedGolfer[] {
   const stats = computeGolferStats(sessions, players, courses)
 
-  // Top 5 by total points; include anyone with Best Ball holes so birdies
-  // accumulate live even before a match is finished
-  const top5 = Object.values(stats)
-    .filter((s) => s.points > 0 || s.bbHoles > 0)
-    .sort((a, b) => b.points - a.points || b.birdies - a.birdies)
+  // Eligible = anyone with points or own-ball holes played, so birdies and
+  // net accumulate live even before a match is finished
+  return Object.values(stats)
+    .filter((s) => s.points > 0 || s.netHoles > 0)
+    .map((s) => ({ ...s, composite: -s.netToPar * 0.5 + s.points * 0.35 + s.birdies * 0.15 }))
+    .sort((a, b) => b.composite - a.composite || b.points - a.points || b.birdies - a.birdies)
     .slice(0, 5)
-
-  const composites = top5.map((s) => -s.netToPar * 0.5 + s.points * 0.35 + s.birdies * 0.15)
-
-  return top5
-    .map((s, i) => ({ ...s, composite: composites[i] }))
-    .sort((a, b) => b.composite - a.composite)
 }

@@ -308,7 +308,7 @@ const CONTENT: Record<string, string> = {
             <span style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:18px;color:#1c5540">Golfer of the Weekend</span>
             <span style="font-variant-numeric:tabular-nums;font-weight:700;color:#1c5540;white-space:nowrap">$5 in</span>
           </div>
-          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">$5 from all 20. Best of points won, gross birdies &amp; best net — winner takes all.</p>
+          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">$5 from all 20. Best of points won, net birdies &amp; best net — winner takes all.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Win $100</span><span style="background:#fbf6e6;color:#7a6a1f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Net +$95</span></div>
         </div>
 
@@ -399,7 +399,7 @@ const CONTENT: Record<string, string> = {
         <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Win probability</span> (the two %s) weighs how far ahead a team is against points still on the board. A 2-point cushion late ≈ ~95%. A gut-check, not a guarantee.</span></li>
         <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Points:</span> win = 1 · halved = ½ each · loss = 0. Board refreshes every 15 seconds.</span></li>
         <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Match Momentum</span> (worm chart, below each scorecard): rides above center when Team 1 leads, below when Team 2 leads, flat when all square.</span></li>
-        <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Best Golfer</span> ranks the top 5 individuals — weighted 50% net strokes, 35% match points, 15% birdies (Rtg / Pts / Net / Brd).</span></li>
+        <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Best Golfer</span> ranks the top 5 individuals — weighted 50% net strokes, 35% match points, 15% net birdies (Rtg / Pts / Net / Brd). Net and birdies count every own-ball round (Best Ball &amp; Singles).</span></li>
       </ul></div>
     </div>
 

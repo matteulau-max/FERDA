@@ -33,7 +33,7 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
       <div className="px-4 py-3 flex items-center justify-between" style={{ background: '#f9f7f1', borderBottom: '1px solid #e8e5d8' }}>
         <div>
           <h2 className="font-serif font-semibold text-base leading-tight" style={{ color: '#333' }}>Best Golfer</h2>
-          <p className="font-body text-xs leading-tight" style={{ color: '#999' }}>50% net · 35% pts · 15% birdies</p>
+          <p className="font-body text-xs leading-tight" style={{ color: '#999' }}>50% net · 35% pts · 15% net birdies</p>
         </div>
         <div className="flex gap-3 pr-1">
           <span className="font-body text-xs w-8 text-center" style={{ color: '#aaa' }}>Rtg</span>
@@ -78,8 +78,8 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
                 <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: teamColor }}>
                   {fmtPts(stat.points)}
                 </span>
-                <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: netColor(stat.netToPar, stat.bbHoles) }}>
-                  {fmtNet(stat.netToPar, stat.bbHoles)}
+                <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: netColor(stat.netToPar, stat.netHoles) }}>
+                  {fmtNet(stat.netToPar, stat.netHoles)}
                 </span>
                 <span className="font-body text-sm w-8 text-center tabular-nums" style={{ color: stat.birdies > 0 ? '#DC2626' : '#ccc' }}>
                   {stat.birdies > 0 ? stat.birdies : '—'}
