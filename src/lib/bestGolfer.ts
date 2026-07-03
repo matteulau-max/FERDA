@@ -102,7 +102,7 @@ export function computeGolferStats(
 
 /**
  * Rank the top golfers by the composite formula:
- *   (−net × 0.50) + (team points × 0.35) + (birdies × 0.15)
+ *   (team points × 0.50) + (−net × 0.35) + (birdies × 0.15)
  * Net is negative when under par, so negating it makes under-par positive.
  * Returns the top 5, sorted by composite descending. ranked[0] is the
  * current "Golfer of the Weekend" leader.
@@ -121,7 +121,7 @@ export function rankBestGolfers(
     .sort((a, b) => b.points - a.points || b.birdies - a.birdies)
     .slice(0, 5)
 
-  const composites = top5.map((s) => -s.netToPar * 0.5 + s.points * 0.35 + s.birdies * 0.15)
+  const composites = top5.map((s) => s.points * 0.5 + -s.netToPar * 0.35 + s.birdies * 0.15)
 
   return top5
     .map((s, i) => ({ ...s, composite: composites[i] }))
