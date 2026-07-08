@@ -5,7 +5,15 @@
  */
 
 import type { Course, Format, Player } from './types'
-import { BEST_BALL_ALLOWANCE, SCRAMBLE_ALLOWANCES, SINGLES_ALLOWANCE } from './constants'
+import {
+  BEST_BALL_ALLOWANCE,
+  SCRAMBLE_ALLOWANCES,
+  SINGLES_ALLOWANCE,
+  TWO_V_ONE_ALLOWANCE,
+} from './constants'
+
+/** Per-player formats (each player receives their own strokes). */
+type PerPlayerFormat = 'Singles' | 'Best Ball' | '2v1'
 
 /**
  * Step 1: Handicap Index → Course Handicap
@@ -33,6 +41,25 @@ export function singlesPlayingHandicap(ch: number): number {
  */
 export function bestBallPlayingHandicap(ch: number): number {
   return Math.round(ch * BEST_BALL_ALLOWANCE)
+}
+
+/**
+ * Step 2d: 2 v 1 — apply the 2v1 allowance per player.
+ * Each player (both the pair and the solo) receives their own strokes; the
+ * pair's two nets are averaged downstream. See TWO_V_ONE_ALLOWANCE.
+ */
+export function twoVOnePlayingHandicap(ch: number): number {
+  return Math.round(ch * TWO_V_ONE_ALLOWANCE)
+}
+
+/**
+ * Per-player playing handicap for the per-player formats (Singles, Best Ball,
+ * 2v1), before the "lowest plays off 0" offset.
+ */
+export function perPlayerPlayingHandicap(ch: number, format: PerPlayerFormat): number {
+  if (format === 'Best Ball') return bestBallPlayingHandicap(ch)
+  if (format === '2v1') return twoVOnePlayingHandicap(ch)
+  return singlesPlayingHandicap(ch)
 }
 
 /**
@@ -98,13 +125,11 @@ export function strokeMap(
 ): Map<number, number> {
   const ch = courseHandicap(player.handicapIndex, course.slope, course.rating, course.par)
   let ph: number
-  if (format === 'Singles') {
-    ph = singlesPlayingHandicap(ch)
-  } else if (format === 'Best Ball') {
-    ph = bestBallPlayingHandicap(ch)
-  } else {
+  if (format === 'Scramble') {
     // Scramble: team PH is computed separately; per-player not used directly
     ph = ch
+  } else {
+    ph = perPlayerPlayingHandicap(ch, format)
   }
   const offset = ph - allPlayingHandicaps[playerIndex]
   const offsetPh = ph - offset // = allPlayingHandicaps[playerIndex] after offset applied
@@ -124,7 +149,7 @@ export function sidePlayingHandicaps(
   playerNames: string[],
   allPlayers: Player[],
   course: Course,
-  format: 'Singles' | 'Best Ball',
+  format: PerPlayerFormat,
 ): number[] {
   const playerMap = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
 
@@ -134,9 +159,7 @@ export function sidePlayingHandicaps(
     return courseHandicap(p.handicapIndex, course.slope, course.rating, course.par)
   })
 
-  const phs = chs.map((ch) =>
-    format === 'Singles' ? singlesPlayingHandicap(ch) : bestBallPlayingHandicap(ch),
-  )
+  const phs = chs.map((ch) => perPlayerPlayingHandicap(ch, format))
 
   const min = Math.min(...phs)
   return phs.map((ph) => ph - min)
@@ -179,7 +202,7 @@ export function matchPlayingHandicaps(
   team2Players: string[],
   allPlayers: Player[],
   course: Course,
-  format: 'Singles' | 'Best Ball',
+  format: PerPlayerFormat,
 ): { t1Phs: number[]; t2Phs: number[] } {
   const playerMap = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
 
@@ -187,7 +210,7 @@ export function matchPlayingHandicaps(
     names.map((name) => {
       const p = playerMap.get(name.toLowerCase())
       const ch = p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
-      return format === 'Singles' ? singlesPlayingHandicap(ch) : bestBallPlayingHandicap(ch)
+      return perPlayerPlayingHandicap(ch, format)
     })
 
   const t1RawPhs = toPhs(team1Players)

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Course, Player, Session, Team } from '../lib/types'
 import { MatchRow } from './MatchRow'
 import { calcMatchStatus } from '../lib/matchPlay'
-import { TEAM_COLORS } from '../lib/constants'
+import { TEAM_COLORS, FORMAT_LABELS } from '../lib/constants'
 
 interface Props {
   session: Session
@@ -16,6 +16,7 @@ const FORMAT_COLORS: Record<string, string> = {
   Singles: '#006747',
   'Best Ball': '#8B6914',
   Scramble: '#1a4f7a',
+  '2v1': '#7a1a5f',
 }
 
 const fmtPts = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(1))
@@ -82,7 +83,7 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
 
           <div className="flex flex-col items-end gap-0.5">
             <span className="font-body text-xs font-semibold leading-tight" style={{ color: badgeColor }}>
-              {session.format}
+              {FORMAT_LABELS[session.format] ?? session.format}
             </span>
             <span className="font-body text-xs leading-tight" style={{ color: '#777' }}>
               {session.scoring === 'Stroke Play' ? 'Stroke' : 'Match'}

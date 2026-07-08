@@ -331,5 +331,38 @@ export const MOCK_TOURNAMENT: TournamentData = {
         },
       ],
     },
+
+    // -------------------------------------------------------------------------
+    // Day 1 (Friday) 2 v 1
+    // The pair's hole score is the AVERAGE of their two net scores; the solo
+    // player's is their own net. Handicaps use the shared "lowest of the three
+    // plays off scratch" relative offset, so here the low man (Alex) plays off 0
+    // and the higher-handicap pair receive their strokes.
+    // -------------------------------------------------------------------------
+    {
+      name: 'Friday 2 v 1',
+      format: '2v1',
+      sortOrder: 5,
+      courseName: 'Patriot Hills',
+      matches: [
+        {
+          id: 'M011',
+          team1Players: ['Matt', 'Ben'],
+          team2Players: ['Alex'],
+          sortOrder: 1,
+          scores: {
+            1: { team1: { Matt: 5, Ben: 6 }, team2: { Alex: 4 } },
+            2: { team1: { Matt: 6, Ben: 7 }, team2: { Alex: 5 } },
+            3: { team1: { Matt: 4, Ben: 5 }, team2: { Alex: 4 } },
+            4: { team1: { Matt: 3, Ben: 4 }, team2: { Alex: 3 } },
+            5: { team1: { Matt: 5, Ben: 6 }, team2: { Alex: 4 } },
+            6: { team1: { Matt: 4, Ben: 4 }, team2: { Alex: 3 } },
+            7: { team1: { Matt: 5, Ben: 6 }, team2: { Alex: 4 } },
+            8: { team1: { Matt: 7, Ben: 8 }, team2: { Alex: 5 } },
+            9: { team1: { Matt: 4, Ben: 5 }, team2: { Alex: 4 } },
+          },
+        },
+      ],
+    },
   ],
 }

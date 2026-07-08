@@ -25,10 +25,23 @@ export const BEST_BALL_ALLOWANCE = 0.9
 /** Singles allowance */
 export const SINGLES_ALLOWANCE = 1.0
 
+/**
+ * 2 v 1 allowance per player.
+ *
+ * There is no official USGA "2 v 1" format. Because this format averages the
+ * pair's two net scores (rather than taking their better ball), the pair's
+ * advantage is already dampened, so we default to a full 100% allowance and
+ * rely on the shared "lowest of the three plays off scratch" relative offset
+ * (see matchPlayingHandicaps) for fairness. Lower this (e.g. 0.9) to further
+ * discount the pair, as USGA does for four-ball.
+ */
+export const TWO_V_ONE_ALLOWANCE = 1.0
+
 export const FORMAT_LABELS: Record<string, string> = {
   Singles: 'Singles',
   'Best Ball': 'Best Ball',
   Scramble: 'Scramble',
+  '2v1': '2 v 1',
 }
 
 export const SCORING_LABELS: Record<string, string> = {

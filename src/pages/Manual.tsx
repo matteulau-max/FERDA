@@ -463,21 +463,23 @@ const CONTENT: Record<string, string> = {
     <div style="background:#fffdf7;border:1px solid rgba(14,58,41,.14);border-radius:14px;box-shadow:0 10px 30px -18px rgba(14,58,41,.55);margin:0 0 18px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(14,58,41,.14);background:linear-gradient(180deg,#fffdf7,#fbf7ea)">
         <span style="flex:0 0 auto;background:#efe14e;color:#0e3a29;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">The House</span>
-        <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Airbnb<small style="display:block;font-family:'Iowan Old Style',Palatino,Georgia,serif;font-style:normal;font-size:12.5px;letter-spacing:.05em;color:#5d6b5f;font-weight:400;margin-top:3px">Check-in Thu 4:00 PM · Check-out Sun 9–10 AM</small></h2>
+        <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Airbnb<small style="display:block;font-family:'Iowan Old Style',Palatino,Georgia,serif;font-style:normal;font-size:12.5px;letter-spacing:.05em;color:#5d6b5f;font-weight:400;margin-top:3px">Check-in Thu Jul 9 · 4:00 PM · Check-out Sun Jul 12 · by 10:00 AM</small></h2>
       </div>
       <div style="padding:6px 18px 8px"><ul style="list-style:none;margin:0;padding:0">
-        <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Address.</span> 58 Pyngyp Road, Stony Point, NY 10980</span></li>
+        <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Address.</span> 58 Pyngyp Road, Stony Point, NY 10980, US</span></li>
+        <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Check-in.</span> Thursday, July 9 · 4:00 PM <span style="color:#9aa39a;font-style:italic">(standard check-in time)</span></span></li>
+        <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Check-out.</span> Sunday, July 12 · by 10:00 AM</span></li>
+        <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Self check-in.</span> Front door code <b style="font-variant-numeric:tabular-nums;letter-spacing:.06em">4950</b></span></li>
+        <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Wi-Fi.</span> Network “Welcome Guest” · Password “EnjoyYourStay”</span></li>
       </ul></div>
     </div>
     <div style="background:#fffdf7;border:1px solid rgba(14,58,41,.14);border-radius:14px;box-shadow:0 10px 30px -18px rgba(14,58,41,.55);margin:0 0 18px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(14,58,41,.14);background:linear-gradient(180deg,#fffdf7,#fbf7ea)">
-        <span style="flex:0 0 auto;background:#0e3a29;color:#f3ecd9;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">Rooms</span>
-        <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Sleeping Arrangements</h2>
+        <span style="flex:0 0 auto;background:#b5462f;color:#f3ecd9;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">Quiet Hours</span>
+        <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Good Neighbor Policy</h2>
       </div>
-      <div style="text-align:center;padding:30px 18px;color:#5d6b5f">
-        <span style="font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#bcae5b;font-size:28px;display:block;margin-bottom:8px">🛏️</span>
-        <h3 style="font-family:'Playfair Display',Georgia,serif;color:#1c5540;font-size:22px;margin:0 0 8px">To be assigned</h3>
-        <p style="font-size:14.5px">Send me the room / bed breakdown and who's where, and I'll lay it out here.</p>
+      <div style="padding:16px 18px 18px;color:#1c2b22;font-size:14.5px;line-height:1.5">
+        <p style="margin:0"><b style="color:#b5462f">Absolutely no outdoor noise after 8 PM.</b> This is a quiet residential neighborhood, and any noise past this time may result in neighbor complaints or even the police being called. Thanks for helping us keep good relations with the community.</p>
       </div>
     </div>`,
 }
