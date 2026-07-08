@@ -22,7 +22,7 @@ export interface Player {
   team: 1 | 2
 }
 
-export type Format = 'Singles' | 'Best Ball' | 'Scramble'
+export type Format = 'Singles' | 'Best Ball' | 'Scramble' | '2v1'
 export type Scoring = 'Match Play' | 'Stroke Play'
 
 export interface Session {
@@ -43,7 +43,7 @@ export interface Match {
 }
 
 // Scores keyed by hole number (1-18)
-// Best Ball / Singles: per-player object  { "Matt": 5, "Jake": 6 }
+// Best Ball / Singles / 2v1: per-player object  { "Matt": 5, "Jake": 6 }
 // Scramble: per-player object with single entry (first player name used as key)
 export interface HoleScores {
   team1: Record<string, number>

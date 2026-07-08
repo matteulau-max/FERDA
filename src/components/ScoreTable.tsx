@@ -28,7 +28,7 @@ export function ScoreTable({ match, format, scoring = 'Match Play', players, cou
 
   // --- Compute strokes ---
   const { t1Phs, t2Phs } = format !== 'Scramble'
-    ? matchPlayingHandicaps(match.team1Players, match.team2Players, players, course, format as 'Singles' | 'Best Ball')
+    ? matchPlayingHandicaps(match.team1Players, match.team2Players, players, course, format)
     : { t1Phs: [], t2Phs: [] }
 
   const t1PlayerStrokes = format !== 'Scramble'
@@ -76,9 +76,10 @@ export function ScoreTable({ match, format, scoring = 'Match Play', players, cou
       color: TEAM_COLORS.team2,
     })
   } else {
+    const showPh = format === 'Best Ball' || format === '2v1'
     match.team1Players.forEach((name, i) => {
       rows.push({
-        label: format === 'Best Ball' ? `${name} (${t1Phs[i]})` : name,
+        label: showPh ? `${name} (${t1Phs[i]})` : name,
         teamSide: 'team1',
         player: name,
         strokes: t1PlayerStrokes[name] ?? {},
@@ -87,7 +88,7 @@ export function ScoreTable({ match, format, scoring = 'Match Play', players, cou
     })
     match.team2Players.forEach((name, i) => {
       rows.push({
-        label: format === 'Best Ball' ? `${name} (${t2Phs[i]})` : name,
+        label: showPh ? `${name} (${t2Phs[i]})` : name,
         teamSide: 'team2',
         player: name,
         strokes: t2PlayerStrokes[name] ?? {},

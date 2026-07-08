@@ -50,6 +50,33 @@ function bestNetForSide(
 }
 
 // ---------------------------------------------------------------------------
+// Average net per side (2 v 1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Average of the side's players' net scores on a hole.
+ * Iterates the side's roster (not just entered keys) so a two-player side only
+ * counts once BOTH players have a gross; returns null (hole not yet complete)
+ * otherwise. For a one-player (solo) side this is simply that player's net.
+ */
+function avgNetForSide(
+  sidePlayers: string[],
+  holeScores: Record<string, number>,
+  playerStrokes: Record<string, Record<number, number>>,
+  hole: number,
+): number | null {
+  const nets: number[] = []
+  for (const player of sidePlayers) {
+    const gross = holeScores[player]
+    if (!gross || gross === 0) return null
+    const strokes = playerStrokes[player]?.[hole] ?? 0
+    nets.push(gross - strokes)
+  }
+  if (nets.length === 0) return null
+  return nets.reduce((sum, n) => sum + n, 0) / nets.length
+}
+
+// ---------------------------------------------------------------------------
 // Main match status calculator
 // ---------------------------------------------------------------------------
 
@@ -117,6 +144,12 @@ export function calcMatchStatus(
     } else if (format === 'Best Ball') {
       t1Net = bestNetForSide(holeScores.team1, t1PlayerStrokes, hole.number)
       t2Net = bestNetForSide(holeScores.team2, t2PlayerStrokes, hole.number)
+      if (t1Net === null || t2Net === null) continue
+    } else if (format === '2v1') {
+      // Each side's net = average of its players' nets (pair = mean of two,
+      // solo = its single net). May be fractional (e.g. 4.5).
+      t1Net = avgNetForSide(match.team1Players, holeScores.team1, t1PlayerStrokes, hole.number)
+      t2Net = avgNetForSide(match.team2Players, holeScores.team2, t2PlayerStrokes, hole.number)
       if (t1Net === null || t2Net === null) continue
     } else {
       // Singles — one player per side
