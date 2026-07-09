@@ -3,7 +3,7 @@
  * Match status calculation — pure functions, no side effects.
  */
 
-import type { Course, Format, Match, MatchScores, MatchStatus, Player, Scoring } from './types'
+import type { Course, Format, HoleScores, Match, MatchScores, MatchStatus, Player, Scoring } from './types'
 import {
   matchPlayingHandicaps,
   perPlayerHoleStrokes,
@@ -77,6 +77,99 @@ function avgNetForSide(
 }
 
 // ---------------------------------------------------------------------------
+// Shared per-match stroke setup and per-hole side nets
+// ---------------------------------------------------------------------------
+
+interface MatchStrokes {
+  t1PlayerStrokes: Record<string, Record<number, number>>
+  t2PlayerStrokes: Record<string, Record<number, number>>
+  t1TeamStrokesPerHole: Record<number, number>
+  t2TeamStrokesPerHole: Record<number, number>
+}
+
+function computeMatchStrokes(
+  match: Match,
+  format: Format,
+  players: Player[],
+  course: Course,
+): MatchStrokes {
+  const strokes: MatchStrokes = {
+    t1PlayerStrokes: {},
+    t2PlayerStrokes: {},
+    t1TeamStrokesPerHole: {},
+    t2TeamStrokesPerHole: {},
+  }
+
+  if (format === 'Scramble') {
+    const { team1Ph, team2Ph } = scrambleSideHandicaps(
+      match.team1Players,
+      match.team2Players,
+      players,
+      course,
+    )
+    for (const hole of course.holes) {
+      strokes.t1TeamStrokesPerHole[hole.number] = strokesOnHole(team1Ph, hole.strokeIndex)
+      strokes.t2TeamStrokesPerHole[hole.number] = strokesOnHole(team2Ph, hole.strokeIndex)
+    }
+  } else {
+    const { t1Phs, t2Phs } = matchPlayingHandicaps(
+      match.team1Players, match.team2Players, players, course, format,
+    )
+    strokes.t1PlayerStrokes = perPlayerHoleStrokes(match.team1Players, t1Phs, course)
+    strokes.t2PlayerStrokes = perPlayerHoleStrokes(match.team2Players, t2Phs, course)
+  }
+
+  return strokes
+}
+
+/**
+ * Both sides' competing net scores on one hole, per the format's rules.
+ * Returns null while either side's score for the hole is incomplete.
+ */
+function sideNetsForHole(
+  match: Match,
+  format: Format,
+  strokes: MatchStrokes,
+  holeScores: HoleScores,
+  holeNumber: number,
+): { t1Net: number; t2Net: number } | null {
+  if (format === 'Scramble') {
+    // Use first player name as key, or any non-zero value
+    const t1Gross = firstNonZeroValue(holeScores.team1)
+    const t2Gross = firstNonZeroValue(holeScores.team2)
+    if (t1Gross === null || t2Gross === null) return null
+    return {
+      t1Net: t1Gross - (strokes.t1TeamStrokesPerHole[holeNumber] ?? 0),
+      t2Net: t2Gross - (strokes.t2TeamStrokesPerHole[holeNumber] ?? 0),
+    }
+  }
+  if (format === 'Best Ball') {
+    const t1Net = bestNetForSide(holeScores.team1, strokes.t1PlayerStrokes, holeNumber)
+    const t2Net = bestNetForSide(holeScores.team2, strokes.t2PlayerStrokes, holeNumber)
+    if (t1Net === null || t2Net === null) return null
+    return { t1Net, t2Net }
+  }
+  if (format === '2v1') {
+    // Each side's net = average of its players' nets (pair = mean of two,
+    // solo = its single net). May be fractional (e.g. 4.5).
+    const t1Net = avgNetForSide(match.team1Players, holeScores.team1, strokes.t1PlayerStrokes, holeNumber)
+    const t2Net = avgNetForSide(match.team2Players, holeScores.team2, strokes.t2PlayerStrokes, holeNumber)
+    if (t1Net === null || t2Net === null) return null
+    return { t1Net, t2Net }
+  }
+  // Singles — one player per side
+  const t1Player = match.team1Players[0]
+  const t2Player = match.team2Players[0]
+  const t1Gross = holeScores.team1[t1Player]
+  const t2Gross = holeScores.team2[t2Player]
+  if (!t1Gross || !t2Gross) return null
+  return {
+    t1Net: t1Gross - (strokes.t1PlayerStrokes[t1Player]?.[holeNumber] ?? 0),
+    t2Net: t2Gross - (strokes.t2PlayerStrokes[t2Player]?.[holeNumber] ?? 0),
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main match status calculator
 // ---------------------------------------------------------------------------
 
@@ -94,29 +187,7 @@ export function calcMatchStatus(
   const totalHoles = course.holes.length // 18
 
   // --- Compute playing handicap strokes per player / team ---
-  let t1PlayerStrokes: Record<string, Record<number, number>> = {}
-  let t2PlayerStrokes: Record<string, Record<number, number>> = {}
-  let t1TeamStrokesPerHole: Record<number, number> = {}
-  let t2TeamStrokesPerHole: Record<number, number> = {}
-
-  if (format === 'Scramble') {
-    const { team1Ph, team2Ph } = scrambleSideHandicaps(
-      match.team1Players,
-      match.team2Players,
-      players,
-      course,
-    )
-    for (const hole of course.holes) {
-      t1TeamStrokesPerHole[hole.number] = strokesOnHole(team1Ph, hole.strokeIndex)
-      t2TeamStrokesPerHole[hole.number] = strokesOnHole(team2Ph, hole.strokeIndex)
-    }
-  } else {
-    const { t1Phs, t2Phs } = matchPlayingHandicaps(
-      match.team1Players, match.team2Players, players, course, format,
-    )
-    t1PlayerStrokes = perPlayerHoleStrokes(match.team1Players, t1Phs, course)
-    t2PlayerStrokes = perPlayerHoleStrokes(match.team2Players, t2Phs, course)
-  }
+  const strokes = computeMatchStrokes(match, format, players, course)
 
   // --- Walk holes and compute running match status ---
   let t1Up = 0
@@ -131,38 +202,9 @@ export function calcMatchStatus(
     const holeScores = match.scores[hole.number]
     if (!holeScores) continue
 
-    let t1Net: number | null = null
-    let t2Net: number | null = null
-
-    if (format === 'Scramble') {
-      // Use first player name as key, or any non-zero value
-      const t1Gross = firstNonZeroValue(holeScores.team1)
-      const t2Gross = firstNonZeroValue(holeScores.team2)
-      if (t1Gross === null || t2Gross === null) continue
-      t1Net = t1Gross - (t1TeamStrokesPerHole[hole.number] ?? 0)
-      t2Net = t2Gross - (t2TeamStrokesPerHole[hole.number] ?? 0)
-    } else if (format === 'Best Ball') {
-      t1Net = bestNetForSide(holeScores.team1, t1PlayerStrokes, hole.number)
-      t2Net = bestNetForSide(holeScores.team2, t2PlayerStrokes, hole.number)
-      if (t1Net === null || t2Net === null) continue
-    } else if (format === '2v1') {
-      // Each side's net = average of its players' nets (pair = mean of two,
-      // solo = its single net). May be fractional (e.g. 4.5).
-      t1Net = avgNetForSide(match.team1Players, holeScores.team1, t1PlayerStrokes, hole.number)
-      t2Net = avgNetForSide(match.team2Players, holeScores.team2, t2PlayerStrokes, hole.number)
-      if (t1Net === null || t2Net === null) continue
-    } else {
-      // Singles — one player per side
-      const t1Player = match.team1Players[0]
-      const t2Player = match.team2Players[0]
-      const t1Gross = holeScores.team1[t1Player]
-      const t2Gross = holeScores.team2[t2Player]
-      if (!t1Gross || !t2Gross) continue
-      const t1Strokes = t1PlayerStrokes[t1Player]?.[hole.number] ?? 0
-      const t2Strokes = t2PlayerStrokes[t2Player]?.[hole.number] ?? 0
-      t1Net = t1Gross - t1Strokes
-      t2Net = t2Gross - t2Strokes
-    }
+    const nets = sideNetsForHole(match, format, strokes, holeScores, hole.number)
+    if (nets === null) continue
+    const { t1Net, t2Net } = nets
 
     holesPlayed++
 
@@ -220,6 +262,66 @@ function firstNonZeroValue(obj: Record<string, number>): number | null {
     if (v && v !== 0) return v
   }
   return null
+}
+
+// ---------------------------------------------------------------------------
+// Per-hole winner highlights (for scorecard scanning)
+// ---------------------------------------------------------------------------
+
+export interface HoleWinner {
+  side: 'team1' | 'team2'
+  /** Player name(s) whose score cell produced the win (row keys in ScoreTable). */
+  players: string[]
+}
+
+/**
+ * For each fully-scored, non-halved hole: which side won it (lower net, the
+ * same comparison calcMatchStatus uses) and which of that side's score cells
+ * to highlight — Singles/Scramble: the side's single cell; Best Ball: the
+ * player(s) whose net equals the side's best; 2v1: the whole side (the pair's
+ * average is what won, so both cells).
+ */
+export function holeWinnerHighlights(
+  match: Match,
+  format: Format,
+  players: Player[],
+  course: Course | undefined,
+): Record<number, HoleWinner> {
+  const result: Record<number, HoleWinner> = {}
+  if (!course) return result
+  const strokes = computeMatchStrokes(match, format, players, course)
+
+  for (const hole of course.holes) {
+    const holeScores = match.scores[hole.number]
+    if (!holeScores) continue
+    const nets = sideNetsForHole(match, format, strokes, holeScores, hole.number)
+    if (nets === null || nets.t1Net === nets.t2Net) continue
+
+    const side: 'team1' | 'team2' = nets.t1Net < nets.t2Net ? 'team1' : 'team2'
+    const roster = side === 'team1' ? match.team1Players : match.team2Players
+    const sideScores = side === 'team1' ? holeScores.team1 : holeScores.team2
+    const sideStrokes = side === 'team1' ? strokes.t1PlayerStrokes : strokes.t2PlayerStrokes
+    const winningNet = side === 'team1' ? nets.t1Net : nets.t2Net
+
+    let winners: string[]
+    if (format === 'Best Ball') {
+      // The ball(s) that produced the side's best net
+      winners = Object.entries(sideScores)
+        .filter(([name, gross]) =>
+          gross && gross - (sideStrokes[name]?.[hole.number] ?? 0) === winningNet)
+        .map(([name]) => name)
+    } else if (format === '2v1') {
+      winners = [...roster]
+    } else {
+      // Singles / Scramble — the side's single row (Scramble rows key off the
+      // first roster name, matching ScoreTable)
+      winners = [roster[0] ?? side]
+    }
+
+    result[hole.number] = { side, players: winners }
+  }
+
+  return result
 }
 
 // ---------------------------------------------------------------------------
