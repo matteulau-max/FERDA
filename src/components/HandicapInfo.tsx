@@ -4,7 +4,8 @@ import {
   TEAM_COLORS,
   SCRAMBLE_ALLOWANCES,
   BEST_BALL_ALLOWANCE,
-  TWO_V_ONE_ALLOWANCE,
+  TWO_V_ONE_PAIR_ALLOWANCE,
+  TWO_V_ONE_SOLO_ALLOWANCE,
 } from '../lib/constants'
 
 interface Props {
@@ -62,12 +63,12 @@ export function HandicapInfo({ match, format, players, course }: Props) {
       )
     }
 
-    // Singles, Best Ball, or 2 v 1
+    // Singles, Best Ball, or 2 v 1 (pair discounted, solo at full allowance)
     const allowancePct =
       format === 'Best Ball'
         ? Math.round(BEST_BALL_ALLOWANCE * 100)
         : format === '2v1'
-        ? Math.round(TWO_V_ONE_ALLOWANCE * 100)
+        ? Math.round((names.length > 1 ? TWO_V_ONE_PAIR_ALLOWANCE : TWO_V_ONE_SOLO_ALLOWANCE) * 100)
         : 100
 
     return (

@@ -26,16 +26,18 @@ export const BEST_BALL_ALLOWANCE = 0.9
 export const SINGLES_ALLOWANCE = 1.0
 
 /**
- * 2 v 1 allowance per player.
+ * 2 v 1 allowance for the PAIRED side only.
  *
- * There is no official USGA "2 v 1" format. Because this format averages the
- * pair's two net scores (rather than taking their better ball), the pair's
- * advantage is already dampened, so we default to a full 100% allowance and
- * rely on the shared "lowest of the three plays off scratch" relative offset
- * (see matchPlayingHandicaps) for fairness. Lower this (e.g. 0.9) to further
- * discount the pair, as USGA does for four-ball.
+ * There is no official USGA "2 v 1" format. Following the USGA four-ball
+ * principle of discounting multi-player sides, each member of the two-player
+ * side plays at 90% of course handicap while the solo plays at 100%
+ * (TWO_V_ONE_SOLO_ALLOWANCE). The shared "lowest of the three plays off
+ * scratch" relative offset (see matchPlayingHandicaps) then applies on top.
  */
-export const TWO_V_ONE_ALLOWANCE = 1.0
+export const TWO_V_ONE_PAIR_ALLOWANCE = 0.9
+
+/** 2 v 1 allowance for the solo side. */
+export const TWO_V_ONE_SOLO_ALLOWANCE = 1.0
 
 export const FORMAT_LABELS: Record<string, string> = {
   Singles: 'Singles',
