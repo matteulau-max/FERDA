@@ -9,7 +9,8 @@ import {
   BEST_BALL_ALLOWANCE,
   SCRAMBLE_ALLOWANCES,
   SINGLES_ALLOWANCE,
-  TWO_V_ONE_ALLOWANCE,
+  TWO_V_ONE_PAIR_ALLOWANCE,
+  TWO_V_ONE_SOLO_ALLOWANCE,
 } from './constants'
 
 /** Per-player formats (each player receives their own strokes). */
@@ -44,21 +45,28 @@ export function bestBallPlayingHandicap(ch: number): number {
 }
 
 /**
- * Step 2d: 2 v 1 — apply the 2v1 allowance per player.
- * Each player (both the pair and the solo) receives their own strokes; the
- * pair's two nets are averaged downstream. See TWO_V_ONE_ALLOWANCE.
+ * Step 2d: 2 v 1 — side-aware allowance.
+ * Each member of the two-player side plays at TWO_V_ONE_PAIR_ALLOWANCE (90%);
+ * the solo plays at TWO_V_ONE_SOLO_ALLOWANCE (100%). Each player still
+ * receives their own strokes; the pair's two nets are averaged downstream.
  */
-export function twoVOnePlayingHandicap(ch: number): number {
-  return Math.round(ch * TWO_V_ONE_ALLOWANCE)
+export function twoVOnePlayingHandicap(ch: number, sideSize: number): number {
+  const allowance = sideSize > 1 ? TWO_V_ONE_PAIR_ALLOWANCE : TWO_V_ONE_SOLO_ALLOWANCE
+  return Math.round(ch * allowance)
 }
 
 /**
  * Per-player playing handicap for the per-player formats (Singles, Best Ball,
- * 2v1), before the "lowest plays off 0" offset.
+ * 2v1), before the "lowest plays off 0" offset. sideSize (how many players on
+ * this player's side) only matters for 2v1, where the pair is discounted.
  */
-export function perPlayerPlayingHandicap(ch: number, format: PerPlayerFormat): number {
+export function perPlayerPlayingHandicap(
+  ch: number,
+  format: PerPlayerFormat,
+  sideSize = 1,
+): number {
   if (format === 'Best Ball') return bestBallPlayingHandicap(ch)
-  if (format === '2v1') return twoVOnePlayingHandicap(ch)
+  if (format === '2v1') return twoVOnePlayingHandicap(ch, sideSize)
   return singlesPlayingHandicap(ch)
 }
 
@@ -159,7 +167,7 @@ export function sidePlayingHandicaps(
     return courseHandicap(p.handicapIndex, course.slope, course.rating, course.par)
   })
 
-  const phs = chs.map((ch) => perPlayerPlayingHandicap(ch, format))
+  const phs = chs.map((ch) => perPlayerPlayingHandicap(ch, format, playerNames.length))
 
   const min = Math.min(...phs)
   return phs.map((ph) => ph - min)
@@ -210,7 +218,7 @@ export function matchPlayingHandicaps(
     names.map((name) => {
       const p = playerMap.get(name.toLowerCase())
       const ch = p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
-      return perPlayerPlayingHandicap(ch, format)
+      return perPlayerPlayingHandicap(ch, format, names.length)
     })
 
   const t1RawPhs = toPhs(team1Players)

@@ -55,6 +55,30 @@ export function ScoreTable({ match, format, scoring = 'Match Play', players, cou
   const statusByHole: Record<number, number> = {}
   for (const { hole, t1Up } of statusPoints) statusByHole[hole] = t1Up
 
+  // 2v1: per-hole average NET of the paired side (their competing score).
+  // Only filled once BOTH pair players have a gross on the hole.
+  const pairSide: 'team1' | 'team2' | null =
+    format === '2v1'
+      ? match.team1Players.length > 1 ? 'team1' : match.team2Players.length > 1 ? 'team2' : null
+      : null
+  const pairAvgByHole: Record<number, number> = {}
+  if (pairSide) {
+    const pairPlayers = pairSide === 'team1' ? match.team1Players : match.team2Players
+    const pairStrokes = pairSide === 'team1' ? t1PlayerStrokes : t2PlayerStrokes
+    for (const h of course.holes) {
+      const nets: number[] = []
+      for (const name of pairPlayers) {
+        const gross = localScores[h.number]?.[pairSide]?.[name]
+        if (!gross || gross === 0) { nets.length = 0; break }
+        nets.push(gross - (pairStrokes[name]?.[h.number] ?? 0))
+      }
+      if (nets.length > 0) {
+        pairAvgByHole[h.number] = nets.reduce((s, n) => s + n, 0) / nets.length
+      }
+    }
+  }
+  const fmtAvg = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+
   // Build rows to render
   // team1Players rows, then team2Players rows (for Singles/BestBall)
   // For Scramble: one row per team
@@ -186,6 +210,33 @@ export function ScoreTable({ match, format, scoring = 'Match Play', players, cou
                   })}
                   <td />
                 </tr>
+                {/* 2v1: the pair's competing (averaged net) score, after their last player */}
+                {pairSide === row.teamSide &&
+                  row.player === (pairSide === 'team1' ? match.team1Players : match.team2Players).slice(-1)[0] && (
+                  <tr style={{ borderBottom: '2px solid #e8e5d8', background: '#f4f1e6' }}>
+                    <td
+                      className="font-body text-xs font-semibold py-1.5 px-2 text-left"
+                      style={{ color: row.color, borderLeft: `3px solid ${row.color}`, paddingLeft: 6 }}
+                    >
+                      Pair avg (net)
+                    </td>
+                    {holes.map((h) => {
+                      const avg = pairAvgByHole[h.number]
+                      return (
+                        <td key={h.number} className={`${tdStyle} font-semibold tabular-nums`} style={{ color: row.color }}>
+                          {avg !== undefined ? fmtAvg(avg) : ''}
+                        </td>
+                      )
+                    })}
+                    <td className={`${tdStyle} font-semibold tabular-nums`} style={{ color: row.color }}>
+                      {(() => {
+                        const played = holes.filter((h) => pairAvgByHole[h.number] !== undefined)
+                        if (played.length === 0) return '–'
+                        return fmtAvg(played.reduce((s, h) => s + pairAvgByHole[h.number], 0))
+                      })()}
+                    </td>
+                  </tr>
+                )}
               </React.Fragment>
             )
           })}
