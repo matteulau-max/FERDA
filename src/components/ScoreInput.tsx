@@ -4,6 +4,15 @@ interface Props {
   par: number
   onChange: (val: number | '') => void
   disabled?: boolean
+  /** Team color; when set, tints the cell to mark the hole-winning score. */
+  highlight?: string
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex)
+  if (!m) return hex
+  const n = parseInt(m[1], 16)
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
 type ScoreDecoration =
@@ -26,7 +35,7 @@ function getDecoration(scoreToPar: number | null): ScoreDecoration {
 const BIRDIE_COLOR = '#DC2626'
 const BOGEY_COLOR = '#1f2937'
 
-export function ScoreInput({ value, strokes, par, onChange, disabled }: Props) {
+export function ScoreInput({ value, strokes, par, onChange, disabled, highlight }: Props) {
   const hasStroke = strokes > 0
   const scoreToPar = typeof value === 'number' ? value - par : null
   const decoration = getDecoration(scoreToPar)
@@ -59,7 +68,14 @@ export function ScoreInput({ value, strokes, par, onChange, disabled }: Props) {
 
   return (
     <td className="p-0" style={{ minWidth: 36 }}>
-      <div className="flex items-center justify-center" style={{ padding: '2px' }}>
+      <div
+        className="flex items-center justify-center"
+        style={{
+          padding: '2px',
+          background: highlight ? hexToRgba(highlight, 0.15) : undefined,
+          borderRadius: highlight ? 6 : undefined,
+        }}
+      >
         <div style={outerStyle}>
           <input
             type="number"

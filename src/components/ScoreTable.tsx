@@ -8,7 +8,7 @@ import {
   scrambleSideHandicaps,
   strokesOnHole,
 } from '../lib/handicap'
-import { runningStatusByHole } from '../lib/matchPlay'
+import { holeWinnerHighlights, runningStatusByHole } from '../lib/matchPlay'
 
 interface Props {
   match: Match
@@ -54,6 +54,9 @@ export function ScoreTable({ match, format, scoring = 'Match Play', players, cou
   const statusPoints = runningStatusByHole({ ...match, scores: localScores }, format, players, course, scoring)
   const statusByHole: Record<number, number> = {}
   for (const { hole, t1Up } of statusPoints) statusByHole[hole] = t1Up
+
+  // Which cell(s) won each hole (lower net) — tinted for quick scanning
+  const winnersByHole = holeWinnerHighlights({ ...match, scores: localScores }, format, players, course)
 
   // 2v1: per-hole average NET of the paired side (their competing score).
   // Only filled once BOTH pair players have a gross on the hole.
@@ -173,12 +176,15 @@ export function ScoreTable({ match, format, scoring = 'Match Play', players, cou
                   {holes.map((h) => {
                     const gross = localScores[h.number]?.[row.teamSide]?.[row.player]
                     const strokes = row.strokes[h.number] ?? 0
+                    const winner = winnersByHole[h.number]
+                    const wonHole = winner?.side === row.teamSide && winner.players.includes(row.player)
                     return (
                       <ScoreInput
                         key={h.number}
                         value={gross ?? ''}
                         strokes={strokes}
                         par={h.par}
+                        highlight={wonHole ? row.color : undefined}
                         onChange={(val) => onScoreChange(h.number, row.teamSide, row.player, val)}
                       />
                     )
