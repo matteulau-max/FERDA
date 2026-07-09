@@ -264,7 +264,7 @@ const CONTENT: Record<string, string> = {
         </table>
         <ul style="list-style:none;margin:4px 0 0;padding:0">
           <li style="padding:14px 2px;border-bottom:1px solid rgba(14,58,41,.14);display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">13 points</span> clinches the weekend.</span></li>
-          <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Ties</span> in a group matchup roll that money into the Winners pot.</span></li>
+          <li style="padding:14px 2px;display:flex;gap:12px"><span style="color:#bcae5b;font-weight:700;flex:0 0 auto;line-height:1.4">—</span><span><span style="color:#2f7256;font-weight:700">Ties</span> in a matchup are a push — no money changes hands.</span></li>
         </ul>
       </div>
     </div>
@@ -272,7 +272,7 @@ const CONTENT: Record<string, string> = {
     <div style="background:#fffdf7;border:1px solid rgba(14,58,41,.14);border-radius:14px;box-shadow:0 10px 30px -18px rgba(14,58,41,.55);margin:0 0 18px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(14,58,41,.14);background:linear-gradient(180deg,#fffdf7,#fbf7ea)">
         <span style="flex:0 0 auto;background:#0e3a29;color:#f3ecd9;text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;white-space:nowrap">The Pot</span>
-        <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Four pools, $215 in<small style="display:block;font-family:'Iowan Old Style',Palatino,Georgia,serif;font-style:normal;font-size:12.5px;letter-spacing:.05em;color:#5d6b5f;font-weight:400;margin-top:3px">Each one settles on its own</small></h2>
+        <h2 style="font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c5540;font-size:21px;line-height:1.1;margin:0">Four pools, $215 in<small style="display:block;font-family:'Iowan Old Style',Palatino,Georgia,serif;font-style:normal;font-size:12.5px;letter-spacing:.05em;color:#5d6b5f;font-weight:400;margin-top:3px">All figures are net — every pool ties to zero</small></h2>
       </div>
       <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
 
@@ -281,8 +281,8 @@ const CONTENT: Record<string, string> = {
             <span style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:18px;color:#1c5540">The Cup</span>
             <span style="font-variant-numeric:tabular-nums;font-weight:700;color:#1c5540;white-space:nowrap">$150 in</span>
           </div>
-          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">Team total match. Win the weekend, your squad splits the lot.</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Win $300</span><span style="background:#fbf6e6;color:#7a6a1f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Net +$150</span></div>
+          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">Team total match. Win the weekend with your squad, take it off the other side.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Winners +$150 each</span><span style="background:#fdecea;color:#b5462f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Losers −$150 each</span></div>
         </div>
 
         <div style="border:1px solid rgba(14,58,41,.16);border-left:5px solid #bcae5b;border-radius:11px;padding:13px 15px;background:#fff">
@@ -290,8 +290,8 @@ const CONTENT: Record<string, string> = {
             <span style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:18px;color:#1c5540">Matchups</span>
             <span style="font-variant-numeric:tabular-nums;font-weight:700;color:#1c5540;white-space:nowrap">$40 in</span>
           </div>
-          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">$10 a round across all four rounds. Win yours, take the head-to-head.</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Sweep $80</span><span style="background:#fbf6e6;color:#7a6a1f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Net +$40</span></div>
+          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">$10 a round across all four rounds. Win yours, take the head-to-head; halves push. Friday's 2v1 splits its $30 pot — pair win is +$5 each, solo win is +$20, losers −$10.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Win +$10 · Lose −$10</span><span style="background:#fbf6e6;color:#7a6a1f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Sweep all four +$40</span></div>
         </div>
 
         <div style="border:1px solid rgba(14,58,41,.16);border-left:5px solid #c98a3a;border-radius:11px;padding:13px 15px;background:#fff">
@@ -299,8 +299,8 @@ const CONTENT: Record<string, string> = {
             <span style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:18px;color:#1c5540">Skills</span>
             <span style="font-variant-numeric:tabular-nums;font-weight:700;color:#1c5540;white-space:nowrap">$20 in</span>
           </div>
-          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">$10 Longest Drive + $10 Closest to the Pin. A teammate winning = you win.</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">$20 each</span><span style="background:#fbf6e6;color:#7a6a1f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Net +$10 each</span></div>
+          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">$10 Longest Drive + $10 Closest to the Pin. A teammate winning = you win; the other team pays.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Winners +$10 each</span><span style="background:#fdecea;color:#b5462f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Losers −$10 each</span></div>
         </div>
 
         <div style="border:1px solid rgba(14,58,41,.16);border-left:5px solid #caa92e;border-radius:11px;padding:13px 15px;background:#fff">
@@ -308,13 +308,13 @@ const CONTENT: Record<string, string> = {
             <span style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:18px;color:#1c5540">Golfer of the Weekend</span>
             <span style="font-variant-numeric:tabular-nums;font-weight:700;color:#1c5540;white-space:nowrap">$5 in</span>
           </div>
-          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">$5 from all 20. Best of points won, gross birdies &amp; best net — winner takes all.</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Win $100</span><span style="background:#fbf6e6;color:#7a6a1f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Net +$95</span></div>
+          <p style="margin:4px 0 8px;font-size:14px;color:#5d6b5f">$5 from all 20 — a $100 pot. Best of points won, gross birdies &amp; best net — winner takes all.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="background:#e8f0ea;color:#1c5540;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Winner +$95</span><span style="background:#fdecea;color:#b5462f;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px">Field −$5</span></div>
         </div>
 
         <div style="background:#e8f0ea;border-radius:11px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:2px">
-          <div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#5d6b5f">Sweep everything</div><div style="font-size:13.5px;color:#5d6b5f;margin-top:2px">$300 + $80 + $40 + $100</div></div>
-          <div style="text-align:right"><div style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:30px;color:#1c5540;line-height:1">$520</div><div style="font-size:13px;color:#2f7256;font-weight:700">net +$305</div></div>
+          <div><div style="font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:#5d6b5f">Sweep everything</div><div style="font-size:13.5px;color:#5d6b5f;margin-top:2px">Cup +$150 · Matchups +$40 · Skills +$20 · Golfer +$95</div></div>
+          <div style="text-align:right"><div style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:30px;color:#1c5540;line-height:1">+$305</div><div style="font-size:13px;color:#2f7256;font-weight:700">all net</div></div>
         </div>
 
       </div>

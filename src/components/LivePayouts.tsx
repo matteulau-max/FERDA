@@ -55,7 +55,7 @@ export function LivePayouts({ data }: Props) {
         <span style={BADGE}>Live</span>
         <h2 style={CARD_TITLE}>
           Payouts So Far
-          <small style={CARD_SUB}>Straight from the leaderboard · gross winnings, before your buy-ins</small>
+          <small style={CARD_SUB}>Straight from the leaderboard · net, up or down — the board ties to zero</small>
         </h2>
       </div>
 
@@ -90,10 +90,12 @@ export function LivePayouts({ data }: Props) {
         {ranked.map((p, i) => {
           const color = p.team === 1 ? TEAM_COLORS.team1 : TEAM_COLORS.team2
           const parts: string[] = []
-          if (p.matchups > 0) parts.push(`Matchups +$${p.matchups} (${p.wins}W · ${p.ties}T)`)
-          if (p.cup > 0) parts.push(`Cup +$${p.cup}`)
-          if (p.golfer > 0) parts.push(`Golfer +$${p.golfer}`)
-          if (p.skills > 0) parts.push(`Skills +$${p.skills}`)
+          if (p.matchups !== 0 || p.wins + p.ties + p.losses > 0) {
+            parts.push(`Matchups ${fmtMoney(p.matchups)} (${p.wins}W · ${p.ties}T · ${p.losses}L)`)
+          }
+          if (p.cup !== 0) parts.push(`Cup ${fmtMoney(p.cup)}`)
+          if (p.golfer !== 0) parts.push(`Golfer ${fmtMoney(p.golfer)}`)
+          if (p.skills !== 0) parts.push(`Skills ${fmtMoney(p.skills)}`)
           return (
             <li
               key={p.name}
@@ -122,10 +124,10 @@ export function LivePayouts({ data }: Props) {
                   fontSize: 17,
                   paddingTop: 1,
                   whiteSpace: 'nowrap',
-                  color: p.total > 0 ? '#1c5540' : '#9aa39a',
+                  color: p.total > 0 ? '#1c5540' : p.total < 0 ? '#b5462f' : '#9aa39a',
                 }}
               >
-                {p.total > 0 ? `+$${p.total}` : '$0'}
+                {fmtMoney(p.total)}
               </span>
             </li>
           )
@@ -133,8 +135,10 @@ export function LivePayouts({ data }: Props) {
       </ul>
 
       <p style={FOOTNOTE}>
-        Cup pays out to whichever side is ahead right now and updates as matches finish. Matchups
-        count settled rounds only. Golfer of the Weekend goes to the current Best Golfer leader.
+        All figures are net — winners' gains equal losers' losses, so the board always sums to
+        zero. Cup swings to whichever side is ahead right now and updates as matches finish.
+        Matchups count settled rounds only (halves push). Golfer of the Weekend goes to the
+        current Best Golfer leader; the rest of the field is −$5.
       </p>
     </div>
   )
@@ -197,6 +201,8 @@ function SkillToggle({ label, value, t1Name, t2Name, onChange, last }: TogglePro
 }
 
 const fmtPts = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(1))
+
+const fmtMoney = (n: number) => (n > 0 ? `+$${n}` : n < 0 ? `−$${Math.abs(n)}` : '$0')
 
 // --- Styles (match the Wagers tab card aesthetic) ---
 

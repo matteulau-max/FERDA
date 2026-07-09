@@ -1,19 +1,21 @@
 /**
  * payouts.ts
  * Live wager payouts derived from the leaderboard. Pure functions, no side
- * effects. All amounts are GROSS winnings (what a player collects), matching
- * how the pots are described on the Wagers tab.
+ * effects. All amounts are NET (up or down from your buy-ins), so every pool
+ * — and the whole board — always sums to zero.
  *
  * The four pools:
- *  - Matchups ($10/round head-to-head): win a settled match → +$20,
- *    halve → +$10 (stake back), loss → $0.
- *  - The Cup ($150 buy-in): every member of the team currently leading the
- *    overall points race collects +$300 if the weekend ended now.
- *  - Golfer of the Weekend ($5 buy-in): the current Best Golfer leader
- *    takes the whole $100 pot.
- *  - Skills ($10 Long Drive + $10 Closest to the Pin): a teammate winning a
- *    skill means everyone on that team collects +$20 for it. Set by the
- *    organizer via the toggle.
+ *  - Matchups ($10/player/round head-to-head): each settled match pays out
+ *    its own pot ($10 × players in the match). Winning side splits the pot
+ *    (net = share − stake), losers −$10, halve = push ($0). 1v1: +$10/−$10.
+ *    2v1: pair wins +$5 each, solo wins +$20, losers −$10 each.
+ *  - The Cup ($150 buy-in): members of the team currently leading the
+ *    overall points race are +$150, the trailing team −$150; tied = $0.
+ *  - Golfer of the Weekend ($5 from all 20 golfers = $100 pot): the current
+ *    Best Golfer leader is +$95, everyone else −$5.
+ *  - Skills ($10 Long Drive + $10 Closest to the Pin): per skill, the winning
+ *    team is +$10 each and the losing team −$10 each. Set by the organizer
+ *    via the toggle.
  */
 
 import type { TournamentData } from './types'
@@ -21,11 +23,16 @@ import { calcMatchStatus, totalPoints } from './matchPlay'
 import { rankBestGolfers } from './bestGolfer'
 
 export const WAGER = {
-  matchupWin: 20,
-  matchupTie: 10,
-  cup: 300,
-  golfer: 100,
-  skill: 20,
+  /** Per-player stake in each matchup */
+  matchupStake: 10,
+  /** Net swing for being on the winning/losing Cup team */
+  cup: 150,
+  /** Net for the Best Golfer leader ($100 pot − $5 buy-in) */
+  golferWin: 95,
+  /** Net for everyone else in the Golfer pool */
+  golferLoss: -5,
+  /** Net swing per skill (Long Drive / Closest to the Pin) */
+  skill: 10,
 } as const
 
 export type SkillWinner = 1 | 2 | null
@@ -40,6 +47,7 @@ export interface PlayerPayout {
   team: 1 | 2
   wins: number
   ties: number
+  losses: number
   matchups: number
   cup: number
   golfer: number
@@ -66,12 +74,12 @@ export function computePayouts(data: TournamentData, skills: SkillsState): Payou
 
   const byName: Record<string, PlayerPayout> = {}
   for (const p of players) {
-    byName[p.name] = { name: p.name, team: p.team, wins: 0, ties: 0, matchups: 0, cup: 0, golfer: 0, skills: 0, total: 0 }
+    byName[p.name] = { name: p.name, team: p.team, wins: 0, ties: 0, losses: 0, matchups: 0, cup: 0, golfer: 0, skills: 0, total: 0 }
   }
   const byLower = new Map(Object.entries(byName).map(([k, v]) => [k.toLowerCase(), v]))
   const lookup = (name: string) => byLower.get(name.toLowerCase())
 
-  // --- Matchups: settled head-to-head results only ---
+  // --- Matchups: settled head-to-head results only, each match zero-sum ---
   for (const session of sessions) {
     const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
     if (!course) continue
@@ -79,27 +87,42 @@ export function computePayouts(data: TournamentData, skills: SkillsState): Payou
       const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
       if (!status.isComplete || !status.result) continue
 
-      const award = (names: string[], outcome: 'win' | 'tie') => {
-        for (const name of names) {
-          const s = lookup(name); if (!s) continue
-          if (outcome === 'win') { s.wins++; s.matchups += WAGER.matchupWin }
-          else { s.ties++; s.matchups += WAGER.matchupTie }
+      if (status.result.winner === 'halved') {
+        // Push — stakes come back, no money moves
+        for (const name of [...match.team1Players, ...match.team2Players]) {
+          const s = lookup(name); if (s) s.ties++
         }
+        continue
       }
 
-      if (status.result.winner === 'team1') award(match.team1Players, 'win')
-      else if (status.result.winner === 'team2') award(match.team2Players, 'win')
-      else { award(match.team1Players, 'tie'); award(match.team2Players, 'tie') }
+      const winners = status.result.winner === 'team1' ? match.team1Players : match.team2Players
+      const losers = status.result.winner === 'team1' ? match.team2Players : match.team1Players
+
+      // Pot = every player's stake; winners split it (net = share − stake).
+      // 1v1: +$10/−$10. 2v1: pair +$5 each / solo +$20, losers −$10 each.
+      const pot = WAGER.matchupStake * (winners.length + losers.length)
+      const winnerNet = pot / winners.length - WAGER.matchupStake
+
+      for (const name of winners) {
+        const s = lookup(name); if (!s) continue
+        s.wins++; s.matchups += winnerNet
+      }
+      for (const name of losers) {
+        const s = lookup(name); if (!s) continue
+        s.losses++; s.matchups -= WAGER.matchupStake
+      }
     }
   }
 
-  // --- Cup, Golfer of the Weekend, Skills ---
+  // --- Cup, Golfer of the Weekend, Skills (all net, all zero-sum) ---
   for (const p of players) {
     const s = byName[p.name]
-    if (winningTeam !== 0 && p.team === winningTeam) s.cup = WAGER.cup
-    if (bestGolfer && p.name.toLowerCase() === bestGolfer.toLowerCase()) s.golfer = WAGER.golfer
-    if (skills.longDrive === p.team) s.skills += WAGER.skill
-    if (skills.closestToPin === p.team) s.skills += WAGER.skill
+    if (winningTeam !== 0) s.cup = p.team === winningTeam ? WAGER.cup : -WAGER.cup
+    if (bestGolfer) {
+      s.golfer = p.name.toLowerCase() === bestGolfer.toLowerCase() ? WAGER.golferWin : WAGER.golferLoss
+    }
+    if (skills.longDrive !== null) s.skills += skills.longDrive === p.team ? WAGER.skill : -WAGER.skill
+    if (skills.closestToPin !== null) s.skills += skills.closestToPin === p.team ? WAGER.skill : -WAGER.skill
     s.total = s.matchups + s.cup + s.golfer + s.skills
   }
 
