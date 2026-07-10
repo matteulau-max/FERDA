@@ -16,7 +16,7 @@ export interface GolferStat {
   birdies: number
   pars: number
   netToPar: number
-  bbHoles: number
+  holesCounted: number
 }
 
 export interface RankedGolfer extends GolferStat {
@@ -31,7 +31,7 @@ export function computeGolferStats(
 ): Record<string, GolferStat> {
   const stats: Record<string, GolferStat> = {}
   for (const player of players) {
-    stats[player.name] = { name: player.name, team: player.team, points: 0, birdies: 0, pars: 0, netToPar: 0, bbHoles: 0 }
+    stats[player.name] = { name: player.name, team: player.team, points: 0, birdies: 0, pars: 0, netToPar: 0, holesCounted: 0 }
   }
 
   // Case-insensitive lookup — mirrors the pattern used in handicap.ts
@@ -60,11 +60,12 @@ export function computeGolferStats(
         }
       }
 
-      // Birdies, pars, net: Best Ball only.
-      // Net uses each player's OWN full course handicap (not the match's
-      // "lowest plays off 0" offset) so the Best Golfer net is comparable
-      // across foursomes — the best player in a group still gets their strokes.
-      if (session.format === 'Best Ball') {
+      // Birdies, pars, net: own-ball formats only (Best Ball, Singles, 2v1) —
+      // every player records their own score there, unlike Scramble's shared
+      // team ball. Net uses each player's OWN full course handicap (not the
+      // match's "lowest plays off 0" offset) so the Best Golfer net is
+      // comparable across groups — the best player still gets their strokes.
+      if (session.format === 'Best Ball' || session.format === 'Singles' || session.format === '2v1') {
         const chFor = (name: string) => {
           const p = players.find((pl) => pl.name.toLowerCase() === name.toLowerCase())
           return p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
@@ -81,14 +82,14 @@ export function computeGolferStats(
           for (const [name, gross] of Object.entries(holeScores.team1)) {
             const s = lookup(name); if (!s || !gross) continue
             const net = gross - (t1Strokes[name]?.[holeNum] ?? 0)
-            s.bbHoles++; s.netToPar += net - hole.par
+            s.holesCounted++; s.netToPar += net - hole.par
             if (gross <= hole.par - 1) s.birdies++
             else if (gross === hole.par) s.pars++
           }
           for (const [name, gross] of Object.entries(holeScores.team2)) {
             const s = lookup(name); if (!s || !gross) continue
             const net = gross - (t2Strokes[name]?.[holeNum] ?? 0)
-            s.bbHoles++; s.netToPar += net - hole.par
+            s.holesCounted++; s.netToPar += net - hole.par
             if (gross <= hole.par - 1) s.birdies++
             else if (gross === hole.par) s.pars++
           }
@@ -114,10 +115,10 @@ export function rankBestGolfers(
 ): RankedGolfer[] {
   const stats = computeGolferStats(sessions, players, courses)
 
-  // Top 5 by total points; include anyone with Best Ball holes so birdies
+  // Top 5 by total points; include anyone with own-ball holes so birdies
   // accumulate live even before a match is finished
   const top5 = Object.values(stats)
-    .filter((s) => s.points > 0 || s.bbHoles > 0)
+    .filter((s) => s.points > 0 || s.holesCounted > 0)
     .sort((a, b) => b.points - a.points || b.birdies - a.birdies)
     .slice(0, 5)
 

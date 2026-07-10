@@ -19,7 +19,19 @@ const fmtNet = (net: number, holes: number) => {
 export function PlayerLeaderboard({ sessions, players, courses }: Props) {
   const ranked = rankBestGolfers(sessions, players, courses)
 
-  if (ranked.length === 0) return null
+  if (ranked.length === 0) {
+    return (
+      <div className="rounded-xl overflow-hidden shadow-sm" style={{ background: '#fff', border: '1px solid #e8e5d8' }}>
+        <div className="px-4 py-3" style={{ background: '#f9f7f1', borderBottom: '1px solid #e8e5d8' }}>
+          <h2 className="font-serif font-semibold text-base leading-tight" style={{ color: '#333' }}>Best Golfer</h2>
+          <p className="font-body text-xs leading-tight" style={{ color: '#999' }}>50% pts · 35% net · 15% birdies</p>
+        </div>
+        <p className="px-4 py-5 text-center text-xs font-body" style={{ color: '#999' }}>
+          The race starts with the first own-ball scores (Singles, Best Ball, 2 v 1) or a finished match.
+        </p>
+      </div>
+    )
+  }
 
   const netColor = (net: number, holes: number) => {
     if (holes === 0) return '#ccc'
@@ -78,8 +90,8 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
                 <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: teamColor }}>
                   {fmtPts(stat.points)}
                 </span>
-                <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: netColor(stat.netToPar, stat.bbHoles) }}>
-                  {fmtNet(stat.netToPar, stat.bbHoles)}
+                <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: netColor(stat.netToPar, stat.holesCounted) }}>
+                  {fmtNet(stat.netToPar, stat.holesCounted)}
                 </span>
                 <span className="font-body text-sm w-8 text-center tabular-nums" style={{ color: stat.birdies > 0 ? '#DC2626' : '#ccc' }}>
                   {stat.birdies > 0 ? stat.birdies : '—'}
