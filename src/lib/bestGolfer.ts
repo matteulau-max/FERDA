@@ -101,11 +101,13 @@ export function computeGolferStats(
 }
 
 /**
- * Rank the top golfers by the composite formula:
+ * Rank every golfer by the composite formula:
  *   (team points × 0.50) + (−net × 0.35) + (birdies × 0.15)
  * Net is negative when under par, so negating it makes under-par positive.
- * Returns the top 5, sorted by composite descending. ranked[0] is the
- * current "Golfer of the Weekend" leader.
+ * Returns all players sorted by composite descending (ties broken by
+ * points, then birdies, then name). ranked[0] is the current "Golfer of
+ * the Weekend" leader. Returns [] until any scoring exists, so the
+ * leaderboard stays hidden before the tournament starts.
  */
 export function rankBestGolfers(
   sessions: Session[],
@@ -113,17 +115,17 @@ export function rankBestGolfers(
   courses: Course[],
 ): RankedGolfer[] {
   const stats = computeGolferStats(sessions, players, courses)
+  const all = Object.values(stats)
 
-  // Top 5 by total points; include anyone with Best Ball holes so birdies
-  // accumulate live even before a match is finished
-  const top5 = Object.values(stats)
-    .filter((s) => s.points > 0 || s.bbHoles > 0)
-    .sort((a, b) => b.points - a.points || b.birdies - a.birdies)
-    .slice(0, 5)
+  if (!all.some((s) => s.points > 0 || s.bbHoles > 0)) return []
 
-  const composites = top5.map((s) => s.points * 0.5 + -s.netToPar * 0.35 + s.birdies * 0.15)
-
-  return top5
-    .map((s, i) => ({ ...s, composite: composites[i] }))
-    .sort((a, b) => b.composite - a.composite)
+  return all
+    .map((s) => ({ ...s, composite: s.points * 0.5 + -s.netToPar * 0.35 + s.birdies * 0.15 }))
+    .sort(
+      (a, b) =>
+        b.composite - a.composite ||
+        b.points - a.points ||
+        b.birdies - a.birdies ||
+        a.name.localeCompare(b.name),
+    )
 }
