@@ -78,8 +78,8 @@ export function PlayerLeaderboard({ sessions, players, courses }: Props) {
                 <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: teamColor }}>
                   {fmtPts(stat.points)}
                 </span>
-                <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: netColor(stat.netToPar, stat.bbHoles) }}>
-                  {fmtNet(stat.netToPar, stat.bbHoles)}
+                <span className="font-body text-sm font-bold w-8 text-center tabular-nums" style={{ color: netColor(stat.netToPar, stat.netHoles) }}>
+                  {fmtNet(stat.netToPar, stat.netHoles)}
                 </span>
                 <span className="font-body text-sm w-8 text-center tabular-nums" style={{ color: stat.birdies > 0 ? '#DC2626' : '#ccc' }}>
                   {stat.birdies > 0 ? stat.birdies : '—'}
