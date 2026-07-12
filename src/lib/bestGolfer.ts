@@ -61,11 +61,12 @@ export function computeGolferStats(
       }
 
       // Birdies, pars, net: formats where each player holds their own score
-      // (Best Ball and 2v1). Net uses each player's OWN full course handicap
-      // (not the match's allowances or "lowest plays off 0" offset) so the
-      // Best Golfer net is comparable across foursomes and formats — the best
+      // (Singles, Best Ball, 2v1 — everything but Scramble's shared team
+      // ball). Net uses each player's OWN full course handicap (not the
+      // match's allowances or "lowest plays off 0" offset) so the Best
+      // Golfer net is comparable across foursomes and formats — the best
       // player in a group still gets their strokes.
-      if (session.format === 'Best Ball' || session.format === '2v1') {
+      if (session.format !== 'Scramble') {
         const chFor = (name: string) => {
           const p = players.find((pl) => pl.name.toLowerCase() === name.toLowerCase())
           return p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
