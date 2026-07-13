@@ -33,7 +33,7 @@ export function Leaderboard() {
           <p className="font-serif text-lg text-gray-600 mb-2">Unable to load tournament</p>
           {!API_URL && (
             <p className="text-sm text-gray-400 font-body">
-              Set <code className="bg-gray-100 px-1 rounded">VITE_API_URL</code> in <code className="bg-gray-100 px-1 rounded">.env</code> to connect your Google Sheet.
+              Set <code className="bg-gray-100 px-1 rounded">VITE_API_URL</code> in <code className="bg-gray-100 px-1 rounded">.env</code> to connect your tournament backend.
             </p>
           )}
           {error && <p className="text-xs text-red-400 font-body mt-1">{error}</p>}

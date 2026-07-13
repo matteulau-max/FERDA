@@ -1,28 +1,40 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { getPool } from './_lib/db'
+import { getTournament, resolveTournament, saveScore } from './_lib/tournament'
 
+/**
+ * /api/exec — the app's single API endpoint, Postgres-backed.
+ *
+ * Keeps the query-string contract the frontend has always used:
+ *   ?action=getTournament            → full TournamentData JSON
+ *   ?action=saveScore&matchId=...    → { success, error? }
+ *
+ * An optional ?t=<slug> selects the tournament; without it the handler
+ * falls back to DEFAULT_TOURNAMENT_SLUG, then to the sole tournament.
+ */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const appsScriptUrl = process.env.APPS_SCRIPT_URL?.trim()
-  if (!appsScriptUrl) {
-    return res.status(500).json({ error: 'APPS_SCRIPT_URL not configured' })
-  }
-
-  const qs = new URLSearchParams(req.query as Record<string, string>).toString()
-  const url = `${appsScriptUrl}?${qs}`
+  const query = req.query as Record<string, string | undefined>
+  const action = query.action
 
   try {
-    // Apps Script /exec issues a redirect. Using redirect:'manual' then
-    // following the Location header ourselves avoids receiving an HTML page
-    // that redirect:'follow' can land on in server-to-server contexts.
-    const first = await fetch(url, { redirect: 'manual' })
-    const location = first.headers.get('location') ?? url
-    const second = await fetch(location, { redirect: 'follow' })
-    const data = await second.json()
-    if (req.method === 'GET') {
+    const pool = getPool()
+    const tournament = await resolveTournament(pool, query.t)
+
+    if (action === 'getTournament') {
+      const data = await getTournament(pool, tournament)
       res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=5')
+      return res.status(200).json(data)
     }
-    return res.status(200).json(data)
+
+    if (action === 'saveScore') {
+      const result = await saveScore(pool, tournament, query)
+      res.setHeader('Cache-Control', 'no-store')
+      return res.status(200).json(result)
+    }
+
+    return res.status(400).json({ error: `Unknown action: ${action}` })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return res.status(502).json({ error: message, url })
+    return res.status(500).json({ error: message })
   }
 }
