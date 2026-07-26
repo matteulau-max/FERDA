@@ -46,7 +46,10 @@ and payouts.
      --slug ferda-2026 --name "FERDA Invitational" --emit-sql seed.sql
    ```
 
-   Re-run with `--force` to replace an existing tournament.
+   Re-run with `--force` to replace an existing tournament. Add
+   `--default-course "<name>"` when the source has sessions with no course —
+   older Apps Script deployments did not serve one, and the app quietly fell
+   back to the first course in the list.
 4. Set `VITE_API_URL=/api/exec` in the Vercel env vars and redeploy.
 
 See `.env.example` for all variables.
