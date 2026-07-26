@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTournament } from '../hooks/useTournament'
 import { useScoreSave } from '../hooks/useScoreSave'
+import { useTournamentRoute, href } from '../lib/paths'
 import { StatusBanner } from '../components/StatusBanner'
 import { ScoreTable } from '../components/ScoreTable'
 import { HandicapInfo } from '../components/HandicapInfo'
@@ -13,8 +14,9 @@ const API_URL = import.meta.env.VITE_API_URL as string
 export function Scorecard() {
   const { matchId } = useParams<{ matchId: string }>()
   const navigate = useNavigate()
-  const { data, loading } = useTournament(API_URL)
-  const { save } = useScoreSave(API_URL)
+  const { slug, base } = useTournamentRoute()
+  const { data, loading } = useTournament(API_URL, slug)
+  const { save } = useScoreSave(API_URL, slug)
 
   // Local optimistic scores state
   const [localScores, setLocalScores] = useState<MatchScores>({})
@@ -88,7 +90,7 @@ export function Scorecard() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#FDF8E8' }}>
         <p className="font-serif text-lg text-gray-600">Match not found</p>
-        <button onClick={() => navigate('/')} className="mt-4 text-sm font-body underline" style={{ color: '#006747' }}>
+        <button onClick={() => navigate(href(base))} className="mt-4 text-sm font-body underline" style={{ color: '#006747' }}>
           Back to leaderboard
         </button>
       </div>
@@ -111,7 +113,7 @@ export function Scorecard() {
     <div className="min-h-screen" style={{ background: '#FDF8E8' }}>
       {/* Back nav */}
       <div style={{ background: '#006747' }} className="px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate('/')} className="text-white opacity-75 active:opacity-50 text-lg leading-none">
+        <button onClick={() => navigate(href(base))} className="text-white opacity-75 active:opacity-50 text-lg leading-none">
           ←
         </button>
         <div>

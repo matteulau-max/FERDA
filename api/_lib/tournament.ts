@@ -52,7 +52,7 @@ export async function getTournament(pool: Pool, tournament: TournamentRow) {
       [tournament.id],
     ),
     pool.query(
-      `select name, handicap_index, team from players
+      `select name, handicap_index, team, phone from players
         where tournament_id = $1 order by team, name`,
       [tournament.id],
     ),
@@ -82,6 +82,8 @@ export async function getTournament(pool: Pool, tournament: TournamentRow) {
   }
 
   return {
+    slug: tournament.slug,
+    name: tournament.name,
     courses: courses.rows.map((c) => ({
       name: c.name,
       rating: parseFloat(c.rating), // numeric comes back as a string from pg
@@ -97,6 +99,7 @@ export async function getTournament(pool: Pool, tournament: TournamentRow) {
       name: p.name,
       handicapIndex: parseFloat(p.handicap_index),
       team: p.team,
+      ...(p.phone ? { phone: p.phone } : {}),
     })),
     sessions: sessions.rows.map((s) => ({
       name: s.name,

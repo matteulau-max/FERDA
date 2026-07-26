@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Course, Format, Match, Player, Scoring, Team } from '../lib/types'
 import { calcMatchStatus } from '../lib/matchPlay'
 import { TEAM_COLORS } from '../lib/constants'
+import { useTournamentRoute } from '../lib/paths'
 
 interface Props {
   match: Match
@@ -15,6 +16,7 @@ interface Props {
 
 export function MatchRow({ match, format, scoring = 'Match Play', players, course }: Props) {
   const navigate = useNavigate()
+  const { base } = useTournamentRoute()
   const status = calcMatchStatus(match, format, players, course, scoring)
 
   let borderColor = '#e8e5d8'
@@ -77,7 +79,7 @@ export function MatchRow({ match, format, scoring = 'Match Play', players, cours
 
   return (
     <button
-      onClick={() => navigate(`/match/${match.id}`)}
+      onClick={() => navigate(`${base}/match/${match.id}`)}
       className="w-full text-left rounded-lg border-l-4 shadow-sm active:opacity-80 transition-opacity overflow-hidden"
       style={{
         background: '#fff',

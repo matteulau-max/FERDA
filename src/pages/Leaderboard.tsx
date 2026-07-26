@@ -1,4 +1,5 @@
 import { useTournament } from '../hooks/useTournament'
+import { useTournamentRoute } from '../lib/paths'
 import { HeroScoreboard } from '../components/HeroScoreboard'
 import { SessionCard } from '../components/SessionCard'
 import { PlayerLeaderboard } from '../components/PlayerLeaderboard'
@@ -7,7 +8,8 @@ import { TabNav } from '../components/TabNav'
 const API_URL = import.meta.env.VITE_API_URL as string
 
 export function Leaderboard() {
-  const { data, loading, error } = useTournament(API_URL)
+  const { slug } = useTournamentRoute()
+  const { data, loading, error } = useTournament(API_URL, slug)
 
   if (loading) return <LoadingSkeleton />
 

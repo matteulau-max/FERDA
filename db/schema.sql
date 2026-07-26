@@ -43,6 +43,8 @@ create table if not exists players (
   name           text not null,
   handicap_index numeric(4,1) not null,
   team           integer not null check (team in (1, 2)),
+  -- Optional; used to share the tournament link with the roster.
+  phone          text,
   unique (tournament_id, name)
 );
 

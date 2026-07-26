@@ -7,6 +7,7 @@ interface Props {
 
 export function HeroScoreboard({ tournament }: Props) {
   const { courses, teams, players, sessions } = tournament
+  const title = tournament.name ?? 'The Ferda Invitational'
   const pts = totalPoints(sessions, players, courses)
 
   // Compute converging bar totals across all sessions
@@ -63,7 +64,7 @@ export function HeroScoreboard({ tournament }: Props) {
           A Tradition Unlike Any Other
         </p>
         <h1 className="font-serif italic text-2xl font-bold tracking-wide" style={{ color: '#FFF200' }}>
-          The Ferda Invitational
+          {title}
         </h1>
       </div>
 

@@ -10,18 +10,76 @@ and payouts.
 - **API** — one Vercel serverless function, `api/exec.ts`, backed by Postgres:
   - `GET /api/exec?action=getTournament` → full tournament JSON
   - `GET /api/exec?action=saveScore&matchId=...&hole=...&side=...&player=...&grossScore=...`
+  - `POST /api/exec` with `{ action, ... }` for setup writes (see below)
   - Optional `&t=<slug>` selects a tournament when more than one exists.
-- **Database** — Postgres (Supabase recommended). Schema in `db/schema.sql`.
+- **Database** — Postgres (Supabase recommended). Schema in `db/schema.sql`,
+  incremental changes in `db/migrations/`.
+
+### Routes
+
+| Route | Purpose |
+| --- | --- |
+| `/new` | Name a new tournament, then land on its setup page |
+| `/` | The default tournament (`DEFAULT_TOURNAMENT_SLUG`, or the only one) |
+| `/setup` | Setup for the default tournament |
+| `/match/:matchId` | Scorecard |
+| `/t/:slug` | A specific tournament |
+| `/t/:slug/setup`, `/t/:slug/match/:matchId` | Same, scoped to that tournament |
+
+`/` and `/match/:id` are kept so existing links and bookmarks still resolve.
+
+### Setup actions
+
+All POST to `/api/exec` with a JSON body, optionally `?t=<slug>`:
+`createTournament`, `updateTournament`, `saveCourse`, `deleteCourse`,
+`savePlayer`, `deletePlayer`, `saveSession`, `deleteSession`,
+`reorderSessions`, `saveMatch`, `deleteMatch`.
+
+Validation lives in `api/_lib/validate.ts` and is authoritative — the UI
+mirrors some checks for instant feedback, but nothing reaches Postgres
+without passing server-side. Because the schema joins on names (matches
+carry player-name arrays, sessions carry a course name), renames cascade
+inside a transaction: renaming a player rewrites their matches and scores,
+renaming a course repoints its sessions, renaming a session repoints its
+matches.
+
+Setup stays editable while scoring is underway — a handicap typo found on
+Sunday is fixable on Sunday. Deletes are guarded where they'd orphan data:
+a course still used by a session, or a player still in a match, must be
+freed first.
 
 > `apps-script/` is the legacy Google Sheets backend from the beta and is no
 > longer used by the app. It's kept only as a reference until the migration
 > is confirmed, then it can be deleted.
 
+## Creating a tournament
+
+Go to `/new`, name the event, and the setup page covers the rest:
+
+- **Teams** — tournament name and the two team names.
+- **Courses** — rating, slope, and the 18-hole card (par + stroke index).
+  New courses start as 18 par-4s with stroke indexes 1–18 already filled in,
+  so the card is valid from the outset and gets corrected rather than typed
+  from blank. Total par is summed from the holes.
+- **Players** — name, **handicap index** (the GHIN index, not a course
+  handicap — strokes are derived per course), team, and an optional phone
+  number for sharing the link.
+- **Sessions** — name, game type (Singles / Best Ball / Scramble / 2v1),
+  scoring (Match or Stroke Play), and the course, chosen per session.
+- **Pairings** — matches per session. Side sizes are enforced per format,
+  players can only be listed on their own team, and anyone already playing
+  that session is greyed out.
+
+There is no sign-in yet, so the tournament URL is the only way back to an
+event and anyone holding it can enter scores. The setup page shows the link
+for that reason.
+
 ## Backend setup
 
 1. Create a Postgres database. With [Supabase](https://supabase.com): create a
    project, then paste `db/schema.sql` into the SQL editor and run it (or
-   `psql "$DATABASE_URL" -f db/schema.sql`).
+   `psql "$DATABASE_URL" -f db/schema.sql`). Apply anything in
+   `db/migrations/` on top of an existing database.
 2. Copy the connection string from the dashboard's **Connect** button and set
    it as `DATABASE_URL` in your Vercel project env vars. Prefer the
    transaction pooler (port 6543) for serverless; if it refuses connections,
@@ -74,8 +132,14 @@ Postgres swap; both matter once other people run their own events.
    misspelled course silently scores against the wrong card instead of
    failing loudly. The 2026 data had no `courseName` at all, so every session
    was computed against Patriot Hills; correcting it changed five match
-   results and the tournament winner. Make the course required in the setup
-   wizard and surface the fallback rather than hiding it.
+   results and the tournament winner.
+
+   Setup now closes the *source* of this: the course picker is required,
+   `sessions.course_name` is `not null`, the API rejects a session naming a
+   course that doesn't exist, and course renames repoint their sessions. So
+   a tournament built in the app can't reach the fallback. The `?? courses[0]`
+   expressions themselves are still there for data imported by other means,
+   and should be made loud rather than silent.
 
 2. **Handicaps are not frozen.** Results are recomputed from *current*
    handicap indexes on every load, so editing a player's index silently

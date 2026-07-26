@@ -18,8 +18,9 @@ export interface Team {
 
 export interface Player {
   name: string
-  handicapIndex: number  // USGA Handicap Index (decimal)
+  handicapIndex: number  // USGA Handicap Index (decimal), NOT a course handicap
   team: 1 | 2
+  phone?: string         // optional, for sharing the tournament link
 }
 
 export type Format = 'Singles' | 'Best Ball' | 'Scramble' | '2v1'
@@ -68,6 +69,9 @@ export interface MatchStatus {
 }
 
 export interface TournamentData {
+  /** Absent on the built-in mock tournament, which has no database row. */
+  slug?: string
+  name?: string
   courses: Course[]
   teams: { team1: Team; team2: Team }
   players: Player[]
