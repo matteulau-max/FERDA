@@ -78,11 +78,12 @@ Postgres swap; both matter once other people run their own events.
    wizard and surface the fallback rather than hiding it.
 
 2. **Handicaps are not frozen.** Results are recomputed from *current*
-   handicap indexes on every load, so editing a player's index rewrites
-   finished tournaments. Raising three players to 31 after the 2026 event
-   flipped two completed matches and the overall result. Per-tournament
-   `players.handicap_index` (this schema) stops one event affecting another,
-   but the index should also be locked once a tournament starts.
+   handicap indexes on every load, so editing a player's index silently
+   rewrites the scores of tournaments that already finished. Per-tournament
+   `players.handicap_index` (this schema) at least stops one event from
+   affecting another, but the index should also be locked once a tournament
+   starts — a completed match should keep the strokes it was actually played
+   off, not the strokes the roster says today.
 
 ## Local development
 
