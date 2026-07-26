@@ -20,12 +20,13 @@ and payouts.
 ## Backend setup
 
 1. Create a Postgres database. With [Supabase](https://supabase.com): create a
-   project, then run `db/schema.sql` in the SQL editor (or
+   project, then paste `db/schema.sql` into the SQL editor and run it (or
    `psql "$DATABASE_URL" -f db/schema.sql`).
-2. Grab the **Transaction pooler** connection string
-   (Project Settings → Database → Connection string → Transaction) and set it
-   as `DATABASE_URL` in your Vercel project env vars.
-3. Import a tournament:
+2. Copy the connection string from the dashboard's **Connect** button and set
+   it as `DATABASE_URL` in your Vercel project env vars. Prefer the
+   transaction pooler (port 6543) for serverless; if it refuses connections,
+   use the session pooler (5432).
+3. Import a tournament, either directly into the database:
 
    ```sh
    # from the old Apps Script / existing deployment...
@@ -35,6 +36,14 @@ and payouts.
 
    # ...or from a TournamentData JSON file (see src/lib/types.ts for the shape)
    DATABASE_URL=... node scripts/seed.mjs --source tournament.json --slug ferda-2026
+   ```
+
+   ...or, with no database credentials on hand, emit SQL to paste into the
+   Supabase SQL editor:
+
+   ```sh
+   node scripts/seed.mjs --source tournament.json \
+     --slug ferda-2026 --name "FERDA Invitational" --emit-sql seed.sql
    ```
 
    Re-run with `--force` to replace an existing tournament.
