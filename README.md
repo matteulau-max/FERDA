@@ -62,6 +62,28 @@ and payouts.
 
 See `.env.example` for all variables.
 
+## Known issues to address before general use
+
+Both surfaced while migrating the 2026 tournament. Neither blocks the
+Postgres swap; both matter once other people run their own events.
+
+1. **Silent course fallback.** Six call sites resolve a session's course with
+   `courses.find((c) => c.name === session.courseName) ?? courses[0]`
+   (`matchPlay.ts`, `payouts.ts`, `bestGolfer.ts`, `Leaderboard.tsx`,
+   `Scorecard.tsx`, `HeroScoreboard.tsx`). A session with a missing or
+   misspelled course silently scores against the wrong card instead of
+   failing loudly. The 2026 data had no `courseName` at all, so every session
+   was computed against Patriot Hills; correcting it changed five match
+   results and the tournament winner. Make the course required in the setup
+   wizard and surface the fallback rather than hiding it.
+
+2. **Handicaps are not frozen.** Results are recomputed from *current*
+   handicap indexes on every load, so editing a player's index rewrites
+   finished tournaments. Raising three players to 31 after the 2026 event
+   flipped two completed matches and the overall result. Per-tournament
+   `players.handicap_index` (this schema) stops one event affecting another,
+   but the index should also be locked once a tournament starts.
+
 ## Local development
 
 ```sh
