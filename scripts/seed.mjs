@@ -40,6 +40,7 @@ function parseArgs(argv) {
     else if (arg === '--name') args.name = argv[++i]
     else if (arg === '--emit-sql') args.emitSql = argv[++i]
     else if (arg === '--default-course') args.defaultCourse = argv[++i]
+    else if (arg === '--session-course') (args.sessionCourses ??= []).push(argv[++i])
     else throw new Error(`Unknown argument: ${arg}`)
   }
   return args
@@ -62,9 +63,29 @@ async function loadTournamentData(source) {
  * serve a courseName, and the app silently fell back to the first course; this
  * makes that fallback explicit and recorded rather than implicit.
  */
-function applyDefaultCourse(data, defaultCourse) {
-  if (!defaultCourse) return
+function applyDefaultCourse(data, defaultCourse, sessionCourses) {
   const known = new Set((data.courses ?? []).map((c) => c.name))
+  const sessionNames = new Set((data.sessions ?? []).map((s) => s.name))
+
+  // Explicit per-session assignments win over the blanket default.
+  for (const pair of sessionCourses ?? []) {
+    const split = pair.indexOf('=')
+    if (split < 0) throw new Error(`--session-course expects "Session=Course", got: ${pair}`)
+    const sessionName = pair.slice(0, split).trim()
+    const courseName = pair.slice(split + 1).trim()
+    if (!sessionNames.has(sessionName)) {
+      throw new Error(`--session-course '${sessionName}' is not one of: ${[...sessionNames].join(', ')}`)
+    }
+    if (!known.has(courseName)) {
+      throw new Error(`--session-course course '${courseName}' is not one of: ${[...known].join(', ')}`)
+    }
+    for (const session of data.sessions) {
+      if (session.name === sessionName) session.courseName = courseName
+    }
+    console.log(`Assigned '${courseName}' to session '${sessionName}'`)
+  }
+
+  if (!defaultCourse) return
   if (!known.has(defaultCourse)) {
     throw new Error(`--default-course '${defaultCourse}' is not one of: ${[...known].join(', ')}`)
   }
@@ -75,7 +96,7 @@ function applyDefaultCourse(data, defaultCourse) {
       filled++
     }
   }
-  if (filled) console.log(`Assigned '${defaultCourse}' to ${filled} session(s) with no course`)
+  if (filled) console.log(`Assigned '${defaultCourse}' to ${filled} remaining session(s) with no course`)
 }
 
 /**
@@ -311,7 +332,7 @@ async function main() {
   }
 
   const data = await loadTournamentData(args.source)
-  applyDefaultCourse(data, args.defaultCourse)
+  applyDefaultCourse(data, args.defaultCourse, args.sessionCourses)
   validate(data)
 
   if (args.emitSql) {

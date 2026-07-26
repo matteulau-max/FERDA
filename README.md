@@ -46,10 +46,18 @@ and payouts.
      --slug ferda-2026 --name "FERDA Invitational" --emit-sql seed.sql
    ```
 
-   Re-run with `--force` to replace an existing tournament. Add
-   `--default-course "<name>"` when the source has sessions with no course —
-   older Apps Script deployments did not serve one, and the app quietly fell
-   back to the first course in the list.
+   Re-run with `--force` to replace an existing tournament.
+
+   Older Apps Script deployments did not serve a `courseName`, and the app
+   quietly fell back to the first course in the list. Assign courses
+   explicitly at import with `--session-course "<session>=<course>"` (repeat
+   per session), and/or `--default-course "<name>"` to cover the rest:
+
+   ```sh
+   node scripts/seed.mjs --source tournament.json --slug ferda-2026 \
+     --session-course "Saturday PM=NYCC" \
+     --default-course "Patriot Hills" --emit-sql seed.sql
+   ```
 4. Set `VITE_API_URL=/api/exec` in the Vercel env vars and redeploy.
 
 See `.env.example` for all variables.
