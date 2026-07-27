@@ -13,6 +13,26 @@ export async function fetchTournament(apiUrl: string, slug?: string): Promise<To
   return res.json() as Promise<TournamentData>
 }
 
+export interface TournamentSummary {
+  slug: string
+  name: string
+  team1Name: string
+  team2Name: string
+  playerCount: number
+  sessionCount: number
+  matchCount: number
+  createdAt: string
+}
+
+export async function fetchTournaments(apiUrl: string): Promise<TournamentSummary[]> {
+  if (!apiUrl) throw new Error('No API URL configured — set VITE_API_URL and redeploy.')
+  const res = await fetch(`${apiUrl}?action=listTournaments`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data = await res.json() as { tournaments?: TournamentSummary[]; error?: string }
+  if (!data.tournaments) throw new Error(data.error ?? 'Could not load tournaments')
+  return data.tournaments
+}
+
 export async function saveScore(apiUrl: string, payload: SaveScorePayload, slug?: string): Promise<void> {
   const res = await fetch(withSlug(apiUrl, {
     action:     'saveScore',

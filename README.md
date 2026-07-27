@@ -19,18 +19,25 @@ and payouts.
 
 | Route | Purpose |
 | --- | --- |
+| `/` | Landing page — every tournament, newest first |
 | `/new` | Name a new tournament, then land on its setup page |
-| `/` | The default tournament (`DEFAULT_TOURNAMENT_SLUG`, or the only one) |
-| `/setup` | Setup for the default tournament |
-| `/match/:matchId` | Scorecard |
-| `/t/:slug` | A specific tournament |
-| `/t/:slug/setup`, `/t/:slug/match/:matchId` | Same, scoped to that tournament |
+| `/t/:slug` | A tournament's leaderboard |
+| `/t/:slug/setup`, `/t/:slug/manual`, `/t/:slug/match/:matchId` | Scoped to that tournament |
+| `/setup`, `/manual`, `/match/:matchId` | The default tournament (`DEFAULT_TOURNAMENT_SLUG`, or the only one) |
 
-`/` and `/match/:id` are kept so existing links and bookmarks still resolve.
+The unslugged routes are kept so links and bookmarks from the single-tournament
+era still resolve. The leaderboard is no longer among them: `/` lists all
+tournaments, so the default one lives at `/t/<slug>` like the rest.
+
+There is no sign-in, so the landing page is a public index — anyone with the
+site URL can see and open every tournament on it.
 
 ### Setup actions
 
-All POST to `/api/exec` with a JSON body, optionally `?t=<slug>`:
+Reads are GETs on `/api/exec`: `?action=getTournament` (optionally `?t=<slug>`)
+and `?action=listTournaments` for the landing page.
+
+Writes all POST to `/api/exec` with a JSON body, optionally `?t=<slug>`:
 `createTournament`, `updateTournament`, `saveCourse`, `deleteCourse`,
 `savePlayer`, `deletePlayer`, `saveSession`, `deleteSession`,
 `reorderSessions`, `saveMatch`, `deleteMatch`.

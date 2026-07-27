@@ -38,6 +38,43 @@ export async function resolveTournament(pool: Pool, slug?: string): Promise<Tour
   return rows[0]
 }
 
+export interface TournamentSummary {
+  slug: string
+  name: string
+  team1Name: string
+  team2Name: string
+  playerCount: number
+  sessionCount: number
+  matchCount: number
+  createdAt: string
+}
+
+/**
+ * Everything on the landing page. Counts come from subqueries rather than
+ * joins so a tournament with no players still shows up (with zeroes).
+ */
+export async function listTournaments(pool: Pool): Promise<TournamentSummary[]> {
+  const { rows } = await pool.query(
+    `select t.slug, t.name, t.team1_name, t.team2_name, t.created_at,
+            (select count(*) from players  p where p.tournament_id = t.id) as player_count,
+            (select count(*) from sessions s where s.tournament_id = t.id) as session_count,
+            (select count(*) from matches  m where m.tournament_id = t.id) as match_count
+       from tournaments t
+      order by t.created_at desc`,
+  )
+  return rows.map((r) => ({
+    slug: r.slug,
+    name: r.name,
+    team1Name: r.team1_name,
+    team2Name: r.team2_name,
+    // count() comes back from pg as a string.
+    playerCount: Number(r.player_count),
+    sessionCount: Number(r.session_count),
+    matchCount: Number(r.match_count),
+    createdAt: r.created_at.toISOString(),
+  }))
+}
+
 export async function getTournament(pool: Pool, tournament: TournamentRow) {
   const [courses, players, sessions, matches, scores] = await Promise.all([
     pool.query(

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getPool } from './_lib/db'
-import { getTournament, resolveTournament, saveScore } from './_lib/tournament'
+import { getTournament, listTournaments, resolveTournament, saveScore } from './_lib/tournament'
 import { ValidationError } from './_lib/validate'
 import {
   createTournament,
@@ -58,6 +58,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await createTournament(pool, body)
       res.setHeader('Cache-Control', 'no-store')
       return res.status(200).json({ success: true, ...result })
+    }
+
+    // The landing page asks for every tournament, so there's nothing to resolve.
+    if (action === 'listTournaments') {
+      const tournaments = await listTournaments(pool)
+      res.setHeader('Cache-Control', 'no-store')
+      return res.status(200).json({ tournaments })
     }
 
     const tournament = await resolveTournament(pool, query.t ?? (body.t as string | undefined))

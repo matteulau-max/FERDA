@@ -72,11 +72,14 @@ export function OverflowMenu({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
           className="absolute right-0 mt-1 rounded-xl overflow-hidden shadow-lg z-50"
           style={{ background: '#fff', border: '1px solid #e5e7eb', minWidth: 200 }}
         >
-          <MenuItem onClick={() => go('')}>Leaderboard</MenuItem>
+          {/* '/' is the tournament index now, so "Leaderboard" only makes sense
+              on a /t/<slug> route where it resolves to that event. */}
+          {slug && <MenuItem onClick={() => go('')}>Leaderboard</MenuItem>}
           <MenuItem onClick={() => go('/setup')}>Event setup</MenuItem>
           <MenuItem onClick={() => go('/manual')}>Manual</MenuItem>
           <Divider />
           <MenuItem onClick={copyLink}>{copied ? 'Link copied' : 'Copy tournament link'}</MenuItem>
+          <MenuItem onClick={() => { setOpen(false); navigate('/') }}>All tournaments</MenuItem>
           <MenuItem onClick={() => { setOpen(false); navigate('/new') }}>Start new tournament</MenuItem>
         </div>
       )}
