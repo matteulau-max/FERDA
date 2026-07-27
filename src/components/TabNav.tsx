@@ -1,10 +1,11 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { href, useTournamentRoute } from '../lib/paths'
 
+// Setup lives in the "..." menu rather than here — it's an organiser task,
+// not something to put in front of everyone watching the scores.
 const TABS = [
   { label: 'Leaderboard', path: '' },
   { label: 'Manual', path: '/manual' },
-  { label: 'Setup', path: '/setup' },
 ]
 
 export function TabNav() {

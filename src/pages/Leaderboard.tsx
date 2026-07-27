@@ -4,6 +4,7 @@ import { HeroScoreboard } from '../components/HeroScoreboard'
 import { SessionCard } from '../components/SessionCard'
 import { PlayerLeaderboard } from '../components/PlayerLeaderboard'
 import { TabNav } from '../components/TabNav'
+import { OverflowMenu } from '../components/OverflowMenu'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 
@@ -21,11 +22,14 @@ export function Leaderboard() {
           className="fixed top-0 left-0 right-0 text-white text-center"
           style={{ background: 'linear-gradient(135deg, #004d34 0%, #006747 100%)' }}
         >
-          <div className="py-4">
+          <div className="relative py-4">
+            <div className="absolute right-2 top-3">
+              <OverflowMenu />
+            </div>
             <p className="text-xs uppercase tracking-widest font-body" style={{ color: '#FFF200', opacity: 0.85 }}>
               A Tradition Unlike Any Other
             </p>
-            <h1 className="font-serif italic text-xl font-bold" style={{ color: '#FFF200' }}>
+            <h1 className="font-serif italic text-xl font-bold px-10" style={{ color: '#FFF200' }}>
               Ferda Invitational
             </h1>
           </div>

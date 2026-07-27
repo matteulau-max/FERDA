@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TabNav } from '../components/TabNav'
+import { OverflowMenu } from '../components/OverflowMenu'
 import { LivePayouts } from '../components/LivePayouts'
 import { useTournament } from '../hooks/useTournament'
 
@@ -517,6 +518,7 @@ export function Manual() {
     >
       <header
         style={{
+          position: 'relative',
           background: 'linear-gradient(170deg,#0c3324 0%,#10422f 55%,#0e3a29 100%)',
           color: '#f3ecd9',
           textAlign: 'center',
@@ -524,6 +526,9 @@ export function Manual() {
           borderBottom: '2px solid rgba(239,225,78,.25)',
         }}
       >
+        <div style={{ position: 'absolute', right: 8, top: 12 }}>
+          <OverflowMenu />
+        </div>
         <h1
           style={{
             fontFamily: "'Playfair Display', Georgia, serif",

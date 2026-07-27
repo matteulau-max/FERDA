@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTournament } from '../hooks/useTournament'
 import { useTournamentRoute } from '../lib/paths'
 import { TabNav } from '../components/TabNav'
+import { OverflowMenu } from '../components/OverflowMenu'
 import { TeamsSection } from '../components/setup/TeamsSection'
 import { CoursesSection } from '../components/setup/CoursesSection'
 import { PlayersSection } from '../components/setup/PlayersSection'
@@ -96,13 +97,16 @@ function Header({ title }: { title: string }) {
   return (
     <div className="sticky top-0 z-10">
       <div
-        className="text-white text-center py-4 px-4"
+        className="relative text-white text-center py-4 px-4"
         style={{ background: 'linear-gradient(135deg, #004d34 0%, #006747 100%)' }}
       >
+        <div className="absolute right-2 top-3">
+          <OverflowMenu />
+        </div>
         <p className="text-xs uppercase tracking-widest font-body" style={{ color: '#FFF200', opacity: 0.85 }}>
           Event Setup
         </p>
-        <h1 className="font-serif italic text-xl font-bold truncate" style={{ color: '#FFF200' }}>
+        <h1 className="font-serif italic text-xl font-bold truncate px-10" style={{ color: '#FFF200' }}>
           {title}
         </h1>
       </div>

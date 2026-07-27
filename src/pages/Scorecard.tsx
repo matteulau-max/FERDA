@@ -7,6 +7,7 @@ import { StatusBanner } from '../components/StatusBanner'
 import { ScoreTable } from '../components/ScoreTable'
 import { HandicapInfo } from '../components/HandicapInfo'
 import { MatchWormChart } from '../components/MatchWormChart'
+import { OverflowMenu } from '../components/OverflowMenu'
 import { calcMatchStatus } from '../lib/matchPlay'
 import type { Match, MatchScores } from '../lib/types'
 
@@ -116,7 +117,7 @@ export function Scorecard() {
         <button onClick={() => navigate(href(base))} className="text-white opacity-75 active:opacity-50 text-lg leading-none">
           ←
         </button>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-white font-serif font-semibold text-sm leading-tight">
             {match.team1Players.join(' / ')} vs {match.team2Players.join(' / ')}
           </p>
@@ -124,6 +125,7 @@ export function Scorecard() {
             {session.name} · {session.format}{session.scoring === 'Stroke Play' ? ' · Stroke Play' : ''}
           </p>
         </div>
+        <OverflowMenu />
       </div>
 
       {saveStatus !== 'idle' && (
