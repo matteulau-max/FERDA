@@ -33,15 +33,41 @@ export async function saveScore(apiUrl: string, payload: SaveScorePayload, slug?
  * written for the organiser, so it's surfaced verbatim.
  */
 async function post<T>(apiUrl: string, body: Record<string, unknown>, slug?: string): Promise<T> {
+  if (!apiUrl) {
+    throw new Error('No API URL configured — set VITE_API_URL and redeploy.')
+  }
   const url = slug ? `${apiUrl}?t=${encodeURIComponent(slug)}` : apiUrl
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  const data = await res.json().catch(() => ({})) as { success?: boolean; error?: string }
+
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    // Browsers report every network-level failure with an opaque message
+    // ("Load failed", "Failed to fetch"). The usual cause here is opening a
+    // protected Vercel preview URL, where the request is redirected to an
+    // SSO origin the fetch can't follow.
+    throw new Error(
+      `Couldn't reach ${url}. If this is a preview deployment URL, try the main site URL instead.`,
+    )
+  }
+
+  const text = await res.text()
+  let data: { success?: boolean; error?: string } = {}
+  try {
+    data = JSON.parse(text) as typeof data
+  } catch {
+    // An HTML body means the request was answered by something other than
+    // the API — a login page, or the SPA fallback.
+    if (!res.ok) throw new Error(`Server returned ${res.status} for ${url}`)
+    throw new Error(`Unexpected non-JSON response from ${url}`)
+  }
+
   if (!res.ok || data.success === false) {
-    throw new Error(data.error ?? `HTTP ${res.status}`)
+    throw new Error(data.error ?? `Server returned ${res.status}`)
   }
   return data as T
 }
