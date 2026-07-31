@@ -1,13 +1,12 @@
-import type { Course, Format, Match, Player, Scoring, Team } from '../lib/types'
-import { runningStatusByHole } from '../lib/matchPlay'
+import type { Match, Player, SessionCourse, SessionRules, Team } from '../lib/types'
+import { isStrokePlay, runningStatusByHole } from '../lib/matchPlay'
 import { TEAM_COLORS } from '../lib/constants'
 
 interface Props {
   match: Match
-  format: Format
-  scoring?: Scoring
+  rules: SessionRules
   players: Player[]
-  course: Course
+  course: SessionCourse
   team1: Team
   team2: Team
 }
@@ -24,8 +23,10 @@ const CENTER_Y = PAD_TOP + CHART_H / 2          // 41
 const MAX_UP_MATCH = 7    // y-range for match play: ±7 holes up
 const MAX_UP_STROKE = 20  // y-range for stroke play: ±20 strokes
 
-function holeX(hole: number): number {
-  return PAD_LEFT + ((hole - 0.5) / 18) * CHART_W
+/** 2v1 averages its sides, so a lead can land on a half. */
+function fmtLead(t1Up: number): string {
+  const n = Math.abs(t1Up)
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
 function t1UpY(t1Up: number, maxUp: number): number {
@@ -33,13 +34,22 @@ function t1UpY(t1Up: number, maxUp: number): number {
   return CENTER_Y - (clamped / maxUp) * (CHART_H / 2)
 }
 
-export function MatchWormChart({ match, format, scoring = 'Match Play', players, course, team1, team2 }: Props) {
-  const statusData = runningStatusByHole(match, format, players, course, scoring)
-  const maxUp = scoring === 'Stroke Play' ? MAX_UP_STROKE : MAX_UP_MATCH
+export function MatchWormChart({ match, rules, players, course, team1, team2 }: Props) {
+  const statusData = runningStatusByHole(match, rules, players, course)
+  const strokes = isStrokePlay(rules.scoring)
+  const maxUp = strokes ? MAX_UP_STROKE : MAX_UP_MATCH
 
   if (statusData.length === 0) return null
 
-  // Build path points: start at All Square before hole 1
+  // The chart spans the holes this session plays, so a back nine reads 10-18
+  // across the same width an 18-hole round uses for 1-18.
+  const holesInPlay = [...course.holes].map((h) => h.number).sort((a, b) => a - b)
+  const firstHole = holesInPlay[0] ?? 1
+  const holeCount = holesInPlay.length || 18
+  const holeX = (hole: number) =>
+    PAD_LEFT + ((hole - firstHole + 0.5) / holeCount) * CHART_W
+
+  // Build path points: start at All Square before the first hole
   const points: Array<{ x: number; y: number; t1Up: number }> = [
     { x: PAD_LEFT, y: CENTER_Y, t1Up: 0 },
     ...statusData.map(({ hole, t1Up }) => ({ x: holeX(hole), y: t1UpY(t1Up, maxUp), t1Up })),
@@ -51,8 +61,10 @@ export function MatchWormChart({ match, format, scoring = 'Match Play', players,
   const isLeadingTeam2 = currentT1Up < 0
   const leaderColor = isLeadingTeam1 ? TEAM_COLORS.team1 : isLeadingTeam2 ? TEAM_COLORS.team2 : '#888'
 
-  // Hole labels on x-axis: 3, 6, 9, 12, 15, 18
-  const holeLabels = [3, 6, 9, 12, 15, 18]
+  // Label every third hole of whatever is in play (3, 6, 9 … or 12, 15, 18).
+  const holeLabels = holesInPlay.filter((_, i) => (i + 1) % 3 === 0)
+  // The halfway marker only means something over a full round.
+  const midHole = holeCount === 18 ? holesInPlay[8] : null
 
   return (
     <div
@@ -93,12 +105,14 @@ export function MatchWormChart({ match, format, scoring = 'Match Play', players,
         {/* Chart border */}
         <rect x={PAD_LEFT} y={PAD_TOP} width={CHART_W} height={CHART_H} fill="none" stroke="#e8e5d8" strokeWidth={0.5} />
 
-        {/* Vertical hole markers at 9 */}
-        <line
-          x1={holeX(9)} y1={PAD_TOP}
-          x2={holeX(9)} y2={PAD_TOP + CHART_H}
-          stroke="#e8e5d8" strokeWidth={1} strokeDasharray="2,2"
-        />
+        {/* Vertical marker at the turn */}
+        {midHole !== null && (
+          <line
+            x1={holeX(midHole)} y1={PAD_TOP}
+            x2={holeX(midHole)} y2={PAD_TOP + CHART_H}
+            stroke="#e8e5d8" strokeWidth={1} strokeDasharray="2,2"
+          />
+        )}
 
         {/* Worm line segments, colored by leading team */}
         {points.slice(0, -1).map((pt, i) => {
@@ -164,9 +178,9 @@ export function MatchWormChart({ match, format, scoring = 'Match Play', players,
         <span style={{ color: leaderColor, fontWeight: 600 }}>
           {currentT1Up === 0
             ? 'All Square'
-            : scoring === 'Stroke Play'
-              ? `${currentT1Up > 0 ? team1.name : team2.name} leads by ${Math.abs(currentT1Up)}`
-              : `${currentT1Up > 0 ? team1.name : team2.name} ${Math.abs(currentT1Up)} UP`}
+            : strokes
+              ? `${currentT1Up > 0 ? team1.name : team2.name} leads by ${fmtLead(currentT1Up)}`
+              : `${currentT1Up > 0 ? team1.name : team2.name} ${fmtLead(currentT1Up)} UP`}
         </span>
         <span style={{ color: '#aaa' }}>
           {' '}· thru {statusData.length}

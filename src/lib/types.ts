@@ -24,7 +24,17 @@ export interface Player {
 }
 
 export type Format = 'Singles' | 'Best Ball' | 'Scramble' | '2v1'
-export type Scoring = 'Match Play' | 'Stroke Play'
+
+/**
+ * Match Play        — holes won, the classic Ryder Cup point per match.
+ * Stroke Play       — net stroke differential, still one point per match.
+ * Total Stroke Play — every match's total is pooled into one team score for
+ *                     the session; the margin pays out at pointsPerStroke.
+ */
+export type Scoring = 'Match Play' | 'Stroke Play' | 'Total Stroke Play'
+
+/** Which holes of the session's course are actually played. */
+export type HoleSet = 'All 18' | 'Front 9' | 'Back 9'
 
 export interface Session {
   name: string
@@ -32,7 +42,36 @@ export interface Session {
   scoring?: Scoring
   sortOrder: number
   courseName: string
+  /** Absent on tournaments created before nines existed — treat as 'All 18'. */
+  holeSet?: HoleSet
+  /** Absent means handicaps apply, which is how every earlier session ran. */
+  useHandicap?: boolean
+  /** Total Stroke Play only. Absent means the default 0.5. */
+  pointsPerStroke?: number
   matches: Match[]
+}
+
+/**
+ * Everything the scoring engine needs to know about how a session is played.
+ * Built from a Session by `sessionRules()`, which fills in the defaults that
+ * older tournaments don't carry.
+ */
+export interface SessionRules {
+  format: Format
+  scoring: Scoring
+  holeSet: HoleSet
+  useHandicap: boolean
+  pointsPerStroke: number
+}
+
+/**
+ * A course as a particular session plays it. For 'All 18' this is the course
+ * itself; for a nine, `holes` is that nine with stroke indexes re-ranked 1–9
+ * and `par`/`rating` scaled to match. See src/lib/holes.ts.
+ */
+export interface SessionCourse extends Course {
+  /** Fraction of a Handicap Index in play: 1 for 18 holes, 0.5 for a nine. */
+  indexFactor: number
 }
 
 export interface Match {
@@ -55,17 +94,33 @@ export type MatchScores = Record<number, HoleScores>
 
 export interface MatchStatus {
   /** Positive = team1 leads, negative = team2 leads.
-   *  Match Play: holes up. Stroke Play: cumulative net stroke differential. */
+   *  Match Play: holes up. Stroke play: cumulative net stroke differential. */
   t1Up: number
+  /** Each side's competing score summed over the holes played so far —
+   *  net when handicaps are on, gross when they're off. This is what Total
+   *  Stroke Play pools across the session. */
+  t1Total: number
+  t2Total: number
   holesPlayed: number
   holesRemaining: number
   isComplete: boolean
   scoring: Scoring
   result: {
     winner: 'team1' | 'team2' | 'halved'
-    /** Match Play: "3&2", "1 UP", "HALVED". Stroke Play: "by 3", "HALVED". */
+    /** Match Play: "3&2", "1 UP", "HALVED". Stroke play: "by 3", "HALVED". */
     text: string
   } | null
+}
+
+/** A Total Stroke Play session rolled up: both team totals and the payout. */
+export interface SessionTotals {
+  team1: number
+  team2: number
+  /** Strokes the leader is ahead by; 0 when level. */
+  margin: number
+  leader: 'team1' | 'team2' | null
+  isComplete: boolean
+  points: { team1: number; team2: number }
 }
 
 export interface TournamentData {

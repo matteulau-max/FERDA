@@ -4,7 +4,7 @@
  * Source: USGA Rules of Handicapping, Appendix C.
  */
 
-import type { Course, Format, Player } from './types'
+import type { Course, Player, SessionCourse } from './types'
 import {
   BEST_BALL_ALLOWANCE,
   SCRAMBLE_ALLOWANCES,
@@ -27,6 +27,15 @@ export function courseHandicap(
   par: number,
 ): number {
   return Math.round((handicapIndex * slope) / 113 + (rating - par))
+}
+
+/**
+ * Course Handicap for the holes a session actually plays. On a nine, half the
+ * index is in play against the halved rating (see holes.ts); on a full round
+ * this is plain `courseHandicap`.
+ */
+export function sessionCourseHandicap(handicapIndex: number, course: SessionCourse): number {
+  return courseHandicap(handicapIndex * course.indexFactor, course.slope, course.rating, course.par)
 }
 
 /**
@@ -122,58 +131,6 @@ export function strokesOnHole(playingHandicap: number, strokeIndex: number): num
 }
 
 /**
- * Build a map of strokeIndex → strokes for all 18 holes, for one player.
- */
-export function strokeMap(
-  player: Player,
-  course: Course,
-  format: Format,
-  allPlayingHandicaps: number[],
-  playerIndex: number,
-): Map<number, number> {
-  const ch = courseHandicap(player.handicapIndex, course.slope, course.rating, course.par)
-  let ph: number
-  if (format === 'Scramble') {
-    // Scramble: team PH is computed separately; per-player not used directly
-    ph = ch
-  } else {
-    ph = perPlayerPlayingHandicap(ch, format)
-  }
-  const offset = ph - allPlayingHandicaps[playerIndex]
-  const offsetPh = ph - offset // = allPlayingHandicaps[playerIndex] after offset applied
-
-  const map = new Map<number, number>()
-  for (const hole of course.holes) {
-    map.set(hole.number, strokesOnHole(offsetPh, hole.strokeIndex))
-  }
-  return map
-}
-
-/**
- * Compute per-player playing handicaps (after offset) for a Singles or Best Ball match side.
- * Returns array in same order as playerNames.
- */
-export function sidePlayingHandicaps(
-  playerNames: string[],
-  allPlayers: Player[],
-  course: Course,
-  format: PerPlayerFormat,
-): number[] {
-  const playerMap = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
-
-  const chs = playerNames.map((name) => {
-    const p = playerMap.get(name.toLowerCase())
-    if (!p) return 0
-    return courseHandicap(p.handicapIndex, course.slope, course.rating, course.par)
-  })
-
-  const phs = chs.map((ch) => perPlayerPlayingHandicap(ch, format, playerNames.length))
-
-  const min = Math.min(...phs)
-  return phs.map((ph) => ph - min)
-}
-
-/**
  * Compute team playing handicaps (after offset) for a Scramble match.
  * Returns { team1Ph, team2Ph } — each is the offset applied team handicap.
  */
@@ -181,7 +138,7 @@ export function scrambleSideHandicaps(
   team1Players: string[],
   team2Players: string[],
   allPlayers: Player[],
-  course: Course,
+  course: SessionCourse,
 ): { team1Ph: number; team2Ph: number } {
   const playerMap = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
 
@@ -189,7 +146,7 @@ export function scrambleSideHandicaps(
     names.map((name) => {
       const p = playerMap.get(name.toLowerCase())
       if (!p) return 0
-      return courseHandicap(p.handicapIndex, course.slope, course.rating, course.par)
+      return sessionCourseHandicap(p.handicapIndex, course)
     })
 
   const t1Ph = scrambleTeamHandicap(teamChs(team1Players))
@@ -209,7 +166,7 @@ export function matchPlayingHandicaps(
   team1Players: string[],
   team2Players: string[],
   allPlayers: Player[],
-  course: Course,
+  course: SessionCourse,
   format: PerPlayerFormat,
 ): { t1Phs: number[]; t2Phs: number[] } {
   const playerMap = new Map(allPlayers.map((p) => [p.name.toLowerCase(), p]))
@@ -217,7 +174,7 @@ export function matchPlayingHandicaps(
   const toPhs = (names: string[]) =>
     names.map((name) => {
       const p = playerMap.get(name.toLowerCase())
-      const ch = p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
+      const ch = p ? sessionCourseHandicap(p.handicapIndex, course) : 0
       return perPlayerPlayingHandicap(ch, format, names.length)
     })
 

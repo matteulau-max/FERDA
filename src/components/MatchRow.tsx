@@ -1,23 +1,29 @@
 import { useNavigate } from 'react-router-dom'
-import type { Course, Format, Match, Player, Scoring, Team } from '../lib/types'
-import { calcMatchStatus } from '../lib/matchPlay'
+import type { Match, Player, SessionCourse, SessionRules, Team } from '../lib/types'
+import { calcMatchStatus, isStrokePlay } from '../lib/matchPlay'
 import { TEAM_COLORS } from '../lib/constants'
 import { useTournamentRoute } from '../lib/paths'
 
 interface Props {
   match: Match
-  format: Format
-  scoring?: Scoring
+  rules: SessionRules
   players: Player[]
-  course: Course
+  course: SessionCourse
   team1: Team
   team2: Team
 }
 
-export function MatchRow({ match, format, scoring = 'Match Play', players, course }: Props) {
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+
+export function MatchRow({ match, rules, players, course }: Props) {
   const navigate = useNavigate()
   const { base } = useTournamentRoute()
-  const status = calcMatchStatus(match, format, players, course, scoring)
+  const status = calcMatchStatus(match, rules, players, course)
+
+  // In Total Stroke Play a single match wins nothing — it feeds its total into
+  // the session pool — so the row shows both totals rather than a winner, and
+  // skips the win/loss colouring that would imply otherwise.
+  const isTotal = rules.scoring === 'Total Stroke Play'
 
   let borderColor = '#e8e5d8'
   let leftBg = 'transparent'
@@ -25,7 +31,16 @@ export function MatchRow({ match, format, scoring = 'Match Play', players, cours
   let leftTextColor: string | undefined = undefined
   let rightTextColor: string | undefined = undefined
 
-  if (status.isComplete && status.result) {
+  if (isTotal) {
+    // Tint only to show who is currently lower, never a "win".
+    if (status.holesPlayed > 0 && status.t1Up > 0) {
+      borderColor = TEAM_COLORS.team1
+      leftBg = 'rgba(0, 103, 71, 0.10)'
+    } else if (status.holesPlayed > 0 && status.t1Up < 0) {
+      borderColor = TEAM_COLORS.team2
+      rightBg = 'rgba(196, 30, 58, 0.10)'
+    }
+  } else if (status.isComplete && status.result) {
     if (status.result.winner === 'team1') {
       borderColor = TEAM_COLORS.team1
       leftBg = TEAM_COLORS.team1
@@ -52,17 +67,20 @@ export function MatchRow({ match, format, scoring = 'Match Play', players, cours
   }
 
   const inProgressLabel = (lead: number) =>
-    status.scoring === 'Stroke Play' ? `by ${lead}` : `${lead} UP`
+    isStrokePlay(status.scoring) ? `by ${fmt(lead)}` : `${fmt(lead)} UP`
 
-  const leftScore: string | null =
-    status.isComplete && status.result?.winner === 'team1'
+  // Total Stroke Play: each side's running total is the number that matters.
+  const leftScore: string | null = isTotal
+    ? (status.holesPlayed > 0 ? fmt(status.t1Total) : null)
+    : status.isComplete && status.result?.winner === 'team1'
       ? status.result.text
       : !status.isComplete && status.t1Up > 0
       ? inProgressLabel(status.t1Up)
       : null
 
-  const rightScore: string | null =
-    status.isComplete && status.result?.winner === 'team2'
+  const rightScore: string | null = isTotal
+    ? (status.holesPlayed > 0 ? fmt(status.t2Total) : null)
+    : status.isComplete && status.result?.winner === 'team2'
       ? status.result.text
       : !status.isComplete && status.t1Up < 0
       ? inProgressLabel(Math.abs(status.t1Up))
@@ -71,6 +89,8 @@ export function MatchRow({ match, format, scoring = 'Match Play', players, cours
   const centerText: string =
     status.holesPlayed === 0
       ? '•'
+      : isTotal
+      ? (status.isComplete ? 'F' : `thru ${status.holesPlayed}`)
       : status.isComplete
       ? (status.result?.winner === 'halved' ? 'A/S' : 'F')
       : status.t1Up === 0

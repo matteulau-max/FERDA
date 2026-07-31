@@ -9,6 +9,8 @@ import { HandicapInfo } from '../components/HandicapInfo'
 import { MatchWormChart } from '../components/MatchWormChart'
 import { OverflowMenu } from '../components/OverflowMenu'
 import { calcMatchStatus } from '../lib/matchPlay'
+import { courseForSession, sessionRules } from '../lib/holes'
+import { SCORING_LABELS } from '../lib/constants'
 import type { Match, MatchScores } from '../lib/types'
 
 const API_URL = import.meta.env.VITE_API_URL as string
@@ -98,17 +100,24 @@ export function Scorecard() {
     )
   }
 
-  const course = data.courses.find((c) => c.name === session.courseName) ?? data.courses[0]
+  const rules = sessionRules(session)
+  const course = courseForSession(data.courses, session)
 
-  const status = calcMatchStatus(
-    { ...match, scores: localScores },
-    session.format,
-    data.players,
-    course,
-    session.scoring ?? 'Match Play',
-  )
+  const status = calcMatchStatus({ ...match, scores: localScores }, rules, data.players, course)
 
   const matchWithLocal: Match = { ...match, scores: localScores }
+
+  // A nine only fills one of the two tables, so skip the empty one entirely.
+  const showFront = !!course?.holes.some((h) => h.number <= 9)
+  const showBack = !!course?.holes.some((h) => h.number > 9)
+
+  const subtitle = [
+    session.name,
+    session.format,
+    rules.holeSet !== 'All 18' ? rules.holeSet : null,
+    rules.scoring !== 'Match Play' ? SCORING_LABELS[rules.scoring] : null,
+    rules.useHandicap ? null : 'Gross (no handicaps)',
+  ].filter(Boolean).join(' · ')
 
   return (
     <div className="min-h-screen" style={{ background: '#FDF8E8' }}>
@@ -121,9 +130,7 @@ export function Scorecard() {
           <p className="text-white font-serif font-semibold text-sm leading-tight">
             {match.team1Players.join(' / ')} vs {match.team2Players.join(' / ')}
           </p>
-          <p className="text-white/60 font-body text-xs">
-            {session.name} · {session.format}{session.scoring === 'Stroke Play' ? ' · Stroke Play' : ''}
-          </p>
+          <p className="text-white/60 font-body text-xs">{subtitle}</p>
         </div>
         <OverflowMenu />
       </div>
@@ -147,40 +154,43 @@ export function Scorecard() {
       <StatusBanner status={status} team1={data.teams.team1} team2={data.teams.team2} />
 
       {/* Score tables */}
-      <div className="px-0 py-3 flex flex-col gap-4">
-        <div className="bg-white rounded-xl mx-3 overflow-hidden shadow-sm" style={{ border: '1px solid #e8e5d8' }}>
-          <ScoreTable
-            match={matchWithLocal}
-            format={session.format}
-            scoring={session.scoring}
-            players={data.players}
-            course={course}
-            side="front"
-            localScores={localScores}
-            onScoreChange={handleScoreChange}
-          />
+      {course && (
+        <div className="px-0 py-3 flex flex-col gap-4">
+          {showFront && (
+            <div className="bg-white rounded-xl mx-3 overflow-hidden shadow-sm" style={{ border: '1px solid #e8e5d8' }}>
+              <ScoreTable
+                match={matchWithLocal}
+                rules={rules}
+                players={data.players}
+                course={course}
+                side="front"
+                localScores={localScores}
+                onScoreChange={handleScoreChange}
+              />
+            </div>
+          )}
+          {showBack && (
+            <div className="bg-white rounded-xl mx-3 overflow-hidden shadow-sm" style={{ border: '1px solid #e8e5d8' }}>
+              <ScoreTable
+                match={matchWithLocal}
+                rules={rules}
+                players={data.players}
+                course={course}
+                side="back"
+                localScores={localScores}
+                onScoreChange={handleScoreChange}
+              />
+            </div>
+          )}
         </div>
-        <div className="bg-white rounded-xl mx-3 overflow-hidden shadow-sm" style={{ border: '1px solid #e8e5d8' }}>
-          <ScoreTable
-            match={matchWithLocal}
-            format={session.format}
-            scoring={session.scoring}
-            players={data.players}
-            course={course}
-            side="back"
-            localScores={localScores}
-            onScoreChange={handleScoreChange}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Worm chart — only shown once at least 1 hole is scored */}
-      {status.holesPlayed > 0 && (
+      {status.holesPlayed > 0 && course && (
         <div className="mx-3 mb-1">
           <MatchWormChart
             match={matchWithLocal}
-            format={session.format}
-            scoring={session.scoring}
+            rules={rules}
             players={data.players}
             course={course}
             team1={data.teams.team1}
@@ -189,14 +199,11 @@ export function Scorecard() {
         </div>
       )}
 
-      <div className="mx-3">
-        <HandicapInfo
-          match={match}
-          format={session.format}
-          players={data.players}
-          course={course}
-        />
-      </div>
+      {course && (
+        <div className="mx-3">
+          <HandicapInfo match={match} rules={rules} players={data.players} course={course} />
+        </div>
+      )}
 
       <footer className="text-center text-xs font-body text-gray-400 py-6">
         Scores auto-saved · Updates every 10s

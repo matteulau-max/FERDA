@@ -2,8 +2,10 @@ import type { Pool, PoolClient } from 'pg'
 import type { TournamentRow } from './tournament'
 import {
   FORMATS,
+  HOLE_SETS,
   SCORINGS,
   ValidationError,
+  optionalBool,
   optionalText,
   requireInt,
   requireNumber,
@@ -34,10 +36,26 @@ async function tx<T>(pool: Pool, fn: (client: PoolClient) => Promise<T>): Promis
     return result
   } catch (err) {
     await client.query('rollback').catch(() => {})
-    throw err
+    throw asValidationError(err)
   } finally {
     client.release()
   }
+}
+
+/** Names are unique per tournament. Say so, rather than leaking the constraint. */
+const DUPLICATE_MESSAGES: Record<string, string> = {
+  sessions_tournament_id_name_key: 'A session with that name already exists. Pick a different name.',
+  courses_tournament_id_name_key: 'A course with that name already exists. Pick a different name.',
+  players_tournament_id_name_key: 'A player with that name already exists. Pick a different name.',
+}
+
+function asValidationError(err: unknown): unknown {
+  const e = err as { code?: string; constraint?: string }
+  if (e?.code === '23505') {
+    const message = (e.constraint && DUPLICATE_MESSAGES[e.constraint]) ?? 'That name is already taken.'
+    return new ValidationError(message)
+  }
+  return err
 }
 
 /** Append -2, -3, ... until the slug is free. */
@@ -243,6 +261,15 @@ export async function saveSession(
     ? 'Match Play'
     : requireOneOf(body.scoring, 'Scoring', SCORINGS)
   const courseName = requireText(body.courseName, 'Course', 60)
+  const holeSet = body.holeSet == null || body.holeSet === ''
+    ? 'All 18'
+    : requireOneOf(body.holeSet, 'Holes', HOLE_SETS)
+  const useHandicap = optionalBool(body.useHandicap, true)
+  // Only Total Stroke Play reads this, but it's stored either way so toggling
+  // the scoring type back and forth doesn't lose the organiser's rate.
+  const pointsPerStroke = body.pointsPerStroke == null || body.pointsPerStroke === ''
+    ? 0.5
+    : requireNumber(body.pointsPerStroke, 'Points per stroke', 0, 10)
 
   return tx(pool, async (client) => {
     const course = await client.query('select 1 from courses where tournament_id = $1 and name = $2', [t.id, courseName])
@@ -257,8 +284,11 @@ export async function saveSession(
 
     if (existing.rows[0]) {
       await client.query(
-        'update sessions set name = $3, format = $4, scoring = $5, course_name = $6 where tournament_id = $1 and name = $2',
-        [t.id, originalName, name, format, scoring, courseName],
+        `update sessions
+            set name = $3, format = $4, scoring = $5, course_name = $6,
+                hole_set = $7, use_handicap = $8, points_per_stroke = $9
+          where tournament_id = $1 and name = $2`,
+        [t.id, originalName, name, format, scoring, courseName, holeSet, useHandicap, pointsPerStroke],
       )
       if (originalName && originalName !== name) {
         await client.query(
@@ -272,8 +302,10 @@ export async function saveSession(
         [t.id],
       )
       await client.query(
-        'insert into sessions (tournament_id, name, format, scoring, sort_order, course_name) values ($1, $2, $3, $4, $5, $6)',
-        [t.id, name, format, scoring, rows[0].next, courseName],
+        `insert into sessions
+           (tournament_id, name, format, scoring, sort_order, course_name, hole_set, use_handicap, points_per_stroke)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [t.id, name, format, scoring, rows[0].next, courseName, holeSet, useHandicap, pointsPerStroke],
       )
     }
     return { success: true as const, name }

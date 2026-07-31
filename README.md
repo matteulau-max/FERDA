@@ -1,8 +1,8 @@
 # FERDA
 
 Live golf tournament scoring — Ryder Cup–style team events with match play,
-best ball, scramble, and 2v1 formats, USGA handicapping, live leaderboards,
-and payouts.
+best ball, scramble, and 2v1 formats, 9- or 18-hole rounds, USGA handicapping,
+live leaderboards, and payouts.
 
 ## Architecture
 
@@ -72,7 +72,8 @@ Go to `/new`, name the event, and the setup page covers the rest:
   handicap — strokes are derived per course), team, and an optional phone
   number for sharing the link.
 - **Sessions** — name, game type (Singles / Best Ball / Scramble / 2v1),
-  scoring (Match or Stroke Play), and the course, chosen per session.
+  scoring, course, which holes are played, and whether handicaps apply. Each
+  session carries its own settings, so a weekend can mix formats freely.
 - **Pairings** — matches per session. Side sizes are enforced per format,
   players can only be listed on their own team, and anyone already playing
   that session is greyed out.
@@ -80,6 +81,36 @@ Go to `/new`, name the event, and the setup page covers the rest:
 There is no sign-in yet, so the tournament URL is the only way back to an
 event and anyone holding it can enter scores. The setup page shows the link
 for that reason.
+
+### Session rules
+
+**Scoring** decides what a session is worth.
+
+| Scoring | How it settles |
+| --- | --- |
+| Match Play | Holes won. One point per match, halves split. |
+| Stroke Play | Lowest total wins the match. Still one point per match. |
+| Total Stroke Play | Every match's total is pooled per team; the margin pays out. |
+
+Total Stroke Play is a session-level result, so no individual match wins
+anything. If one team's pairings go 70 and 71 (141) against 69 and 70 (139),
+the second team is 2 strokes clear and banks `2 × pointsPerStroke` — one point
+at the default rate of 0.5. Level totals are a margin of zero and score
+nothing for either side. Each match contributes the score it competes with:
+the scramble ball, the best ball on a Best Ball hole, the player's own score in
+Singles.
+
+**Holes** — a session plays All 18, the Front 9, or the Back 9. A nine is not
+just a shorter round: stroke indexes are re-ranked 1–9 within that nine, and
+the handicap is derived from half the index against half the rating. Without
+the re-ranking a nine would hand out roughly half the strokes it should, since
+courses spread indexes 1–18 across the full round. See `src/lib/holes.ts`.
+
+**Handicaps** — on by default, applying the format's USGA allowance. Switched
+off, the session is played gross and no strokes are given anywhere in it.
+
+All three are per session and stay editable mid-tournament like everything
+else in setup.
 
 ## Backend setup
 

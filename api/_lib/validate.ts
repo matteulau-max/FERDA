@@ -5,10 +5,12 @@
  */
 
 export const FORMATS = ['Singles', 'Best Ball', 'Scramble', '2v1'] as const
-export const SCORINGS = ['Match Play', 'Stroke Play'] as const
+export const SCORINGS = ['Match Play', 'Stroke Play', 'Total Stroke Play'] as const
+export const HOLE_SETS = ['All 18', 'Front 9', 'Back 9'] as const
 
 export type Format = (typeof FORMATS)[number]
 export type Scoring = (typeof SCORINGS)[number]
+export type HoleSet = (typeof HOLE_SETS)[number]
 
 export class ValidationError extends Error {}
 
@@ -48,6 +50,19 @@ export function requireOneOf<T extends string>(value: unknown, field: string, al
   const text = typeof value === 'string' ? value.trim() : ''
   if (!allowed.includes(text as T)) fail(`${field} must be one of: ${allowed.join(', ')}`)
   return text as T
+}
+
+/**
+ * A checkbox arrives as a real boolean from our own UI, but tolerate the
+ * string forms a hand-rolled request might send. Absent means "use the default".
+ */
+export function optionalBool(value: unknown, fallback: boolean): boolean {
+  if (value == null || value === '') return fallback
+  if (typeof value === 'boolean') return value
+  const text = String(value).trim().toLowerCase()
+  if (text === 'true' || text === '1' || text === 'yes') return true
+  if (text === 'false' || text === '0' || text === 'no') return false
+  fail('Handicap setting must be true or false')
 }
 
 /**

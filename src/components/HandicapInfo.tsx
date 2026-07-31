@@ -1,5 +1,5 @@
-import type { Course, Format, Match, Player } from '../lib/types'
-import { courseHandicap, matchPlayingHandicaps } from '../lib/handicap'
+import type { Match, Player, SessionCourse, SessionRules } from '../lib/types'
+import { sessionCourseHandicap, matchPlayingHandicaps } from '../lib/handicap'
 import {
   TEAM_COLORS,
   SCRAMBLE_ALLOWANCES,
@@ -10,15 +10,28 @@ import {
 
 interface Props {
   match: Match
-  format: Format
+  rules: SessionRules
   players: Player[]
-  course: Course
+  course: SessionCourse
 }
 
-export function HandicapInfo({ match, format, players, course }: Props) {
+export function HandicapInfo({ match, rules, players, course }: Props) {
+  const { format } = rules
   const playerMap = new Map(players.map((p) => [p.name.toLowerCase(), p]))
 
   const getPlayer = (name: string) => playerMap.get(name.toLowerCase())
+
+  // Nothing to explain when the session is played gross.
+  if (!rules.useHandicap) {
+    return (
+      <div className="mt-4 rounded-xl p-4 font-body" style={{ background: '#f9f7f1', border: '1px solid #e8e5d8' }}>
+        <h3 className="font-serif text-sm font-semibold mb-1" style={{ color: '#333' }}>Handicap Info</h3>
+        <p className="text-xs text-gray-500">
+          This session is played <span className="font-semibold">gross</span> — no strokes are given.
+        </p>
+      </div>
+    )
+  }
 
   const { t1Phs, t2Phs } = format !== 'Scramble'
     ? matchPlayingHandicaps(match.team1Players, match.team2Players, players, course, format)
@@ -31,7 +44,7 @@ export function HandicapInfo({ match, format, players, course }: Props) {
     if (format === 'Scramble') {
       const chs = names.map((n) => {
         const p = getPlayer(n)
-        return p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
+        return p ? sessionCourseHandicap(p.handicapIndex, course) : 0
       })
       const sorted = [...chs].sort((a, b) => a - b)
       const n = names.length
@@ -48,7 +61,7 @@ export function HandicapInfo({ match, format, players, course }: Props) {
             {names.map((name) => {
               const p = getPlayer(name)
               if (!p) return null
-              const ch = courseHandicap(p.handicapIndex, course.slope, course.rating, course.par)
+              const ch = sessionCourseHandicap(p.handicapIndex, course)
               return (
                 <div key={name}>
                   {name}: HI {p.handicapIndex} → CH {ch}
@@ -81,7 +94,7 @@ export function HandicapInfo({ match, format, players, course }: Props) {
           {names.map((name, i) => {
             const p = getPlayer(name)
             if (!p) return null
-            const ch = courseHandicap(p.handicapIndex, course.slope, course.rating, course.par)
+            const ch = sessionCourseHandicap(p.handicapIndex, course)
             return (
               <div key={name}>
                 {name}: HI {p.handicapIndex} → CH {ch} → PH {phs[i]} ({allowancePct}%)
@@ -101,9 +114,16 @@ export function HandicapInfo({ match, format, players, course }: Props) {
 
       <div className="text-xs text-gray-500 mb-3">
         <span className="font-semibold">{course.name}</span>
+        {rules.holeSet !== 'All 18' && <> · <span className="font-semibold">{rules.holeSet}</span></>}
         {' · '}Rating {course.rating} / Slope {course.slope} / Par {course.par}
         {' · '}Format: <span className="font-semibold">{format}</span>
       </div>
+      {rules.holeSet !== 'All 18' && (
+        <p className="text-xs text-gray-400 mb-3">
+          Nine-hole handicaps: half the index against half the rating, with the
+          nine's stroke indexes re-ranked 1–9.
+        </p>
+      )}
 
       <div className="flex flex-col gap-3">
         {renderSide(match.team1Players, 'team1')}

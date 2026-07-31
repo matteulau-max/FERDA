@@ -20,6 +20,7 @@
 
 import type { TournamentData } from './types'
 import { calcMatchStatus, totalPoints } from './matchPlay'
+import { courseForSession, sessionRules } from './holes'
 import { rankBestGolfers } from './bestGolfer'
 
 export const WAGER = {
@@ -81,10 +82,13 @@ export function computePayouts(data: TournamentData, skills: SkillsState): Payou
 
   // --- Matchups: settled head-to-head results only, each match zero-sum ---
   for (const session of sessions) {
-    const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+    const rules = sessionRules(session)
+    const course = courseForSession(courses, session)
     if (!course) continue
     for (const match of session.matches) {
-      const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
+      // The side wager settles pairing against pairing regardless of how the
+      // session pays team points, so Total Stroke Play matches count here too.
+      const status = calcMatchStatus(match, rules, players, course)
       if (!status.isComplete || !status.result) continue
 
       if (status.result.winner === 'halved') {

@@ -1,5 +1,6 @@
 import type { TournamentData } from '../lib/types'
-import { totalPoints, calcMatchStatus } from '../lib/matchPlay'
+import { totalPoints, calcMatchStatus, calcSessionTotals } from '../lib/matchPlay'
+import { courseForSession, sessionRules } from '../lib/holes'
 import { OverflowMenu } from './OverflowMenu'
 
 interface Props {
@@ -11,15 +12,40 @@ export function HeroScoreboard({ tournament }: Props) {
   const title = tournament.name ?? 'The Ferda Invitational'
   const pts = totalPoints(sessions, players, courses)
 
-  // Compute converging bar totals across all sessions
+  // Compute converging bar totals across all sessions.
+  //
+  // Match and Stroke Play sessions put one point per match on the table, so a
+  // match is the natural unit. Total Stroke Play doesn't have a fixed value —
+  // the margin decides — so its contribution to "points in play" is whatever
+  // the current margin is worth.
   let t1Locked = 0, t2Locked = 0, t1Proj = 0, t2Proj = 0, startedCount = 0
+  let pointsInPlay = 0
   let totalMatches = 0
   for (const session of sessions) {
-    const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+    const rules = sessionRules(session)
+    const course = courseForSession(courses, session)
     if (!course) continue
     totalMatches += session.matches.length
+
+    if (rules.scoring === 'Total Stroke Play') {
+      const totals = calcSessionTotals(session, players, courses)
+      const award = totals.points.team1 + totals.points.team2
+      pointsInPlay += award
+      t1Proj += totals.points.team1
+      t2Proj += totals.points.team2
+      if (totals.isComplete) {
+        t1Locked += totals.points.team1
+        t2Locked += totals.points.team2
+      }
+      startedCount += session.matches.filter(
+        (m) => calcMatchStatus(m, rules, players, course).holesPlayed > 0,
+      ).length
+      continue
+    }
+
+    pointsInPlay += session.matches.length
     for (const match of session.matches) {
-      const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
+      const status = calcMatchStatus(match, rules, players, course)
       if (status.isComplete && status.result) {
         startedCount++
         if (status.result.winner === 'team1')      { t1Locked += 1; t1Proj += 1 }
@@ -34,7 +60,7 @@ export function HeroScoreboard({ tournament }: Props) {
     }
   }
 
-  const scale = totalMatches > 0 ? 100 / totalMatches : 0
+  const scale = pointsInPlay > 0 ? 100 / pointsInPlay : 0
   const t1LockedPct = t1Locked * scale
   const t1ProjPct   = (t1Proj - t1Locked) * scale
   const t2ProjPct   = (t2Proj - t2Locked) * scale
@@ -42,13 +68,13 @@ export function HeroScoreboard({ tournament }: Props) {
 
   // Win probability: sigmoid over expected final points vs win threshold
   const t1WinProb = (() => {
-    if (totalMatches === 0 || startedCount === 0) return 0.5
-    const winThreshold = totalMatches / 2
+    if (pointsInPlay === 0 || startedCount === 0) return 0.5
+    const winThreshold = pointsInPlay / 2
     if (t1Locked > winThreshold) return 0.99
     if (t2Locked > winThreshold) return 0.01
-    const unstarted = totalMatches - startedCount
+    const unstarted = Math.max(0, totalMatches - startedCount)
     const t1Exp = t1Proj + 0.5 * unstarted
-    const x = ((t1Exp - winThreshold) / (totalMatches * 0.5)) * 5
+    const x = ((t1Exp - winThreshold) / (pointsInPlay * 0.5)) * 5
     return 1 / (1 + Math.exp(-x))
   })()
 

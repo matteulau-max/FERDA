@@ -94,7 +94,9 @@ export async function getTournament(pool: Pool, tournament: TournamentRow) {
       [tournament.id],
     ),
     pool.query(
-      `select name, format, scoring, sort_order, course_name from sessions
+      `select name, format, scoring, sort_order, course_name,
+              hole_set, use_handicap, points_per_stroke
+         from sessions
         where tournament_id = $1 order by sort_order`,
       [tournament.id],
     ),
@@ -144,6 +146,9 @@ export async function getTournament(pool: Pool, tournament: TournamentRow) {
       ...(s.scoring ? { scoring: s.scoring } : {}),
       sortOrder: s.sort_order,
       courseName: s.course_name,
+      holeSet: s.hole_set,
+      useHandicap: s.use_handicap,
+      pointsPerStroke: parseFloat(s.points_per_stroke), // numeric arrives as a string
       matches: matches.rows
         .filter((m) => m.session_name === s.name)
         .map((m) => ({

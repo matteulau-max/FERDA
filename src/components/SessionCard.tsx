@@ -1,13 +1,17 @@
 import { useState } from 'react'
-import type { Course, Player, Session, Team } from '../lib/types'
+import type { Player, SessionCourse, Session, Team } from '../lib/types'
 import { MatchRow } from './MatchRow'
-import { calcMatchStatus } from '../lib/matchPlay'
-import { TEAM_COLORS, FORMAT_LABELS } from '../lib/constants'
+import { calcMatchStatus, calcSessionTotals, matchPoints } from '../lib/matchPlay'
+import { sessionRules } from '../lib/holes'
+import { TEAM_COLORS, FORMAT_LABELS, SCORING_SHORT_LABELS } from '../lib/constants'
 
 interface Props {
   session: Session
   players: Player[]
-  course: Course
+  /** Already scoped to the session's holes — see courseForSession. */
+  course: SessionCourse
+  /** Every course, so the session roll-up can resolve its own. */
+  courses: import('../lib/types').Course[]
   team1: Team
   team2: Team
 }
@@ -20,29 +24,45 @@ const FORMAT_COLORS: Record<string, string> = {
 }
 
 const fmtPts = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(1))
+const fmtScore = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
 
-export function SessionCard({ session, players, course, team1, team2 }: Props) {
+export function SessionCard({ session, players, course, courses, team1, team2 }: Props) {
+  const rules = sessionRules(session)
   const badgeColor = FORMAT_COLORS[session.format] ?? '#555'
+  const isTotal = rules.scoring === 'Total Stroke Play'
 
-  // Roll up the session result so we can summarize it when collapsed and
-  // decide whether to auto-collapse (a finished round doesn't need to stay open).
+  // Total Stroke Play is decided by the pooled team totals, so its roll-up
+  // comes from the session rather than from counting match wins.
+  const totals = isTotal ? calcSessionTotals(session, players, courses) : null
+
   let t1Pts = 0
   let t2Pts = 0
   let done = 0
   for (const match of session.matches) {
-    const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
-    if (status.isComplete && status.result) {
-      done++
-      if (status.result.winner === 'team1') t1Pts += 1
-      else if (status.result.winner === 'team2') t2Pts += 1
-      else { t1Pts += 0.5; t2Pts += 0.5 }
+    const status = calcMatchStatus(match, rules, players, course)
+    if (status.isComplete) done++
+    if (!isTotal) {
+      const pts = matchPoints(status)
+      t1Pts += pts.team1
+      t2Pts += pts.team2
     }
   }
+  if (totals) {
+    t1Pts = totals.points.team1
+    t2Pts = totals.points.team2
+  }
+
   const total = session.matches.length
   const allComplete = total > 0 && done === total
 
   // Default: completed rounds start collapsed, the live round stays open.
   const [open, setOpen] = useState(!allComplete)
+
+  const subtitle = [
+    session.courseName,
+    rules.holeSet !== 'All 18' ? rules.holeSet : null,
+    rules.useHandicap ? null : 'Gross',
+  ].filter(Boolean).join(' · ')
 
   return (
     <div
@@ -62,7 +82,7 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
             {session.name}
           </h2>
           <span className="font-body text-xs leading-tight" style={{ color: '#777' }}>
-            {session.courseName}
+            {subtitle}
           </span>
         </div>
 
@@ -86,7 +106,7 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
               {FORMAT_LABELS[session.format] ?? session.format}
             </span>
             <span className="font-body text-xs leading-tight" style={{ color: '#777' }}>
-              {session.scoring === 'Stroke Play' ? 'Stroke' : 'Match'}
+              {SCORING_SHORT_LABELS[rules.scoring]}
             </span>
           </div>
 
@@ -101,6 +121,17 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
         </div>
       </button>
 
+      {/* The pooled scoreboard — this is the actual result of the session, so
+          it sits above the matches that feed it. */}
+      {open && totals && (
+        <TotalStrokeBanner
+          totals={totals}
+          team1={team1}
+          team2={team2}
+          pointsPerStroke={rules.pointsPerStroke}
+        />
+      )}
+
       {/* Matches */}
       {open && (
         <div className="p-3 flex flex-col gap-2">
@@ -108,8 +139,7 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
             <MatchRow
               key={match.id}
               match={match}
-              format={session.format}
-              scoring={session.scoring}
+              rules={rules}
               players={players}
               course={course}
               team1={team1}
@@ -121,6 +151,60 @@ export function SessionCard({ session, players, course, team1, team2 }: Props) {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function TotalStrokeBanner({
+  totals, team1, team2, pointsPerStroke,
+}: {
+  totals: import('../lib/types').SessionTotals
+  team1: Team
+  team2: Team
+  pointsPerStroke: number
+}) {
+  const leaderName = totals.leader === 'team1' ? team1.name : totals.leader === 'team2' ? team2.name : null
+  const leaderColor = totals.leader === 'team1' ? TEAM_COLORS.team1 : TEAM_COLORS.team2
+  const award = totals.points.team1 + totals.points.team2
+
+  return (
+    <div className="px-4 py-3" style={{ background: '#fbf9f3', borderBottom: '1px solid #e8e5d8' }}>
+      <div className="flex items-center justify-center gap-4">
+        <TeamTotal name={team1.name} score={totals.team1} color={TEAM_COLORS.team1} lead={totals.leader === 'team1'} />
+        <span className="font-body text-xs" style={{ color: '#bbb' }}>vs</span>
+        <TeamTotal name={team2.name} score={totals.team2} color={TEAM_COLORS.team2} lead={totals.leader === 'team2'} />
+      </div>
+      <p className="text-center font-body text-xs mt-2" style={{ color: '#666' }}>
+        {leaderName === null ? (
+          <>Level — no points{totals.isComplete ? '' : ' yet'}</>
+        ) : (
+          <>
+            <span style={{ color: leaderColor, fontWeight: 600 }}>{leaderName}</span>
+            {` by ${fmtScore(totals.margin)} ${totals.margin === 1 ? 'stroke' : 'strokes'} · `}
+            <span style={{ color: leaderColor, fontWeight: 600 }}>
+              {fmtPts(award)} {award === 1 ? 'pt' : 'pts'}
+            </span>
+            {totals.isComplete ? '' : ' so far'}
+          </>
+        )}
+      </p>
+      <p className="text-center font-body mt-0.5" style={{ color: '#aaa', fontSize: 10 }}>
+        {pointsPerStroke} pt{pointsPerStroke === 1 ? '' : 's'} per stroke
+      </p>
+    </div>
+  )
+}
+
+function TeamTotal({ name, score, color, lead }: { name: string; score: number; color: string; lead: boolean }) {
+  return (
+    <div className="flex flex-col items-center">
+      <span
+        className="font-serif font-bold tabular-nums leading-none"
+        style={{ color: lead ? color : '#999', fontSize: 26 }}
+      >
+        {score > 0 ? fmtScore(score) : '–'}
+      </span>
+      <span className="font-body text-xs mt-1" style={{ color: '#888' }}>{name}</span>
     </div>
   )
 }

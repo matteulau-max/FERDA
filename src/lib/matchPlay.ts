@@ -3,7 +3,20 @@
  * Match status calculation — pure functions, no side effects.
  */
 
-import type { Course, Format, HoleScores, Match, MatchScores, MatchStatus, Player, Scoring } from './types'
+import type {
+  Course,
+  Format,
+  HoleScores,
+  Match,
+  MatchScores,
+  MatchStatus,
+  Player,
+  Session,
+  SessionCourse,
+  SessionRules,
+  SessionTotals,
+} from './types'
+export type { SessionRules, SessionTotals }
 import {
   matchPlayingHandicaps,
   perPlayerHoleStrokes,
@@ -11,6 +24,7 @@ import {
   strokesOnHole,
 } from './handicap'
 import { scrambleTeamHandicap, courseHandicap } from './handicap'
+import { courseForSession, sessionRules } from './holes'
 
 // ---------------------------------------------------------------------------
 // Net score helpers
@@ -87,18 +101,23 @@ interface MatchStrokes {
   t2TeamStrokesPerHole: Record<number, number>
 }
 
-function computeMatchStrokes(
+export function computeMatchStrokes(
   match: Match,
-  format: Format,
+  rules: SessionRules,
   players: Player[],
-  course: Course,
+  course: SessionCourse,
 ): MatchStrokes {
+  const { format } = rules
   const strokes: MatchStrokes = {
     t1PlayerStrokes: {},
     t2PlayerStrokes: {},
     t1TeamStrokesPerHole: {},
     t2TeamStrokesPerHole: {},
   }
+
+  // Handicaps off: everyone plays gross, so nobody receives a stroke anywhere.
+  // Leaving the maps empty makes every lookup fall through to 0.
+  if (!rules.useHandicap) return strokes
 
   if (format === 'Scramble') {
     const { team1Ph, team2Ph } = scrambleSideHandicaps(
@@ -175,22 +194,30 @@ function sideNetsForHole(
 
 export function calcMatchStatus(
   match: Match,
-  format: Format,
+  rules: SessionRules,
   players: Player[],
-  course: Course | undefined,
-  scoring: Scoring = 'Match Play',
+  course: SessionCourse | undefined,
 ): MatchStatus {
+  const { format, scoring } = rules
   const emptyStatus: MatchStatus = {
-    t1Up: 0, holesPlayed: 0, holesRemaining: 18, isComplete: false, scoring, result: null,
+    t1Up: 0, t1Total: 0, t2Total: 0,
+    holesPlayed: 0, holesRemaining: 18, isComplete: false, scoring, result: null,
   }
   if (!course) return emptyStatus
-  const totalHoles = course.holes.length // 18
+
+  // 18 for a full round, 9 for a nine — this is what closes out a match.
+  const totalHoles = course.holes.length
 
   // --- Compute playing handicap strokes per player / team ---
-  const strokes = computeMatchStrokes(match, format, players, course)
+  const strokes = computeMatchStrokes(match, rules, players, course)
+
+  // Stroke play of either kind accumulates a differential rather than holes.
+  const isStrokes = scoring === 'Stroke Play' || scoring === 'Total Stroke Play'
 
   // --- Walk holes and compute running match status ---
   let t1Up = 0
+  let t1Total = 0
+  let t2Total = 0
   let holesPlayed = 0
   let isComplete = false
   let result: MatchStatus['result'] = null
@@ -207,8 +234,10 @@ export function calcMatchStatus(
     const { t1Net, t2Net } = nets
 
     holesPlayed++
+    t1Total += t1Net
+    t2Total += t2Net
 
-    if (scoring === 'Stroke Play') {
+    if (isStrokes) {
       // Accumulate raw net stroke differential (lower net = better)
       t1Up += t2Net - t1Net
     } else {
@@ -229,19 +258,13 @@ export function calcMatchStatus(
     }
   }
 
-  // Check if all holes played (or stroke play reached 18)
+  // Check if every hole in play has been scored
   if (!isComplete && holesPlayed === totalHoles) {
     isComplete = true
     if (t1Up > 0) {
-      result = {
-        winner: 'team1',
-        text: scoring === 'Stroke Play' ? `by ${t1Up}` : '1 UP',
-      }
+      result = { winner: 'team1', text: isStrokes ? `by ${fmt(t1Up)}` : '1 UP' }
     } else if (t1Up < 0) {
-      result = {
-        winner: 'team2',
-        text: scoring === 'Stroke Play' ? `by ${Math.abs(t1Up)}` : '1 UP',
-      }
+      result = { winner: 'team2', text: isStrokes ? `by ${fmt(Math.abs(t1Up))}` : '1 UP' }
     } else {
       result = { winner: 'halved', text: 'HALVED' }
     }
@@ -249,12 +272,19 @@ export function calcMatchStatus(
 
   return {
     t1Up,
+    t1Total,
+    t2Total,
     holesPlayed,
     holesRemaining: totalHoles - holesPlayed,
     isComplete,
     scoring,
     result,
   }
+}
+
+/** 2v1 averages sides, so a differential can land on a half. */
+function fmt(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
 function firstNonZeroValue(obj: Record<string, number>): number | null {
@@ -283,13 +313,14 @@ export interface HoleWinner {
  */
 export function holeWinnerHighlights(
   match: Match,
-  format: Format,
+  rules: SessionRules,
   players: Player[],
-  course: Course | undefined,
+  course: SessionCourse | undefined,
 ): Record<number, HoleWinner> {
   const result: Record<number, HoleWinner> = {}
   if (!course) return result
-  const strokes = computeMatchStrokes(match, format, players, course)
+  const { format } = rules
+  const strokes = computeMatchStrokes(match, rules, players, course)
 
   for (const hole of course.holes) {
     const holeScores = match.scores[hole.number]
@@ -328,15 +359,20 @@ export function holeWinnerHighlights(
 // Status display text helpers
 // ---------------------------------------------------------------------------
 
+/** True for both stroke-play variants, which measure a margin rather than holes. */
+export function isStrokePlay(scoring: MatchStatus['scoring']): boolean {
+  return scoring === 'Stroke Play' || scoring === 'Total Stroke Play'
+}
+
 export function matchStatusText(status: MatchStatus): string {
   if (status.holesPlayed === 0) return 'Not started'
   if (status.isComplete && status.result) {
     return `FINAL: ${status.result.text}`
   }
   if (status.t1Up === 0) return `AS thru ${status.holesPlayed}`
-  const lead = Math.abs(status.t1Up)
+  const lead = fmt(Math.abs(status.t1Up))
   const side = status.t1Up > 0 ? 'T1' : 'T2'
-  if (status.scoring === 'Stroke Play') {
+  if (isStrokePlay(status.scoring)) {
     return `${side} leads by ${lead} thru ${status.holesPlayed}`
   }
   return `${side} ${lead} UP thru ${status.holesPlayed}`
@@ -354,9 +390,9 @@ export function matchStatusTextWithNames(
     return `${winnerName} wins ${status.result.text}`
   }
   if (status.t1Up === 0) return `All Square thru ${status.holesPlayed}`
-  const lead = Math.abs(status.t1Up)
+  const lead = fmt(Math.abs(status.t1Up))
   const leaderName = status.t1Up > 0 ? team1Name : team2Name
-  if (status.scoring === 'Stroke Play') {
+  if (isStrokePlay(status.scoring)) {
     return `${leaderName} leads by ${lead} thru ${status.holesPlayed}`
   }
   return `${leaderName} ${lead} UP thru ${status.holesPlayed}`
@@ -366,26 +402,88 @@ export function matchStatusTextWithNames(
 // Tournament points
 // ---------------------------------------------------------------------------
 
+/**
+ * Points a single match is worth. Total Stroke Play pays at the session level
+ * instead — no individual match wins anything there.
+ */
 export function matchPoints(status: MatchStatus): { team1: number; team2: number } {
+  if (status.scoring === 'Total Stroke Play') return { team1: 0, team2: 0 }
   if (!status.isComplete || !status.result) return { team1: 0, team2: 0 }
   if (status.result.winner === 'halved') return { team1: 0.5, team2: 0.5 }
   if (status.result.winner === 'team1') return { team1: 1, team2: 0 }
   return { team1: 0, team2: 1 }
 }
 
+/**
+ * Total Stroke Play: pool every match's total into one score per team, then
+ * pay the margin out at the session's rate. Two pairings shooting 70 and 71
+ * make 141; against 139 that's 2 strokes, and at 0.5 a stroke, one point.
+ *
+ * Level totals mean a margin of zero, so neither team scores.
+ */
+export function calcSessionTotals(
+  session: Session,
+  players: Player[],
+  courses: Course[],
+): SessionTotals {
+  const rules = sessionRules(session)
+  const course = courseForSession(courses, session)
+
+  let team1 = 0
+  let team2 = 0
+  let allComplete = session.matches.length > 0
+
+  for (const match of session.matches) {
+    const status = calcMatchStatus(match, rules, players, course)
+    team1 += status.t1Total
+    team2 += status.t2Total
+    if (!status.isComplete) allComplete = false
+  }
+
+  const margin = Math.abs(team1 - team2)
+  const leader = team1 < team2 ? 'team1' : team2 < team1 ? 'team2' : null
+  // Guard against float dust from 2v1's averaged sides.
+  const award = leader ? round2(margin * rules.pointsPerStroke) : 0
+
+  return {
+    team1,
+    team2,
+    margin,
+    leader,
+    isComplete: allComplete,
+    points: {
+      team1: leader === 'team1' ? award : 0,
+      team2: leader === 'team2' ? award : 0,
+    },
+  }
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
 export function totalPoints(
-  sessions: Array<{ format: Format; scoring?: Scoring; matches: Match[]; courseName: string }>,
+  sessions: Session[],
   players: Player[],
   courses: Course[],
 ): { team1: number; team2: number } {
   let t1 = 0
   let t2 = 0
   for (const session of sessions) {
-    const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+    const rules = sessionRules(session)
+
+    // A Total Stroke Play session is scored as a whole, not match by match.
+    if (rules.scoring === 'Total Stroke Play') {
+      const totals = calcSessionTotals(session, players, courses)
+      t1 += totals.points.team1
+      t2 += totals.points.team2
+      continue
+    }
+
+    const course = courseForSession(courses, session)
     if (!course) continue
     for (const match of session.matches) {
-      const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
-      const pts = matchPoints(status)
+      const pts = matchPoints(calcMatchStatus(match, rules, players, course))
       t1 += pts.team1
       t2 += pts.team2
     }
@@ -403,10 +501,9 @@ export function totalPoints(
  */
 export function runningStatusByHole(
   match: Match,
-  format: Format,
+  rules: SessionRules,
   players: Player[],
-  course: Course,
-  scoring: Scoring = 'Match Play',
+  course: SessionCourse,
 ): Array<{ hole: number; t1Up: number }> {
   const result: Array<{ hole: number; t1Up: number }> = []
   const sortedHoles = [...course.holes].sort((a, b) => a.number - b.number)
@@ -417,7 +514,7 @@ export function runningStatusByHole(
     if (!hs) continue
     partialScores[hole.number] = hs
     const partial: Match = { ...match, scores: partialScores }
-    const st = calcMatchStatus(partial, format, players, course, scoring)
+    const st = calcMatchStatus(partial, rules, players, course)
     result.push({ hole: hole.number, t1Up: st.t1Up })
   }
   return result

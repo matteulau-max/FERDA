@@ -1,4 +1,4 @@
-import type { Course, Format, Player, SaveScorePayload, Scoring, TournamentData } from './types'
+import type { Course, Format, HoleSet, Player, SaveScorePayload, Scoring, TournamentData } from './types'
 
 /** Append ?t=<slug> when a specific tournament is being addressed. */
 function withSlug(apiUrl: string, params: Record<string, string>, slug?: string): string {
@@ -8,7 +8,10 @@ function withSlug(apiUrl: string, params: Record<string, string>, slug?: string)
 }
 
 export async function fetchTournament(apiUrl: string, slug?: string): Promise<TournamentData> {
-  const res = await fetch(withSlug(apiUrl, { action: 'getTournament' }, slug))
+  // The response carries s-maxage for Vercel's edge, but the browser must not
+  // hold its own copy: setup refetches immediately after a write, and a cached
+  // body would show the organiser their old data until the next poll.
+  const res = await fetch(withSlug(apiUrl, { action: 'getTournament' }, slug), { cache: 'no-store' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json() as Promise<TournamentData>
 }
@@ -125,6 +128,10 @@ export interface SessionFields {
   format: Format
   scoring: Scoring
   courseName: string
+  holeSet: HoleSet
+  useHandicap: boolean
+  /** Only read by Total Stroke Play, but always stored. */
+  pointsPerStroke: number
 }
 
 export function saveSession(apiUrl: string, slug: string, session: SessionFields, originalName?: string) {

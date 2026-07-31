@@ -1,5 +1,6 @@
 import { useTournament } from '../hooks/useTournament'
 import { useTournamentRoute } from '../lib/paths'
+import { courseForSession } from '../lib/holes'
 import { HeroScoreboard } from '../components/HeroScoreboard'
 import { SessionCard } from '../components/SessionCard'
 import { PlayerLeaderboard } from '../components/PlayerLeaderboard'
@@ -61,13 +62,15 @@ export function Leaderboard() {
         {[...sessions]
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((session) => {
-            const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+            const course = courseForSession(courses, session)
+            if (!course) return null
             return (
               <SessionCard
                 key={session.name}
                 session={session}
                 players={players}
                 course={course}
+                courses={courses}
                 team1={teams.team1}
                 team2={teams.team2}
               />

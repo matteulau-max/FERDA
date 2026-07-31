@@ -53,9 +53,17 @@ create table if not exists sessions (
   tournament_id uuid not null references tournaments(id) on delete cascade,
   name          text not null,
   format        text not null check (format in ('Singles', 'Best Ball', 'Scramble', '2v1')),
-  scoring       text check (scoring in ('Match Play', 'Stroke Play')),
+  scoring       text check (scoring in ('Match Play', 'Stroke Play', 'Total Stroke Play')),
   sort_order    integer not null,
   course_name   text not null,
+  -- Which holes of course_name are played. A nine re-ranks the stroke indexes
+  -- within itself and halves the handicap (see src/lib/holes.ts).
+  hole_set      text not null default 'All 18'
+                check (hole_set in ('All 18', 'Front 9', 'Back 9')),
+  -- Off means everyone plays gross: no strokes given anywhere in the session.
+  use_handicap  boolean not null default true,
+  -- Total Stroke Play only: team points awarded per stroke of the margin.
+  points_per_stroke numeric(4,2) not null default 0.5 check (points_per_stroke >= 0),
   unique (tournament_id, name)
 );
 
