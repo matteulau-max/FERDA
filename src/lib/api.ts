@@ -1,3 +1,4 @@
+import type { ManualPart } from './manual'
 import type { Course, Format, HoleSet, Player, SaveScorePayload, Scoring, TournamentData } from './types'
 
 /** Append ?t=<slug> when a specific tournament is being addressed. */
@@ -175,4 +176,13 @@ export function saveMatch(
 
 export function deleteMatch(apiUrl: string, slug: string, id: string) {
   return post(apiUrl, { action: 'deleteMatch', id }, slug)
+}
+
+/**
+ * Save one section of the manual. Sections are stored in a single document but
+ * written separately and merged server-side, so saving the schedule leaves the
+ * rules alone.
+ */
+export function saveManual(apiUrl: string, slug: string, part: ManualPart, value: unknown) {
+  return post<{ part: ManualPart }>(apiUrl, { action: 'saveManual', part, value }, slug)
 }

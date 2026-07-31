@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from 'pg'
 import type { TournamentRow } from './tournament'
+import { MANUAL_PARTS, validateManualPart, type ManualPart } from './manual'
 import {
   FORMATS,
   HOLE_SETS,
@@ -100,6 +101,31 @@ export async function updateTournament(
     [t.id, name, team1Name, team2Name],
   )
   return { success: true }
+}
+
+/**
+ * Save one part of the tournament manual — the schedule, the rules, the
+ * stakes, the lodging details, or the event line.
+ *
+ * Parts are stored in a single jsonb document but written one at a time, and
+ * merged with `||` rather than replaced, so an organiser editing the schedule
+ * on their phone can't wipe the rules someone set on a laptop.
+ */
+export async function saveManual(
+  pool: Pool,
+  t: TournamentRow,
+  body: Record<string, unknown>,
+): Promise<{ success: true; part: ManualPart }> {
+  const part = requireOneOf(body.part, 'Manual section', MANUAL_PARTS)
+  const value = validateManualPart(part, body.value)
+
+  await pool.query(
+    `update tournaments
+        set manual = coalesce(manual, '{}'::jsonb) || jsonb_build_object($2::text, $3::jsonb)
+      where id = $1`,
+    [t.id, part, JSON.stringify(value)],
+  )
+  return { success: true, part }
 }
 
 /**

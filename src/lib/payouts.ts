@@ -4,37 +4,27 @@
  * effects. All amounts are NET (up or down from your buy-ins), so every pool
  * — and the whole board — always sums to zero.
  *
- * The four pools:
- *  - Matchups ($10/player/round head-to-head): each settled match pays out
- *    its own pot ($10 × players in the match). Winning side splits the pot
- *    (net = share − stake), losers −$10, halve = push ($0). 1v1: +$10/−$10.
- *    2v1: pair wins +$5 each, solo wins +$20, losers −$10 each.
- *  - The Cup ($150 buy-in): members of the team currently leading the
- *    overall points race are +$150, the trailing team −$150; tied = $0.
- *  - Golfer of the Weekend ($5 from all 20 golfers = $100 pot): the current
- *    Best Golfer leader is +$95, everyone else −$5.
- *  - Skills ($10 Long Drive + $10 Closest to the Pin): per skill, the winning
- *    team is +$10 each and the losing team −$10 each. Set by the organizer
- *    via the toggle.
+ * The organiser sets four buy-ins under Setup → Wagers; a buy-in of 0 leaves
+ * that pool off the board entirely.
+ *
+ *  - Matchups (per player, per round, head-to-head): each settled match pays
+ *    out its own pot (stake × players in the match). The winning side splits
+ *    the pot (net = share − stake), losers −stake, a halve is a push. 1v1 at
+ *    $10: +$10/−$10. 2v1: pair wins +$5 each, solo wins +$20, losers −$10.
+ *  - The Cup: members of the team currently leading the overall points race
+ *    are up their buy-in, the trailing team down it; tied = $0.
+ *  - Golfer of the Weekend: every player buys in, and the current Best Golfer
+ *    leader takes the whole pot — so +buyIn × (field − 1) against −buyIn for
+ *    everyone else.
+ *  - Skills (Long Drive / Closest to the Pin): per skill, the winning team is
+ *    up its buy-in and the losing team down it. Winners set via the toggle.
  */
 
 import type { TournamentData } from './types'
 import { calcMatchStatus, totalPoints } from './matchPlay'
 import { courseForSession, sessionRules } from './holes'
 import { rankBestGolfers } from './bestGolfer'
-
-export const WAGER = {
-  /** Per-player stake in each matchup */
-  matchupStake: 10,
-  /** Net swing for being on the winning/losing Cup team */
-  cup: 150,
-  /** Net for the Best Golfer leader ($100 pot − $5 buy-in) */
-  golferWin: 95,
-  /** Net for everyone else in the Golfer pool */
-  golferLoss: -5,
-  /** Net swing per skill (Long Drive / Closest to the Pin) */
-  skill: 10,
-} as const
+import { DEFAULT_WAGERS, manualWagers, type ManualWagers } from './manual'
 
 export type SkillWinner = 1 | 2 | null
 
@@ -62,10 +52,22 @@ export interface PayoutResult {
   winningTeam: 0 | 1 | 2
   teamPoints: { team1: number; team2: number }
   bestGolfer: string | null
+  /** The stakes these figures were computed from. */
+  wagers: ManualWagers
+  /** What the Best Golfer stands to win: the pot less their own buy-in. */
+  golferPot: number
 }
 
-export function computePayouts(data: TournamentData, skills: SkillsState): PayoutResult {
+export function computePayouts(
+  data: TournamentData,
+  skills: SkillsState,
+  stakes?: ManualWagers,
+): PayoutResult {
   const { sessions, players, courses } = data
+  const wagers = stakes ?? (data.manual ? manualWagers((data.manual as Record<string, unknown>).wagers) : DEFAULT_WAGERS)
+
+  // Winner takes the whole pot, so what they gain is everyone else's buy-in.
+  const golferWin = wagers.golferBuyIn * Math.max(players.length - 1, 0)
 
   const teamPoints = totalPoints(sessions, players, courses)
   const winningTeam: 0 | 1 | 2 =
@@ -103,9 +105,9 @@ export function computePayouts(data: TournamentData, skills: SkillsState): Payou
       const losers = status.result.winner === 'team1' ? match.team2Players : match.team1Players
 
       // Pot = every player's stake; winners split it (net = share − stake).
-      // 1v1: +$10/−$10. 2v1: pair +$5 each / solo +$20, losers −$10 each.
-      const pot = WAGER.matchupStake * (winners.length + losers.length)
-      const winnerNet = pot / winners.length - WAGER.matchupStake
+      // At $10 — 1v1: +$10/−$10. 2v1: pair +$5 each / solo +$20, losers −$10.
+      const pot = wagers.matchupStake * (winners.length + losers.length)
+      const winnerNet = pot / winners.length - wagers.matchupStake
 
       for (const name of winners) {
         const s = lookup(name); if (!s) continue
@@ -113,7 +115,7 @@ export function computePayouts(data: TournamentData, skills: SkillsState): Payou
       }
       for (const name of losers) {
         const s = lookup(name); if (!s) continue
-        s.losses++; s.matchups -= WAGER.matchupStake
+        s.losses++; s.matchups -= wagers.matchupStake
       }
     }
   }
@@ -121,14 +123,14 @@ export function computePayouts(data: TournamentData, skills: SkillsState): Payou
   // --- Cup, Golfer of the Weekend, Skills (all net, all zero-sum) ---
   for (const p of players) {
     const s = byName[p.name]
-    if (winningTeam !== 0) s.cup = p.team === winningTeam ? WAGER.cup : -WAGER.cup
+    if (winningTeam !== 0) s.cup = p.team === winningTeam ? wagers.cup : -wagers.cup
     if (bestGolfer) {
-      s.golfer = p.name.toLowerCase() === bestGolfer.toLowerCase() ? WAGER.golferWin : WAGER.golferLoss
+      s.golfer = p.name.toLowerCase() === bestGolfer.toLowerCase() ? golferWin : -wagers.golferBuyIn
     }
-    if (skills.longDrive !== null) s.skills += skills.longDrive === p.team ? WAGER.skill : -WAGER.skill
-    if (skills.closestToPin !== null) s.skills += skills.closestToPin === p.team ? WAGER.skill : -WAGER.skill
+    if (skills.longDrive !== null) s.skills += skills.longDrive === p.team ? wagers.skill : -wagers.skill
+    if (skills.closestToPin !== null) s.skills += skills.closestToPin === p.team ? wagers.skill : -wagers.skill
     s.total = s.matchups + s.cup + s.golfer + s.skills
   }
 
-  return { players: Object.values(byName), winningTeam, teamPoints, bestGolfer }
+  return { players: Object.values(byName), winningTeam, teamPoints, bestGolfer, wagers, golferPot: golferWin }
 }

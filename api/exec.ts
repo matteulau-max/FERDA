@@ -11,6 +11,7 @@ import {
   deleteTournament,
   reorderSessions,
   saveCourse,
+  saveManual,
   saveMatch,
   savePlayer,
   saveSession,
@@ -42,6 +43,7 @@ const WRITE_ACTIONS = {
   reorderSessions,
   saveMatch,
   deleteMatch,
+  saveManual,
 } as const
 
 type WriteAction = keyof typeof WRITE_ACTIONS

@@ -9,11 +9,29 @@ import { CoursesSection } from '../components/setup/CoursesSection'
 import { PlayersSection } from '../components/setup/PlayersSection'
 import { SessionsSection } from '../components/setup/SessionsSection'
 import { PairingsSection } from '../components/setup/PairingsSection'
+import { ScheduleSection } from '../components/setup/ScheduleSection'
+import { RulesSection } from '../components/setup/RulesSection'
+import { WagersSection } from '../components/setup/WagersSection'
+import { LodgingSection } from '../components/setup/LodgingSection'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 
-const SECTIONS = ['Teams', 'Courses', 'Players', 'Sessions', 'Pairings'] as const
-type Section = (typeof SECTIONS)[number]
+/**
+ * Setup splits in two.
+ *
+ * "The competition" is the run of screens that has to be filled in for the app
+ * to score anything, and it's still the same left-to-right path it always was.
+ * "The manual" is everything the players read — all optional, all safe to skip,
+ * and none of it a prerequisite for the first tee shot. Keeping them in
+ * separate rows means the required work doesn't get longer just because there
+ * is now more of it available.
+ */
+const GROUPS = [
+  { label: 'The competition', sections: ['Teams', 'Courses', 'Players', 'Sessions', 'Pairings'] },
+  { label: 'The manual', sections: ['Schedule', 'Rules', 'Wagers', 'Lodging'] },
+] as const
+
+type Section = (typeof GROUPS)[number]['sections'][number]
 
 /**
  * Event setup. Everything here stays editable while scoring is underway —
@@ -67,20 +85,29 @@ export function Setup() {
     <div className="min-h-screen pb-16" style={{ background: '#FDF8E8' }}>
       <Header title={data.name ?? 'Setup'} />
 
-      <div className="flex gap-1 px-3 py-3 overflow-x-auto">
-        {SECTIONS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setSection(s)}
-            className="px-3 py-1.5 rounded-full font-body text-sm whitespace-nowrap border"
-            style={
-              section === s
-                ? { background: '#006747', color: '#fff', borderColor: '#006747' }
-                : { background: '#fff', color: '#374151', borderColor: '#d1d5db' }
-            }
-          >
-            {s}
-          </button>
+      <div className="px-3 pt-3 pb-1">
+        {GROUPS.map((group) => (
+          <div key={group.label} className="mb-2">
+            <p className="font-body text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1 px-0.5">
+              {group.label}
+            </p>
+            <div className="flex gap-1 overflow-x-auto pb-1">
+              {group.sections.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSection(s)}
+                  className="px-3 py-1.5 rounded-full font-body text-sm whitespace-nowrap border"
+                  style={
+                    section === s
+                      ? { background: '#006747', color: '#fff', borderColor: '#006747' }
+                      : { background: '#fff', color: '#374151', borderColor: '#d1d5db' }
+                  }
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 
@@ -90,6 +117,10 @@ export function Setup() {
         {section === 'Players' && <PlayersSection {...props} />}
         {section === 'Sessions' && <SessionsSection {...props} />}
         {section === 'Pairings' && <PairingsSection {...props} />}
+        {section === 'Schedule' && <ScheduleSection {...props} />}
+        {section === 'Rules' && <RulesSection {...props} />}
+        {section === 'Wagers' && <WagersSection {...props} />}
+        {section === 'Lodging' && <LodgingSection {...props} />}
       </div>
 
       <ShareLink slug={editableSlug} />

@@ -131,6 +131,12 @@ export interface TournamentData {
   teams: { team1: Team; team2: Team }
   players: Player[]
   sessions: Session[]
+  /**
+   * The manual document, stored as-is. Read it through `manualDoc()` in
+   * src/lib/manual.ts rather than directly — it may be absent, empty, or
+   * missing whatever the organiser never filled in.
+   */
+  manual?: unknown
 }
 
 export interface SaveScorePayload {

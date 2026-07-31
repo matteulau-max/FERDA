@@ -16,6 +16,9 @@ create table if not exists tournaments (
   name       text not null,
   team1_name text not null,
   team2_name text not null,
+  -- The tournament manual: schedule, local rules, stakes, lodging. One
+  -- document rather than a column per answer — see db/migrations/003_manual.sql.
+  manual     jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 

@@ -22,6 +22,7 @@ live leaderboards, and payouts.
 | `/` | Landing page — every tournament, newest first |
 | `/new` | Name a new tournament, then land on its setup page |
 | `/t/:slug` | A tournament's leaderboard |
+| `/t/:slug/manual` | That tournament's manual — schedule, rules, wagers, roster, lodging |
 | `/t/:slug/setup`, `/t/:slug/manual`, `/t/:slug/match/:matchId` | Scoped to that tournament |
 | `/setup`, `/manual`, `/match/:matchId` | The default tournament (`DEFAULT_TOURNAMENT_SLUG`, or the only one) |
 
@@ -40,7 +41,7 @@ and `?action=listTournaments` for the landing page.
 Writes all POST to `/api/exec` with a JSON body, optionally `?t=<slug>`:
 `createTournament`, `updateTournament`, `deleteTournament`, `saveCourse`, `deleteCourse`,
 `savePlayer`, `deletePlayer`, `saveSession`, `deleteSession`,
-`reorderSessions`, `saveMatch`, `deleteMatch`.
+`reorderSessions`, `saveMatch`, `deleteMatch`, `saveManual`.
 
 Validation lives in `api/_lib/validate.ts` and is authoritative — the UI
 mirrors some checks for instant feedback, but nothing reaches Postgres
@@ -77,6 +78,16 @@ Go to `/new`, name the event, and the setup page covers the rest:
 - **Pairings** — matches per session. Side sizes are enforced per format,
   players can only be listed on their own team, and anyone already playing
   that session is greyed out.
+
+Those five are *the competition* — the minimum to score an event. A second row,
+*the manual*, covers what the players read. All of it is optional:
+
+- **Schedule** — the dates and location under the tournament name, plus rows of
+  Day / Time / Event, each markable as a meal and optionally linked to a
+  session so it carries that round's badges.
+- **Rules** — see below.
+- **Wagers** — a buy-in per pool.
+- **Lodging** — off by default; switching it on adds a Lodging tab.
 
 There is no sign-in yet, so the tournament URL is the only way back to an
 event and anyone holding it can enter scores. The setup page shows the link
@@ -123,6 +134,48 @@ off, the session is played gross and no strokes are given anywhere in it.
 
 All three are per session and stay editable mid-tournament like everything
 else in setup.
+
+## The manual
+
+Every tournament gets its own manual at `/t/:slug/manual` — schedule, rules,
+wagers, roster, lodging, and how to work the app. It's built from three
+sources, and keeping them apart is the point:
+
+| | Where it comes from |
+| --- | --- |
+| Rounds, roster, points on the board, payouts | The tournament itself |
+| How handicaps and format allowances work | Fixed copy, driven by `constants.ts` |
+| Local rules, schedule, stakes, lodging | Setup → the manual sections |
+
+Nothing derivable is ever typed twice, so the manual can't drift from what's
+being scored. The handicap cards aren't editable for the same reason: editing
+them would change the description of the maths, not the maths.
+
+Every rule has a recommended default, so an organiser who fills in none of this
+still gets a complete manual. Tabs with nothing behind them are dropped rather
+than shown empty — an untouched tournament has two tabs, a four-day trip has
+six.
+
+The stored document is a patch over those defaults (`manualDoc()` in
+`src/lib/manual.ts`), which is why a tournament created before any of this
+existed still renders. It lives in one `tournaments.manual` jsonb column;
+sections are written one at a time and merged with `||`, so editing the
+schedule on a phone can't wipe rules set on a laptop. Validation is in
+`api/_lib/manual.ts` and is authoritative — the column enforces nothing.
+
+**What the rules cover.** Code of conduct (free text), out of bounds and lost
+ball (penalty strokes, drop or back to the tee, search time, gallery drops),
+maximum score, mulligans, concessions, pace of play, equipment, scramble
+placement, and any number of the organiser's own rules. The app does not
+enforce a maximum score — it accepts any gross — and the manual says so
+wherever the cap is mentioned.
+
+**Wagers.** Four buy-ins: matchups, the Cup, Golfer of the Tournament, and
+skills. How each settles is fixed logic in `src/lib/payouts.ts`; only the
+amounts are configurable. Every figure is net, so each pool ties to zero. A
+pool left at 0 drops off the board, and with all four at 0 the Wagers tab still
+shows the points race but no money. Golfer of the Tournament scales with the
+field: the winner takes `buyIn × (players − 1)`.
 
 ## Backend setup
 

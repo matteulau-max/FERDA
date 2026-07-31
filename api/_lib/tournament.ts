@@ -10,7 +10,11 @@ export interface TournamentRow {
   name: string
   team1_name: string
   team2_name: string
+  /** The manual document (see api/_lib/manual.ts). '{}' until edited. */
+  manual: Record<string, unknown>
 }
+
+const TOURNAMENT_COLUMNS = 'id, slug, name, team1_name, team2_name, manual'
 
 interface HoleScores {
   team1: Record<string, number>
@@ -25,14 +29,14 @@ export async function resolveTournament(pool: Pool, slug?: string): Promise<Tour
   const wanted = slug?.trim() || process.env.DEFAULT_TOURNAMENT_SLUG?.trim()
   if (wanted) {
     const { rows } = await pool.query<TournamentRow>(
-      'select id, slug, name, team1_name, team2_name from tournaments where slug = $1',
+      `select ${TOURNAMENT_COLUMNS} from tournaments where slug = $1`,
       [wanted],
     )
     if (!rows[0]) throw new NotFoundError(`No tournament at ${wanted}. It may have been deleted.`)
     return rows[0]
   }
   const { rows } = await pool.query<TournamentRow>(
-    'select id, slug, name, team1_name, team2_name from tournaments order by created_at limit 2',
+    `select ${TOURNAMENT_COLUMNS} from tournaments order by created_at limit 2`,
   )
   if (rows.length === 0) throw new Error('No tournaments exist — run the seed script first')
   if (rows.length > 1) throw new Error('Multiple tournaments exist — pass ?t=<slug> or set DEFAULT_TOURNAMENT_SLUG')
@@ -135,6 +139,10 @@ export async function getTournament(pool: Pool, tournament: TournamentRow) {
       team1: { name: tournament.team1_name },
       team2: { name: tournament.team2_name },
     },
+    // Sent as stored, defaults and all missing keys included. The client
+    // patches it over its own defaults (src/lib/manual.ts), so a tournament
+    // that predates the manual — or one nobody has edited — is still valid.
+    manual: tournament.manual ?? {},
     players: players.rows.map((p) => ({
       name: p.name,
       handicapIndex: parseFloat(p.handicap_index),
