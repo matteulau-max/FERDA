@@ -12,13 +12,18 @@ export async function fetchTournament(apiUrl: string, slug?: string): Promise<To
   // hold its own copy: setup refetches immediately after a write, and a cached
   // body would show the organiser their old data until the next poll.
   const res = await fetch(withSlug(apiUrl, { action: 'getTournament' }, slug), { cache: 'no-store' })
-  if (res.status === 404) {
-    // Deleted, or a mistyped slug. The server's wording is written for the
-    // person holding the link, so pass it through.
-    const body = await res.json().catch(() => ({})) as { error?: string }
-    throw new Error(body.error ?? 'That tournament no longer exists.')
+  if (!res.ok) {
+    // The API puts a real message in the body — a missing tournament, an
+    // unconfigured DATABASE_URL, a column the database doesn't have yet.
+    // Showing "HTTP 500" instead means having to go and fetch this by hand.
+    const body = await res.json().catch(() => null) as { error?: string } | null
+    if (body?.error) throw new Error(body.error)
+    throw new Error(
+      res.status === 404
+        ? 'That tournament no longer exists.'
+        : `The server returned ${res.status}.`,
+    )
   }
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json() as Promise<TournamentData>
 }
 
@@ -35,10 +40,13 @@ export interface TournamentSummary {
 
 export async function fetchTournaments(apiUrl: string): Promise<TournamentSummary[]> {
   if (!apiUrl) throw new Error('No API URL configured — set VITE_API_URL and redeploy.')
-  const res = await fetch(`${apiUrl}?action=listTournaments`)
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const data = await res.json() as { tournaments?: TournamentSummary[]; error?: string }
-  if (!data.tournaments) throw new Error(data.error ?? 'Could not load tournaments')
+  const res = await fetch(`${apiUrl}?action=listTournaments`, { cache: 'no-store' })
+  const data = await res.json().catch(() => null) as
+    { tournaments?: TournamentSummary[]; error?: string } | null
+  // Same reasoning as fetchTournament: the server's message is the useful one.
+  if (!res.ok || !data?.tournaments) {
+    throw new Error(data?.error ?? `The server returned ${res.status}.`)
+  }
   return data.tournaments
 }
 
