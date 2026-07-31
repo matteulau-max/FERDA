@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { href, useTournamentRoute } from '../lib/paths'
 
 /**
- * The "..." menu shown in every page header. The scorecard in particular has
- * no tab bar, so without this there's no way out of a match except the back
- * arrow.
+ * The "..." menu shown in every page header.
+ *
+ * Deliberately just two items — the two places the tab bar can't take you.
+ * Leaderboard and Manual are tabs already (and the scorecard's back arrow
+ * returns to the leaderboard); copying the link lives at the bottom of setup;
+ * starting a tournament is the button on the tournaments page.
  */
 export function OverflowMenu({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   const [open, setOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
   const navigate = useNavigate()
-  const { slug, base } = useTournamentRoute()
+  const { base } = useTournamentRoute()
   const ref = useRef<HTMLDivElement>(null)
 
   // Close on outside click or Escape.
@@ -38,17 +40,6 @@ export function OverflowMenu({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
     navigate(href(base, path))
   }
 
-  async function copyLink() {
-    const url = slug ? `${window.location.origin}/t/${slug}` : window.location.origin
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => { setCopied(false); setOpen(false) }, 1200)
-    } catch {
-      setOpen(false)
-    }
-  }
-
   const dotColor = tone === 'dark' ? '#19271f' : '#FFF200'
 
   return (
@@ -72,15 +63,8 @@ export function OverflowMenu({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
           className="absolute right-0 mt-1 rounded-xl overflow-hidden shadow-lg z-50"
           style={{ background: '#fff', border: '1px solid #e5e7eb', minWidth: 200 }}
         >
-          {/* '/' is the tournament index now, so "Leaderboard" only makes sense
-              on a /t/<slug> route where it resolves to that event. */}
-          {slug && <MenuItem onClick={() => go('')}>Leaderboard</MenuItem>}
-          <MenuItem onClick={() => go('/setup')}>Event setup</MenuItem>
-          <MenuItem onClick={() => go('/manual')}>Manual</MenuItem>
-          <Divider />
-          <MenuItem onClick={copyLink}>{copied ? 'Link copied' : 'Copy tournament link'}</MenuItem>
           <MenuItem onClick={() => { setOpen(false); navigate('/') }}>All tournaments</MenuItem>
-          <MenuItem onClick={() => { setOpen(false); navigate('/new') }}>Start new tournament</MenuItem>
+          <MenuItem onClick={() => go('/setup')}>Event setup</MenuItem>
         </div>
       )}
     </div>
@@ -98,8 +82,4 @@ function MenuItem({ onClick, children }: { onClick: () => void; children: React.
       {children}
     </button>
   )
-}
-
-function Divider() {
-  return <div style={{ height: 1, background: '#e5e7eb' }} />
 }
