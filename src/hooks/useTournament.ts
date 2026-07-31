@@ -20,6 +20,15 @@ function loadCache(slug?: string): TournamentData | null {
   }
 }
 
+/** Called after a tournament is deleted, so its stale copy can't resurface. */
+export function clearTournamentCache(slug?: string) {
+  try {
+    localStorage.removeItem(cacheKey(slug))
+  } catch {
+    // storage unavailable — nothing to clear
+  }
+}
+
 function saveCache(data: TournamentData, slug?: string) {
   try {
     localStorage.setItem(cacheKey(slug), JSON.stringify(data))

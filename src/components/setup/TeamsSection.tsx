@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { TournamentData } from '../../lib/types'
-import { updateTournament } from '../../lib/api'
+import { deleteTournament, updateTournament } from '../../lib/api'
+import { clearTournamentCache } from '../../hooks/useTournament'
 import { Button, Card, ErrorText, Field, SectionHeading, TextInput } from './ui'
 
 interface Props {
@@ -62,6 +64,90 @@ export function TeamsSection({ apiUrl, slug, data, onSaved }: Props) {
         </Button>
         <ErrorText>{error}</ErrorText>
       </Card>
+
+      <DeleteTournament apiUrl={apiUrl} slug={slug} data={data} />
+    </div>
+  )
+}
+
+/**
+ * Deleting takes the whole event with it and there's no undo, so the name has
+ * to be typed out. Kept behind a disclosure so it isn't sitting under the
+ * save button waiting to be hit by accident.
+ */
+function DeleteTournament({ apiUrl, slug, data }: { apiUrl: string; slug: string; data: TournamentData }) {
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [confirm, setConfirm] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const realName = data.name ?? ''
+  const matches = confirm.trim() === realName
+
+  const counts = [
+    `${data.players.length} ${data.players.length === 1 ? 'player' : 'players'}`,
+    `${data.courses.length} ${data.courses.length === 1 ? 'course' : 'courses'}`,
+    `${data.sessions.length} ${data.sessions.length === 1 ? 'session' : 'sessions'}`,
+    `${data.sessions.reduce((n, s) => n + s.matches.length, 0)} matches`,
+  ].join(', ')
+
+  async function remove() {
+    setDeleting(true)
+    setError(null)
+    try {
+      await deleteTournament(apiUrl, slug, confirm.trim())
+      clearTournamentCache(slug)
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete the tournament')
+      setDeleting(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="mt-6">
+        <button
+          onClick={() => setOpen(true)}
+          className="font-body text-sm underline"
+          style={{ color: '#C41E3A' }}
+        >
+          Delete this tournament
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-6 rounded-xl p-4" style={{ background: '#fef6f5', border: '1px solid #f3c9c4' }}>
+      <h3 className="font-serif font-bold text-base mb-1" style={{ color: '#C41E3A' }}>
+        Delete this tournament
+      </h3>
+      <p className="text-sm text-gray-600 font-body mb-1">
+        This removes <span className="font-semibold">{realName}</span> and everything in it — {counts},
+        and every score entered. It cannot be undone.
+      </p>
+      <p className="text-sm text-gray-600 font-body mb-3">
+        Type <span className="font-semibold">{realName}</span> to confirm.
+      </p>
+
+      <TextInput
+        value={confirm}
+        placeholder={realName}
+        autoFocus
+        onChange={(e) => setConfirm(e.target.value)}
+      />
+
+      <div className="flex gap-2 items-center mt-3">
+        <Button variant="danger" onClick={remove} disabled={!matches || deleting}>
+          {deleting ? 'Deleting…' : 'Delete forever'}
+        </Button>
+        <Button variant="ghost" onClick={() => { setOpen(false); setConfirm(''); setError(null) }} disabled={deleting}>
+          Cancel
+        </Button>
+      </div>
+      <ErrorText>{error}</ErrorText>
     </div>
   )
 }

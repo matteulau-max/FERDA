@@ -1,4 +1,5 @@
 import type { Pool } from 'pg'
+import { NotFoundError } from './validate'
 
 // Response shapes mirror src/lib/types.ts — the frontend consumes this
 // JSON exactly as it consumed the Apps Script version.
@@ -27,7 +28,7 @@ export async function resolveTournament(pool: Pool, slug?: string): Promise<Tour
       'select id, slug, name, team1_name, team2_name from tournaments where slug = $1',
       [wanted],
     )
-    if (!rows[0]) throw new Error(`Tournament not found: ${wanted}`)
+    if (!rows[0]) throw new NotFoundError(`No tournament at ${wanted}. It may have been deleted.`)
     return rows[0]
   }
   const { rows } = await pool.query<TournamentRow>(

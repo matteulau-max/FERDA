@@ -38,7 +38,7 @@ Reads are GETs on `/api/exec`: `?action=getTournament` (optionally `?t=<slug>`)
 and `?action=listTournaments` for the landing page.
 
 Writes all POST to `/api/exec` with a JSON body, optionally `?t=<slug>`:
-`createTournament`, `updateTournament`, `saveCourse`, `deleteCourse`,
+`createTournament`, `updateTournament`, `deleteTournament`, `saveCourse`, `deleteCourse`,
 `savePlayer`, `deletePlayer`, `saveSession`, `deleteSession`,
 `reorderSessions`, `saveMatch`, `deleteMatch`.
 
@@ -81,6 +81,18 @@ Go to `/new`, name the event, and the setup page covers the rest:
 There is no sign-in yet, so the tournament URL is the only way back to an
 event and anyone holding it can enter scores. The setup page shows the link
 for that reason.
+
+### Deleting a tournament
+
+Setup → Teams, at the bottom. It removes the event and everything under it —
+courses, players, sessions, pairings and every score — via the schema's
+cascades, and there is no undo.
+
+Since a shared link is all it takes to reach setup, the organiser has to type
+the tournament's name to confirm. That check runs on the server too, not just
+in the UI, so `deleteTournament` can't be driven by a stray request. Links to
+a deleted tournament return 404 with a message saying so, rather than an
+error page.
 
 ### Session rules
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTournament } from '../hooks/useTournament'
 import { useTournamentRoute } from '../lib/paths'
 import { TabNav } from '../components/TabNav'
@@ -36,6 +37,9 @@ export function Setup() {
       <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ background: '#FDF8E8' }}>
         <p className="font-serif text-lg text-gray-600 mb-2">Unable to load tournament</p>
         {error && <p className="text-xs font-body" style={{ color: '#C41E3A' }}>{error}</p>}
+        <Link to="/" className="mt-4 font-body text-sm underline" style={{ color: '#006747' }}>
+          See all tournaments
+        </Link>
       </div>
     )
   }

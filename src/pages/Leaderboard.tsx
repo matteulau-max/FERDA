@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useTournament } from '../hooks/useTournament'
 import { useTournamentRoute } from '../lib/paths'
 import { courseForSession } from '../lib/holes'
@@ -44,6 +45,9 @@ export function Leaderboard() {
             </p>
           )}
           {error && <p className="text-xs text-red-400 font-body mt-1">{error}</p>}
+          <Link to="/" className="inline-block mt-4 font-body text-sm underline" style={{ color: '#006747' }}>
+            See all tournaments
+          </Link>
         </div>
       </div>
     )

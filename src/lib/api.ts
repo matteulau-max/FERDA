@@ -12,6 +12,12 @@ export async function fetchTournament(apiUrl: string, slug?: string): Promise<To
   // hold its own copy: setup refetches immediately after a write, and a cached
   // body would show the organiser their old data until the next poll.
   const res = await fetch(withSlug(apiUrl, { action: 'getTournament' }, slug), { cache: 'no-store' })
+  if (res.status === 404) {
+    // Deleted, or a mistyped slug. The server's wording is written for the
+    // person holding the link, so pass it through.
+    const body = await res.json().catch(() => ({})) as { error?: string }
+    throw new Error(body.error ?? 'That tournament no longer exists.')
+  }
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json() as Promise<TournamentData>
 }
@@ -105,6 +111,15 @@ export function updateTournament(
   fields: { name?: string; team1Name?: string; team2Name?: string },
 ) {
   return post(apiUrl, { action: 'updateTournament', ...fields }, slug)
+}
+
+/**
+ * Irreversible: takes the courses, players, sessions, matches and scores with
+ * it. `confirmName` must match the tournament's name exactly — the server
+ * checks it too, so this isn't only a UI guard.
+ */
+export function deleteTournament(apiUrl: string, slug: string, confirmName: string) {
+  return post<{ slug: string }>(apiUrl, { action: 'deleteTournament', confirmName }, slug)
 }
 
 export function saveCourse(apiUrl: string, slug: string, course: Course, originalName?: string) {

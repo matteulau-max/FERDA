@@ -102,6 +102,31 @@ export async function updateTournament(
   return { success: true }
 }
 
+/**
+ * Delete a tournament and everything under it. The schema cascades from
+ * tournaments through courses, holes, players, sessions, matches and scores,
+ * so one statement clears the lot.
+ *
+ * There is no sign-in, so the only thing standing between a shared link and a
+ * wiped event is this confirmation: the caller has to echo the tournament's
+ * exact name back. Checked server-side, not just in the UI.
+ */
+export async function deleteTournament(
+  pool: Pool,
+  t: TournamentRow,
+  body: Record<string, unknown>,
+): Promise<{ success: true; slug: string }> {
+  const confirmName = requireText(body.confirmName, 'Tournament name')
+  if (confirmName !== t.name) {
+    throw new ValidationError(
+      `Type the tournament's name exactly — "${t.name}" — to confirm deleting it.`,
+    )
+  }
+
+  await pool.query('delete from tournaments where id = $1', [t.id])
+  return { success: true, slug: t.slug }
+}
+
 // ---------------------------------------------------------------- courses
 
 export async function saveCourse(

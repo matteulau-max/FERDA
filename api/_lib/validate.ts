@@ -14,6 +14,9 @@ export type HoleSet = (typeof HOLE_SETS)[number]
 
 export class ValidationError extends Error {}
 
+/** The tournament in the URL doesn't exist — deleted, or a mistyped slug. */
+export class NotFoundError extends Error {}
+
 function fail(message: string): never {
   throw new ValidationError(message)
 }

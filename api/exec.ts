@@ -1,13 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getPool } from './_lib/db'
 import { getTournament, listTournaments, resolveTournament, saveScore } from './_lib/tournament'
-import { ValidationError } from './_lib/validate'
+import { NotFoundError, ValidationError } from './_lib/validate'
 import {
   createTournament,
   deleteCourse,
   deleteMatch,
   deletePlayer,
   deleteSession,
+  deleteTournament,
   reorderSessions,
   saveCourse,
   saveMatch,
@@ -31,6 +32,7 @@ import {
 /** Writes that operate on an existing tournament. */
 const WRITE_ACTIONS = {
   updateTournament,
+  deleteTournament,
   saveCourse,
   deleteCourse,
   savePlayer,
@@ -94,6 +96,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // for the organiser; everything else is a genuine 500.
     if (err instanceof ValidationError) {
       return res.status(400).json({ success: false, error: err.message })
+    }
+    // A link to a deleted tournament isn't a server fault.
+    if (err instanceof NotFoundError) {
+      res.setHeader('Cache-Control', 'no-store')
+      return res.status(404).json({ success: false, error: err.message })
     }
     const message = err instanceof Error ? err.message : String(err)
     return res.status(500).json({ success: false, error: message })
