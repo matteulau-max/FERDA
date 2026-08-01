@@ -341,7 +341,21 @@ function CourseEditor({
 }
 
 /**
- * Photograph a scorecard and fill the card in from it.
+ * True on phones and tablets. Used only to decide whether a "Take a photo"
+ * shortcut is worth offering — a mouse-driven machine gets the plain file
+ * picker, where a camera button would open the same dialog twice.
+ */
+function hasCamera(): boolean {
+  try {
+    return window.matchMedia('(pointer: coarse)').matches
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Photograph a scorecard, or pick one already on the phone, and fill the card
+ * in from it.
  *
  * The read is a draft, never a save. It lands in the form above for the
  * organiser to check against the paper card, and only their Save button writes
@@ -355,6 +369,20 @@ function ScorecardScanner({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [camera] = useState(hasCamera)
+
+  /**
+   * `capture` is set per click rather than in the markup. Left on the element
+   * it forces the camera and skips the photo library entirely, which is no use
+   * to someone who photographed the card at the clubhouse an hour ago.
+   */
+  function pick(useCamera: boolean) {
+    const el = input.current
+    if (!el) return
+    if (useCamera) el.setAttribute('capture', 'environment')
+    else el.removeAttribute('capture')
+    el.click()
+  }
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -390,20 +418,32 @@ function ScorecardScanner({
         <div className="min-w-0">
           <p className="font-body text-sm font-semibold text-gray-700">Fill this in from a photo</p>
           <p className="text-xs text-gray-500 font-body mt-0.5 mb-3">
-            Photograph the scorecard and the pars and stroke indexes are filled in for you to check.
-            Get the whole grid in frame and the numbers in focus.
+            Use a photo of the scorecard and the pars and stroke indexes are filled in for you to
+            check. Take one now or pick one you already have — either way, get the whole grid in
+            frame and the numbers in focus.
           </p>
+          {/* `capture` is applied per click in pick(), not here. */}
           <input
             ref={input}
             type="file"
-            accept="image/*"
-            capture="environment"
+            accept="image/*,image/heic,image/heif"
             className="hidden"
             onChange={onPick}
           />
-          <Button variant="ghost" onClick={() => input.current?.click()} disabled={busy}>
-            {busy ? 'Reading the card…' : preview ? 'Try another photo' : 'Photograph a scorecard'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {camera && (
+              <Button variant="ghost" onClick={() => pick(true)} disabled={busy}>
+                {busy ? 'Reading the card…' : 'Take a photo'}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => pick(false)} disabled={busy}>
+              {busy && !camera
+                ? 'Reading the card…'
+                : camera
+                  ? 'Choose a photo'
+                  : preview ? 'Try another photo' : 'Choose a scorecard photo'}
+            </Button>
+          </div>
         </div>
       </div>
       {busy && (
