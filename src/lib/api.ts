@@ -178,6 +178,29 @@ export function deleteMatch(apiUrl: string, slug: string, id: string) {
   return post(apiUrl, { action: 'deleteMatch', id }, slug)
 }
 
+export interface ScorecardRead {
+  name: string
+  tees: string
+  rating: number | null
+  slope: number | null
+  holes: { number: number; par: number; strokeIndex: number }[]
+  /** Cells the reader couldn't make out, holes it skipped, indexes to check. */
+  warnings: string[]
+}
+
+/**
+ * Read a course scorecard from a photo. Returns a draft for the organiser to
+ * check — nothing is saved until they press save on the course form.
+ */
+export function readScorecard(
+  apiUrl: string,
+  slug: string,
+  image: string,
+  mediaType: string,
+) {
+  return post<ScorecardRead>(apiUrl, { action: 'readScorecard', image, mediaType }, slug)
+}
+
 /**
  * Save one section of the manual. Sections are stored in a single document but
  * written separately and merged server-side, so saving the schedule leaves the

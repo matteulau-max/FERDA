@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getPool } from './_lib/db'
 import { getTournament, listTournaments, resolveTournament, saveScore } from './_lib/tournament'
+import { readScorecard } from './_lib/scorecard'
 import { NotFoundError, ValidationError } from './_lib/validate'
 import {
   createTournament,
@@ -29,6 +30,13 @@ import {
  * An optional ?t=<slug> selects the tournament; without it the handler
  * falls back to DEFAULT_TOURNAMENT_SLUG, then to the sole tournament.
  */
+
+/**
+ * Reading a scorecard takes a model call, which is far slower than a database
+ * query — well past Vercel's 10-second default. Every other action finishes in
+ * milliseconds and is unaffected by the longer ceiling.
+ */
+export const maxDuration = 60
 
 /** Writes that operate on an existing tournament. */
 const WRITE_ACTIONS = {
@@ -81,6 +89,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (action === 'saveScore') {
       const result = await saveScore(pool, tournament, query)
+      res.setHeader('Cache-Control', 'no-store')
+      return res.status(200).json(result)
+    }
+
+    // Reads a photo rather than the database, so it isn't a WRITE_ACTION —
+    // but it's a POST (an image doesn't fit in a query string) and it costs
+    // money per call, so it stays scoped to a real tournament.
+    if (action === 'readScorecard') {
+      requirePost(req)
+      const result = await readScorecard(pool, tournament, body)
       res.setHeader('Cache-Control', 'no-store')
       return res.status(200).json(result)
     }

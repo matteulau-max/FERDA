@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Course, Hole, TournamentData } from '../../lib/types'
-import { deleteCourse, saveCourse } from '../../lib/api'
+import { deleteCourse, readScorecard, saveCourse, type ScorecardRead } from '../../lib/api'
+import { prepareScorecardPhoto } from '../../lib/image'
 import { Button, Card, EmptyState, ErrorText, Field, SectionHeading, Select, TextInput } from './ui'
 
 interface Props {
@@ -79,9 +80,34 @@ function CourseEditor({
   const [course, setCourse] = useState<Course>(initial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Which holes came off a photo, so the organiser can see at a glance which
+  // rows are a machine's reading and which are still the defaults.
+  const [scanned, setScanned] = useState<Set<number>>(new Set())
+  const [warnings, setWarnings] = useState<string[]>([])
 
   // Total par is the sum of the card — no reason to type it twice.
   const totalPar = course.holes.reduce((sum, h) => sum + h.par, 0)
+
+  /**
+   * Fold a photo read into the form. Holes the reader skipped keep whatever
+   * they had, and a field it couldn't make out doesn't overwrite a value the
+   * organiser already typed.
+   */
+  function applyRead(read: ScorecardRead) {
+    const byNumber = new Map(read.holes.map((h) => [h.number, h]))
+    setCourse((c) => ({
+      ...c,
+      name: c.name.trim() || read.name,
+      rating: read.rating ?? c.rating,
+      slope: read.slope ?? c.slope,
+      holes: c.holes.map((h) => {
+        const found = byNumber.get(h.number)
+        return found ? { ...h, par: found.par, strokeIndex: found.strokeIndex } : h
+      }),
+    }))
+    setScanned(new Set(read.holes.map((h) => h.number)))
+    setWarnings(read.warnings)
+  }
 
   const duplicateIndexes = new Set(
     course.holes
@@ -129,6 +155,19 @@ function CourseEditor({
         action={<Button variant="ghost" onClick={onCancel}>Back</Button>}
       />
 
+      <ScorecardScanner apiUrl={apiUrl} slug={slug} onRead={applyRead} />
+
+      {warnings.length > 0 && (
+        <div className="rounded-xl p-4 mb-3" style={{ background: '#fffbeb', border: '1px solid #fcd34d' }}>
+          <p className="font-body text-sm font-semibold mb-1" style={{ color: '#92400e' }}>
+            Check these before saving
+          </p>
+          <ul className="text-sm font-body list-disc pl-5" style={{ color: '#92400e' }}>
+            {warnings.map((w, i) => <li key={i} className="mb-0.5">{w}</li>)}
+          </ul>
+        </div>
+      )}
+
       <Card>
         <Field label="Course name">
           <TextInput
@@ -167,6 +206,14 @@ function CourseEditor({
           where handicap strokes fall, so it has to match the scorecard.
         </p>
 
+        {scanned.size > 0 && (
+          <p className="text-xs font-body mb-3" style={{ color: '#006747' }}>
+            <span className="font-semibold">{scanned.size} holes came from the photo</span> — marked
+            below. Read them against the card in your hand before saving; a wrong stroke index
+            changes every handicap on this course and nothing downstream will flag it.
+          </p>
+        )}
+
         <div className="grid grid-cols-[2rem_1fr_1fr] gap-2 items-center mb-1">
           <span className="text-xs font-body text-gray-400">#</span>
           <span className="text-xs font-body text-gray-400">Par</span>
@@ -175,7 +222,14 @@ function CourseEditor({
 
         {course.holes.map((hole) => (
           <div key={hole.number} className="grid grid-cols-[2rem_1fr_1fr] gap-2 items-center mb-1.5">
-            <span className="font-body text-sm text-gray-600 tabular-nums">{hole.number}</span>
+            <span
+              className="font-body text-sm tabular-nums"
+              style={scanned.has(hole.number) ? { color: '#006747', fontWeight: 600 } : { color: '#4b5563' }}
+              title={scanned.has(hole.number) ? 'Read from the photo' : undefined}
+            >
+              {hole.number}
+              {scanned.has(hole.number) && <span aria-hidden> ·</span>}
+            </span>
             <Select
               value={hole.par}
               onChange={(e) => setHole(hole.number, { par: parseInt(e.target.value, 10) })}
@@ -209,5 +263,81 @@ function CourseEditor({
       </div>
       <ErrorText>{error}</ErrorText>
     </div>
+  )
+}
+
+/**
+ * Photograph a scorecard and fill the card in from it.
+ *
+ * The read is a draft, never a save. It lands in the form above for the
+ * organiser to check against the paper card, and only their Save button writes
+ * anything — a misread stroke index would otherwise change every handicap on
+ * this course with nothing downstream to catch it.
+ */
+function ScorecardScanner({
+  apiUrl, slug, onRead,
+}: { apiUrl: string; slug: string; onRead: (read: ScorecardRead) => void }) {
+  const input = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    // Clear immediately so picking the same file twice still fires a change.
+    e.target.value = ''
+    if (!file) return
+
+    setBusy(true)
+    setError(null)
+    try {
+      const image = await prepareScorecardPhoto(file)
+      setPreview(image.previewUrl)
+      const read = await readScorecard(apiUrl, slug, image.data, image.mediaType)
+      onRead(read)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not read that photo')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-start gap-3">
+        {preview && (
+          <img
+            src={preview}
+            alt="The scorecard photo you sent"
+            className="rounded-lg border border-gray-200"
+            style={{ width: 72, height: 72, objectFit: 'cover', flex: '0 0 auto' }}
+          />
+        )}
+        <div className="min-w-0">
+          <p className="font-body text-sm font-semibold text-gray-700">Fill this in from a photo</p>
+          <p className="text-xs text-gray-500 font-body mt-0.5 mb-3">
+            Photograph the scorecard and the pars and stroke indexes are filled in for you to check.
+            Get the whole grid in frame and the numbers in focus.
+          </p>
+          <input
+            ref={input}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={onPick}
+          />
+          <Button variant="ghost" onClick={() => input.current?.click()} disabled={busy}>
+            {busy ? 'Reading the card…' : preview ? 'Try another photo' : 'Photograph a scorecard'}
+          </Button>
+        </div>
+      </div>
+      {busy && (
+        <p className="text-xs text-gray-500 font-body mt-2">
+          This takes a few seconds — don't leave the page.
+        </p>
+      )}
+      <ErrorText>{error}</ErrorText>
+    </Card>
   )
 }

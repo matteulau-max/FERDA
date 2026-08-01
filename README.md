@@ -36,7 +36,9 @@ site URL can see and open every tournament on it.
 ### Setup actions
 
 Reads are GETs on `/api/exec`: `?action=getTournament` (optionally `?t=<slug>`)
-and `?action=listTournaments` for the landing page.
+and `?action=listTournaments` for the landing page. `readScorecard` is a POST
+because it carries an image, but it touches no tournament data — see
+[Reading a scorecard from a photo](#reading-a-scorecard-from-a-photo).
 
 Writes all POST to `/api/exec` with a JSON body, optionally `?t=<slug>`:
 `createTournament`, `updateTournament`, `deleteTournament`, `saveCourse`, `deleteCourse`,
@@ -68,7 +70,8 @@ Go to `/new`, name the event, and the setup page covers the rest:
 - **Courses** — rating, slope, and the 18-hole card (par + stroke index).
   New courses start as 18 par-4s with stroke indexes 1–18 already filled in,
   so the card is valid from the outset and gets corrected rather than typed
-  from blank. Total par is summed from the holes.
+  from blank. Total par is summed from the holes. A photo of the scorecard
+  can fill it in — see below.
 - **Players** — name, **handicap index** (the GHIN index, not a course
   handicap — strokes are derived per course), team, and an optional phone
   number for sharing the link.
@@ -134,6 +137,50 @@ off, the session is played gross and no strokes are given anywhere in it.
 
 All three are per session and stay editable mid-tournament like everything
 else in setup.
+
+### Reading a scorecard from a photo
+
+Setup → Courses → **Photograph a scorecard**. The photo goes to Claude, which
+reads the par and stroke index for each hole plus the course rating and slope,
+and the card is filled in for the organiser to check.
+
+**It is a draft, never a save.** The read lands in the form and only the
+organiser's Save button writes anything. This is deliberate: a misread stroke
+index silently misallocates handicap strokes in every match on that course, and
+nothing downstream would catch it. Holes that came from the photo are marked, so
+it's obvious which rows are a machine's reading and which are still defaults.
+
+Nothing about the read is trusted. Structured outputs constrain the JSON shape,
+but not whether a par is 4 or 40 — so `api/_lib/scorecard.ts` re-checks every
+value and drops anything out of range with a note rather than passing it
+through. A hole the reader skips keeps its existing values instead of
+inheriting a neighbour's.
+
+**Setting it up.** The feature is off unless `ANTHROPIC_API_KEY` is set; without
+it the button returns a message saying so and the rest of setup is unaffected.
+
+1. Sign up at [console.anthropic.com](https://console.anthropic.com), then
+   **Settings → Billing** and add credit. Reads are billed per use, not monthly.
+2. **API keys → Create key**, and copy it. It's shown once.
+3. In Vercel: **Project → Settings → Environment Variables**, add
+   `ANTHROPIC_API_KEY` with that value, ticked for **Production** *and*
+   **Preview**. Redeploy.
+
+The key is read on the server, in `api/exec.ts`. Never give it a `VITE_`
+prefix — those are compiled into the browser bundle and readable by anyone who
+opens devtools.
+
+**Cost and abuse.** A read is one Claude call on a downsized photo — roughly a
+couple of US cents at the time of writing; check current
+[pricing](https://claude.com/pricing#api). The browser shrinks the photo to
+2000px on the long edge before uploading, which keeps the print legible without
+paying for pixels nobody reads.
+
+Because there's no sign-in, anyone holding a tournament link can call this
+endpoint, so it's capped at **40 reads per tournament per UTC day**, counted in
+Postgres (`ai_usage`). A cap held in process memory would reset every time a
+serverless instance recycled and cap nothing. Requests rejected for a bad image
+or missing configuration don't count against it.
 
 ## The manual
 

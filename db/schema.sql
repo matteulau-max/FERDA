@@ -96,6 +96,17 @@ create table if not exists scores (
 
 create index if not exists scores_by_tournament on scores (tournament_id);
 
+-- A daily cap on model calls per tournament. The scorecard reader costs money
+-- per call and sits behind a public link, so the cap has to live somewhere
+-- shared — see db/migrations/004_ai_usage.sql.
+create table if not exists ai_usage (
+  tournament_id uuid not null references tournaments(id) on delete cascade,
+  day           date not null,
+  kind          text not null,
+  count         integer not null default 0,
+  primary key (tournament_id, day, kind)
+);
+
 -- Lock the tables down: the app reaches Postgres only through the Vercel
 -- serverless functions (service credentials), never from the browser. With
 -- RLS enabled and no policies defined, Supabase's anon/authenticated roles
@@ -108,3 +119,4 @@ alter table players     enable row level security;
 alter table sessions    enable row level security;
 alter table matches     enable row level security;
 alter table scores      enable row level security;
+alter table ai_usage    enable row level security;
