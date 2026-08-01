@@ -56,12 +56,22 @@ export interface ScorecardHole {
   strokeIndex: number
 }
 
+/**
+ * One tee set's rating and slope. A card prints these per tee — the back tees
+ * of a course rate several strokes harder than the forward ones — while par
+ * and stroke index are shared across the whole card.
+ */
+export interface ScorecardTee {
+  name: string
+  rating: number | null
+  slope: number | null
+}
+
 export interface ScorecardRead {
   success: true
   name: string
-  tees: string
-  rating: number | null
-  slope: number | null
+  /** Every rated tee set on the card. The organiser picks which one to build. */
+  tees: ScorecardTee[]
   holes: ScorecardHole[]
   /** Things the organiser needs to look at — unreadable cells, dropped rows. */
   warnings: string[]
@@ -80,14 +90,29 @@ const SCHEMA = {
   type: 'object',
   properties: {
     name: { type: 'string', description: 'The golf course name. Empty string if not shown.' },
-    tees: { type: 'string', description: 'Which tee set these numbers are for, e.g. "Blue". Empty string if unclear.' },
-    rating: {
-      anyOf: [{ type: 'number' }, { type: 'null' }],
-      description: 'Course rating for these tees, e.g. 71.2. Null if not shown.',
-    },
-    slope: {
-      anyOf: [{ type: 'integer' }, { type: 'null' }],
-      description: 'Slope rating for these tees, e.g. 132. Null if not shown.',
+    tees: {
+      type: 'array',
+      description:
+        'Every tee set on the card that has a course rating and slope. One entry per tee, in the order printed.',
+      items: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            description: 'Tee name or colour as printed, e.g. "Blue", "Championship", "White (M)".',
+          },
+          rating: {
+            anyOf: [{ type: 'number' }, { type: 'null' }],
+            description: 'Course rating for this tee, e.g. 71.2. Null if not shown.',
+          },
+          slope: {
+            anyOf: [{ type: 'integer' }, { type: 'null' }],
+            description: 'Slope rating for this tee, e.g. 132. Null if not shown.',
+          },
+        },
+        required: ['name', 'rating', 'slope'],
+        additionalProperties: false,
+      },
     },
     holes: {
       type: 'array',
@@ -112,7 +137,7 @@ const SCHEMA = {
       items: { type: 'string' },
     },
   },
-  required: ['name', 'tees', 'rating', 'slope', 'holes', 'warnings'],
+  required: ['name', 'tees', 'holes', 'warnings'],
   additionalProperties: false,
 } as const
 
@@ -135,12 +160,22 @@ Rules:
   organiser to fill in; a wrong stroke index silently corrupts every handicap
   calculation on this course and nobody will notice.
 - Ignore OUT, IN and TOTAL columns. They are sums, not holes.
-- Course rating and slope are usually in a small table by the tee colours,
-  printed as a pair like "71.2 / 132". Return the pair for the tee set whose
-  yardages you read. If several tee sets are shown and you cannot tell which
-  one to use, return nulls and say so in warnings.
 - If the photo is not a golf scorecard, return empty values and explain in
-  warnings.`
+  warnings.
+
+Tee sets:
+- A course is rated separately from each set of tees, so one card carries
+  several rating/slope pairs — usually a small table beside the tee colours,
+  printed as pairs like "71.2 / 132". Return every rated tee set you can read,
+  in the order printed. Do not pick one; the organiser chooses.
+- Use the tee's name or colour exactly as printed. Where a card rates a tee
+  separately for men and women, return both as separate entries and keep the
+  printed distinction in the name ("White (M)", "White (W)").
+- If a tee's rating or slope is unreadable, return null for that field rather
+  than guessing, and keep the entry so its name is still offered.
+- Par and stroke index are shared across tee sets — read them once from the
+  card's par and handicap rows. If the card prints separate men's and women's
+  handicap rows, use the men's and note the other in warnings.`
 
 /** One read costs money and the endpoint is behind a public link, so count it. */
 async function checkAndCountUsage(pool: Pool, tournamentId: string): Promise<void> {
@@ -288,20 +323,55 @@ function validateRead(input: unknown): ScorecardRead {
     )
   }
 
-  const rating = num(raw.rating)
-  const slope = int(raw.slope)
+  const tees = validateTees(raw.tees, warnings)
 
   return {
     success: true,
     name: str(raw.name, 60),
-    tees: str(raw.tees, 30),
-    // Out-of-range values are dropped rather than clamped — a clamp would look
-    // like a real reading, and these two are easy to type by hand.
-    rating: rating != null && rating >= 55 && rating <= 85 ? rating : null,
-    slope: slope != null && slope >= 55 && slope <= 155 ? slope : null,
+    tees,
     holes,
     warnings: warnings.slice(0, 25),
   }
+}
+
+/**
+ * Keep every tee set the card rates, so the organiser picks rather than the
+ * model. An entry with nothing usable in it is dropped; an entry with a name
+ * but an unreadable number is kept, because the name alone is worth offering.
+ */
+function validateTees(input: unknown, warnings: string[]): ScorecardTee[] {
+  const tees: ScorecardTee[] = []
+  const seen = new Set<string>()
+
+  for (const entry of Array.isArray(input) ? input.slice(0, 12) : []) {
+    const row = (typeof entry === 'object' && entry !== null ? entry : {}) as Record<string, unknown>
+    const name = str(row.name, 30)
+    const rawRating = num(row.rating)
+    const rawSlope = int(row.slope)
+
+    // Out of range is dropped rather than clamped — a clamp would look like a
+    // real reading, and these two numbers are quick to type by hand.
+    const rating = rawRating != null && rawRating >= 55 && rawRating <= 85 ? rawRating : null
+    const slope = rawSlope != null && rawSlope >= 55 && rawSlope <= 155 ? rawSlope : null
+
+    if (rawRating != null && rating == null) {
+      warnings.push(`${name || 'A tee set'}: the course rating didn't look right, so it was left out.`)
+    }
+    if (rawSlope != null && slope == null) {
+      warnings.push(`${name || 'A tee set'}: the slope didn't look right, so it was left out.`)
+    }
+
+    if (!name && rating == null && slope == null) continue
+    const key = name.toLowerCase()
+    if (key && seen.has(key)) continue
+    if (key) seen.add(key)
+    tees.push({ name, rating, slope })
+  }
+
+  if (tees.length === 0) {
+    warnings.push('No tee ratings were read — enter the course rating and slope for your tees by hand.')
+  }
+  return tees
 }
 
 function int(value: unknown): number | null {

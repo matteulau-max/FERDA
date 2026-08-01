@@ -138,11 +138,39 @@ off, the session is played gross and no strokes are given anywhere in it.
 All three are per session and stay editable mid-tournament like everything
 else in setup.
 
+### Tee boxes
+
+**One course row is one set of tees.** A course is rated separately from each
+tee box — the back tees of the same course might be 74.1/141 where the forward
+tees are 69.4/126 — and rating and slope are what the course-handicap formula
+turns an index into. Par and stroke index are shared across the whole card.
+
+So to play two tee sets, add two courses: *Patriot Hills — Blue* and
+*Patriot Hills — White*, same hole card, different rating and slope. Sessions
+pick a course, which means a session picks a tee set — a morning round off the
+blues and an afternoon round off the whites is just two sessions on two course
+rows.
+
+The cost is that the hole card gets entered twice, and a stroke-index
+correction has to be made in both places. Scanning the same photo twice makes
+that cheap, but tees are not a first-class concept in the schema, and every
+player in a session plays the same tees. Mixed tees within one match would need
+a per-player tee and a change to how the relative handicap offset is computed.
+
 ### Reading a scorecard from a photo
 
 Setup → Courses → **Photograph a scorecard**. The photo goes to Claude, which
-reads the par and stroke index for each hole plus the course rating and slope,
-and the card is filled in for the organiser to check.
+reads the par and stroke index for each hole plus the rating and slope of
+**every tee set on the card**, and the card is filled in for the organiser to
+check.
+
+Tee sets are offered rather than chosen: a card rating three tees comes back
+with all three, the hole card applies immediately, and rating and slope stay at
+their defaults until one is picked — the picker shows each tee's numbers so the
+choice is visible. Picking one names the course for it (*Patriot Hills GC —
+Blue*), which is what keeps two tee sets from becoming two identically named
+courses. Where a card rates a tee separately for men and women, both come back
+as separate entries.
 
 **It is a draft, never a save.** The read lands in the form and only the
 organiser's Save button writes anything. This is deliberate: a misread stroke

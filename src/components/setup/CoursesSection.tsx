@@ -1,6 +1,12 @@
 import { useRef, useState } from 'react'
 import type { Course, Hole, TournamentData } from '../../lib/types'
-import { deleteCourse, readScorecard, saveCourse, type ScorecardRead } from '../../lib/api'
+import {
+  deleteCourse,
+  readScorecard,
+  saveCourse,
+  type ScorecardRead,
+  type ScorecardTee,
+} from '../../lib/api'
 import { prepareScorecardPhoto } from '../../lib/image'
 import { Button, Card, EmptyState, ErrorText, Field, SectionHeading, Select, TextInput } from './ui'
 
@@ -84,6 +90,14 @@ function CourseEditor({
   // rows are a machine's reading and which are still the defaults.
   const [scanned, setScanned] = useState<Set<number>>(new Set())
   const [warnings, setWarnings] = useState<string[]>([])
+  // Every tee set read off the card, plus which one is currently applied. A
+  // course row in this app is one tee set — par and stroke index are shared,
+  // but rating and slope are what make a tee play harder or easier.
+  const [tees, setTees] = useState<ScorecardTee[]>([])
+  const [pickedTee, setPickedTee] = useState<string | null>(null)
+  // The course name as read, kept separately so switching tees re-suffixes it
+  // instead of stacking "Patriot Hills — Blue — White".
+  const [readName, setReadName] = useState('')
 
   // Total par is the sum of the card — no reason to type it twice.
   const totalPar = course.holes.reduce((sum, h) => sum + h.par, 0)
@@ -98,8 +112,6 @@ function CourseEditor({
     setCourse((c) => ({
       ...c,
       name: c.name.trim() || read.name,
-      rating: read.rating ?? c.rating,
-      slope: read.slope ?? c.slope,
       holes: c.holes.map((h) => {
         const found = byNumber.get(h.number)
         return found ? { ...h, par: found.par, strokeIndex: found.strokeIndex } : h
@@ -107,6 +119,27 @@ function CourseEditor({
     }))
     setScanned(new Set(read.holes.map((h) => h.number)))
     setWarnings(read.warnings)
+    setTees(read.tees)
+    setReadName(read.name)
+    setPickedTee(null)
+    // One rated tee on the card means there's nothing to choose between.
+    if (read.tees.length === 1) applyTee(read.tees[0], read.name)
+  }
+
+  /** Put a tee set's rating and slope into the form and name the course for it. */
+  function applyTee(tee: ScorecardTee, baseName = readName) {
+    setPickedTee(tee.name)
+    setCourse((c) => {
+      const base = baseName.trim() || c.name.trim()
+      return {
+        ...c,
+        // Two tee sets are two courses here, so the tee belongs in the name —
+        // otherwise "Patriot Hills" twice in the course list is a coin flip.
+        name: tee.name && base ? `${base} — ${tee.name}` : c.name,
+        rating: tee.rating ?? c.rating,
+        slope: tee.slope ?? c.slope,
+      }
+    })
   }
 
   const duplicateIndexes = new Set(
@@ -156,6 +189,47 @@ function CourseEditor({
       />
 
       <ScorecardScanner apiUrl={apiUrl} slug={slug} onRead={applyRead} />
+
+      {tees.length > 1 && (
+        <Card>
+          <p className="font-body text-sm font-semibold text-gray-700 mb-1">
+            Which tees is this session played from?
+          </p>
+          <p className="text-xs text-gray-500 font-body mb-3">
+            The card rates {tees.length} sets. Par and stroke index are the same from all of them —
+            only the rating and slope change, and those decide how many strokes everyone gets. Pick
+            one now; if you need a second set, save this course and scan the same card again.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {tees.map((tee) => {
+              const on = tee.name === pickedTee
+              return (
+                <button
+                  key={tee.name}
+                  type="button"
+                  onClick={() => applyTee(tee)}
+                  className="px-3 py-2 rounded-lg font-body text-sm border text-left"
+                  style={
+                    on
+                      ? { background: '#006747', color: '#fff', borderColor: '#006747' }
+                      : { background: '#fff', color: '#374151', borderColor: '#d1d5db' }
+                  }
+                >
+                  <span className="font-semibold">{tee.name || 'Unnamed tee'}</span>
+                  <span className="block text-xs opacity-80">
+                    {tee.rating ?? '—'} / {tee.slope ?? '—'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {!pickedTee && (
+            <p className="text-xs font-body mt-2" style={{ color: '#92400e' }}>
+              Nothing applied yet — the rating and slope below are still the defaults.
+            </p>
+          )}
+        </Card>
+      )}
 
       {warnings.length > 0 && (
         <div className="rounded-xl p-4 mb-3" style={{ background: '#fffbeb', border: '1px solid #fcd34d' }}>

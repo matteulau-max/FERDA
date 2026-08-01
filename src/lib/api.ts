@@ -178,11 +178,21 @@ export function deleteMatch(apiUrl: string, slug: string, id: string) {
   return post(apiUrl, { action: 'deleteMatch', id }, slug)
 }
 
-export interface ScorecardRead {
+/**
+ * One tee set's rating and slope. A course is rated separately from each set
+ * of tees, so a single card carries several of these — while par and stroke
+ * index are shared across all of them.
+ */
+export interface ScorecardTee {
   name: string
-  tees: string
   rating: number | null
   slope: number | null
+}
+
+export interface ScorecardRead {
+  name: string
+  /** Every rated tee set on the card, in the order printed. */
+  tees: ScorecardTee[]
   holes: { number: number; par: number; strokeIndex: number }[]
   /** Cells the reader couldn't make out, holes it skipped, indexes to check. */
   warnings: string[]
