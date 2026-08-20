@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Course, Format, Match, Player, Scoring } from '../lib/types'
+import type { Match, Player, SessionCourse, SessionRules } from '../lib/types'
 import { ScoreInput } from './ScoreInput'
 import { TEAM_COLORS } from '../lib/constants'
 import {
@@ -12,35 +12,39 @@ import { holeWinnerHighlights, runningStatusByHole } from '../lib/matchPlay'
 
 interface Props {
   match: Match
-  format: Format
-  scoring?: Scoring
+  rules: SessionRules
   players: Player[]
-  course: Course
+  /** Already scoped to the session's holes, with stroke indexes re-ranked. */
+  course: SessionCourse
   side: 'front' | 'back'
   localScores: Match['scores']
   onScoreChange: (hole: number, side: 'team1' | 'team2', player: string, gross: number | '') => void
 }
 
-export function ScoreTable({ match, format, scoring = 'Match Play', players, course, side, localScores, onScoreChange }: Props) {
+export function ScoreTable({ match, rules, players, course, side, localScores, onScoreChange }: Props) {
+  const { format } = rules
   const holeNumbers = side === 'front' ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [10, 11, 12, 13, 14, 15, 16, 17, 18]
+  // course.holes is already limited to the session's holes, so a nine simply
+  // yields nothing for the half it doesn't play (the caller skips that table).
   const holes = course.holes.filter((h) => holeNumbers.includes(h.number))
     .sort((a, b) => a.number - b.number)
 
   // --- Compute strokes ---
-  const { t1Phs, t2Phs } = format !== 'Scramble'
+  const useHc = rules.useHandicap
+  const { t1Phs, t2Phs } = useHc && format !== 'Scramble'
     ? matchPlayingHandicaps(match.team1Players, match.team2Players, players, course, format)
-    : { t1Phs: [], t2Phs: [] }
+    : { t1Phs: match.team1Players.map(() => 0), t2Phs: match.team2Players.map(() => 0) }
 
-  const t1PlayerStrokes = format !== 'Scramble'
+  const t1PlayerStrokes = useHc && format !== 'Scramble'
     ? perPlayerHoleStrokes(match.team1Players, t1Phs, course)
     : {}
-  const t2PlayerStrokes = format !== 'Scramble'
+  const t2PlayerStrokes = useHc && format !== 'Scramble'
     ? perPlayerHoleStrokes(match.team2Players, t2Phs, course)
     : {}
 
   let t1TeamStrokes: Record<number, number> = {}
   let t2TeamStrokes: Record<number, number> = {}
-  if (format === 'Scramble') {
+  if (useHc && format === 'Scramble') {
     const { team1Ph, team2Ph } = scrambleSideHandicaps(
       match.team1Players, match.team2Players, players, course
     )
@@ -51,12 +55,12 @@ export function ScoreTable({ match, format, scoring = 'Match Play', players, cou
   }
 
   // Running match status up to current hole (for status row)
-  const statusPoints = runningStatusByHole({ ...match, scores: localScores }, format, players, course, scoring)
+  const statusPoints = runningStatusByHole({ ...match, scores: localScores }, rules, players, course)
   const statusByHole: Record<number, number> = {}
   for (const { hole, t1Up } of statusPoints) statusByHole[hole] = t1Up
 
   // Which cell(s) won each hole (lower net) — tinted for quick scanning
-  const winnersByHole = holeWinnerHighlights({ ...match, scores: localScores }, format, players, course)
+  const winnersByHole = holeWinnerHighlights({ ...match, scores: localScores }, rules, players, course)
 
   // 2v1: per-hole average NET of the paired side (their competing score).
   // Only filled once BOTH pair players have a gross on the hole.

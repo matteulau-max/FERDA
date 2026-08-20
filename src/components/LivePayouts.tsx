@@ -38,7 +38,7 @@ export function LivePayouts({ data }: Props) {
 
   const t1Name = data.teams.team1.name
   const t2Name = data.teams.team2.name
-  const { players, winningTeam, teamPoints, bestGolfer } = computePayouts(data, skills)
+  const { players, winningTeam, teamPoints, bestGolfer, wagers, golferPot } = computePayouts(data, skills)
 
   const ranked = [...players].sort(
     (a, b) => b.total - a.total || a.name.localeCompare(b.name),
@@ -59,25 +59,27 @@ export function LivePayouts({ data }: Props) {
         </h2>
       </div>
 
-      {/* Organizer skills toggle */}
-      <div style={{ padding: '10px 18px 4px' }}>
-        <p style={SECTION_LABEL}>Skills — set the winners</p>
-        <SkillToggle
-          label="Longest Drive"
-          value={skills.longDrive}
-          t1Name={t1Name}
-          t2Name={t2Name}
-          onChange={(v) => setSkills((s) => ({ ...s, longDrive: v }))}
-        />
-        <SkillToggle
-          label="Closest to the Pin"
-          value={skills.closestToPin}
-          t1Name={t1Name}
-          t2Name={t2Name}
-          onChange={(v) => setSkills((s) => ({ ...s, closestToPin: v }))}
-          last
-        />
-      </div>
+      {/* Organizer skills toggle — nothing to set when skills aren't in the pot */}
+      {wagers.skill > 0 && (
+        <div style={{ padding: '10px 18px 4px' }}>
+          <p style={SECTION_LABEL}>Skills — set the winners</p>
+          <SkillToggle
+            label="Longest Drive"
+            value={skills.longDrive}
+            t1Name={t1Name}
+            t2Name={t2Name}
+            onChange={(v) => setSkills((s) => ({ ...s, longDrive: v }))}
+          />
+          <SkillToggle
+            label="Closest to the Pin"
+            value={skills.closestToPin}
+            t1Name={t1Name}
+            t2Name={t2Name}
+            onChange={(v) => setSkills((s) => ({ ...s, closestToPin: v }))}
+            last
+          />
+        </div>
+      )}
 
       {/* Context strip */}
       <div style={CONTEXT_STRIP}>
@@ -137,8 +139,13 @@ export function LivePayouts({ data }: Props) {
       <p style={FOOTNOTE}>
         All figures are net — winners' gains equal losers' losses, so the board always sums to
         zero. Cup swings to whichever side is ahead right now and updates as matches finish.
-        Matchups count settled rounds only (halves push). Golfer of the Weekend goes to the
-        current Best Golfer leader; the rest of the field is −$5.
+        Matchups count settled rounds only (halves push).
+        {wagers.golferBuyIn > 0 && (
+          <>
+            {' '}Golfer of the Weekend goes to the current Best Golfer leader (+${golferPot});
+            the rest of the field is −${wagers.golferBuyIn}.
+          </>
+        )}
       </p>
     </div>
   )

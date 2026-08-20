@@ -1,13 +1,18 @@
+import { Link } from 'react-router-dom'
 import { useTournament } from '../hooks/useTournament'
+import { useTournamentRoute } from '../lib/paths'
+import { courseForSession } from '../lib/holes'
 import { HeroScoreboard } from '../components/HeroScoreboard'
 import { SessionCard } from '../components/SessionCard'
 import { PlayerLeaderboard } from '../components/PlayerLeaderboard'
 import { TabNav } from '../components/TabNav'
+import { OverflowMenu } from '../components/OverflowMenu'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 
 export function Leaderboard() {
-  const { data, loading, error } = useTournament(API_URL)
+  const { slug } = useTournamentRoute()
+  const { data, loading, error } = useTournament(API_URL, slug)
 
   if (loading) return <LoadingSkeleton />
 
@@ -19,11 +24,14 @@ export function Leaderboard() {
           className="fixed top-0 left-0 right-0 text-white text-center"
           style={{ background: 'linear-gradient(135deg, #004d34 0%, #006747 100%)' }}
         >
-          <div className="py-4">
+          <div className="relative py-4">
+            <div className="absolute right-2 top-3">
+              <OverflowMenu />
+            </div>
             <p className="text-xs uppercase tracking-widest font-body" style={{ color: '#FFF200', opacity: 0.85 }}>
               A Tradition Unlike Any Other
             </p>
-            <h1 className="font-serif italic text-xl font-bold" style={{ color: '#FFF200' }}>
+            <h1 className="font-serif italic text-xl font-bold px-10" style={{ color: '#FFF200' }}>
               Ferda Invitational
             </h1>
           </div>
@@ -33,10 +41,13 @@ export function Leaderboard() {
           <p className="font-serif text-lg text-gray-600 mb-2">Unable to load tournament</p>
           {!API_URL && (
             <p className="text-sm text-gray-400 font-body">
-              Set <code className="bg-gray-100 px-1 rounded">VITE_API_URL</code> in <code className="bg-gray-100 px-1 rounded">.env</code> to connect your Google Sheet.
+              Set <code className="bg-gray-100 px-1 rounded">VITE_API_URL</code> in <code className="bg-gray-100 px-1 rounded">.env</code> to connect your tournament backend.
             </p>
           )}
           {error && <p className="text-xs text-red-400 font-body mt-1">{error}</p>}
+          <Link to="/" className="inline-block mt-4 font-body text-sm underline" style={{ color: '#006747' }}>
+            See all tournaments
+          </Link>
         </div>
       </div>
     )
@@ -55,13 +66,15 @@ export function Leaderboard() {
         {[...sessions]
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((session) => {
-            const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+            const course = courseForSession(courses, session)
+            if (!course) return null
             return (
               <SessionCard
                 key={session.name}
                 session={session}
                 players={players}
                 course={course}
+                courses={courses}
                 team1={teams.team1}
                 team2={teams.team2}
               />

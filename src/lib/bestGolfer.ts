@@ -6,8 +6,9 @@
  */
 
 import type { Course, Player, Session } from './types'
-import { calcMatchStatus } from './matchPlay'
-import { courseHandicap, perPlayerHoleStrokes } from './handicap'
+import { calcMatchStatus, matchPoints } from './matchPlay'
+import { sessionCourseHandicap, perPlayerHoleStrokes } from './handicap'
+import { courseForSession, sessionRules } from './holes'
 
 export interface GolferStat {
   name: string
@@ -38,25 +39,25 @@ export function computeGolferStats(
   const statsByLower = new Map(Object.entries(stats).map(([k, v]) => [k.toLowerCase(), v]))
 
   for (const session of sessions) {
-    const course = courses.find((c) => c.name === session.courseName) ?? courses[0]
+    const rules = sessionRules(session)
+    const course = courseForSession(courses, session)
     if (!course) continue
 
     for (const match of session.matches) {
-      const status = calcMatchStatus(match, session.format, players, course, session.scoring ?? 'Match Play')
+      const status = calcMatchStatus(match, rules, players, course)
 
       const lookup = (name: string) => statsByLower.get(name.toLowerCase())
 
-      // Points: all formats
-      if (status.isComplete && status.result) {
+      // Points: whatever the match itself is worth. Total Stroke Play pays at
+      // the session level, so matchPoints returns nothing there and a player's
+      // individual standing rests on their scoring instead.
+      const pts = matchPoints(status)
+      if (pts.team1 || pts.team2) {
         for (const name of match.team1Players) {
-          const s = lookup(name); if (!s) continue
-          if (status.result.winner === 'team1') s.points += 1
-          else if (status.result.winner === 'halved') s.points += 0.5
+          const s = lookup(name); if (s) s.points += pts.team1
         }
         for (const name of match.team2Players) {
-          const s = lookup(name); if (!s) continue
-          if (status.result.winner === 'team2') s.points += 1
-          else if (status.result.winner === 'halved') s.points += 0.5
+          const s = lookup(name); if (s) s.points += pts.team2
         }
       }
 
@@ -67,9 +68,11 @@ export function computeGolferStats(
       // Golfer net is comparable across foursomes and formats — the best
       // player in a group still gets their strokes.
       if (session.format !== 'Scramble') {
+        // Handicaps off means gross for this session, so nobody gets strokes.
         const chFor = (name: string) => {
+          if (!rules.useHandicap) return 0
           const p = players.find((pl) => pl.name.toLowerCase() === name.toLowerCase())
-          return p ? courseHandicap(p.handicapIndex, course.slope, course.rating, course.par) : 0
+          return p ? sessionCourseHandicap(p.handicapIndex, course) : 0
         }
         const t1Phs = match.team1Players.map(chFor)
         const t2Phs = match.team2Players.map(chFor)

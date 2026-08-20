@@ -49,4 +49,15 @@ export const FORMAT_LABELS: Record<string, string> = {
 export const SCORING_LABELS: Record<string, string> = {
   'Match Play': 'Match Play',
   'Stroke Play': 'Stroke Play',
+  'Total Stroke Play': 'Total Stroke Play',
 }
+
+/** Space is tight in the session header badge. */
+export const SCORING_SHORT_LABELS: Record<string, string> = {
+  'Match Play': 'Match',
+  'Stroke Play': 'Stroke',
+  'Total Stroke Play': 'Total Stroke',
+}
+
+/** Default team points awarded per stroke of margin in Total Stroke Play. */
+export const DEFAULT_POINTS_PER_STROKE = 0.5
