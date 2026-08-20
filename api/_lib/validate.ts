@@ -36,6 +36,26 @@ export function optionalText(value: unknown, field: string, max = 40): string | 
   return text
 }
 
+/**
+ * A tee time: 'HH:MM' on a 24-hour clock, or nothing at all.
+ *
+ * Seconds are tolerated and dropped — some browsers hand back 'HH:MM:SS' from
+ * <input type="time"> — but the stored form is always minutes, so two matches
+ * off the same tee can't differ by an invisible 30 seconds.
+ */
+export function optionalTeeTime(value: unknown, field: string): string | null {
+  const text = typeof value === 'string' ? value.trim() : ''
+  if (!text) return null
+
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(text)
+  const hours = match ? Number(match[1]) : NaN
+  const minutes = match ? Number(match[2]) : NaN
+  if (!match || hours > 23 || minutes > 59) {
+    fail(`${field} must be a time of day, like 08:24`)
+  }
+  return `${String(hours).padStart(2, '0')}:${match[2]}`
+}
+
 export function requireNumber(value: unknown, field: string, min: number, max: number): number {
   const n = typeof value === 'number' ? value : parseFloat(String(value ?? ''))
   if (!isFinite(n)) fail(`${field} must be a number`)

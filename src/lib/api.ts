@@ -166,12 +166,33 @@ export function deleteSession(apiUrl: string, slug: string, name: string) {
   return post(apiUrl, { action: 'deleteSession', name }, slug)
 }
 
+/**
+ * Set the order sessions appear in, by name. The server reconciles the list
+ * against what actually exists, so a session added elsewhere since this list
+ * was drawn is kept rather than dropped.
+ */
+export function reorderSessions(apiUrl: string, slug: string, order: string[]) {
+  return post<{ order: string[] }>(apiUrl, { action: 'reorderSessions', order }, slug)
+}
+
 export function saveMatch(
   apiUrl: string,
   slug: string,
-  match: { id?: string; sessionName: string; team1Players: string[]; team2Players: string[] },
+  match: {
+    id?: string
+    sessionName: string
+    team1Players: string[]
+    team2Players: string[]
+    /** 'HH:MM' on a 24-hour clock, or '' to clear it. */
+    teeTime?: string
+  },
 ) {
   return post<{ id: string }>(apiUrl, { action: 'saveMatch', ...match }, slug)
+}
+
+/** Set the order matches appear in within one session, by match id. */
+export function reorderMatches(apiUrl: string, slug: string, sessionName: string, order: string[]) {
+  return post<{ order: string[] }>(apiUrl, { action: 'reorderMatches', sessionName, order }, slug)
 }
 
 export function deleteMatch(apiUrl: string, slug: string, id: string) {

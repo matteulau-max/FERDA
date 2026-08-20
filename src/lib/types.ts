@@ -79,6 +79,12 @@ export interface Match {
   team1Players: string[]
   team2Players: string[]
   sortOrder: number
+  /**
+   * When this group goes off, as 'HH:MM' on a 24-hour clock. A wall-clock
+   * time at the course — no date, no time zone. Absent when the organiser
+   * hasn't set one. Render it with `formatTeeTime()` in src/lib/time.ts.
+   */
+  teeTime?: string
   scores: MatchScores
 }
 

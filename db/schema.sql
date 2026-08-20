@@ -72,6 +72,9 @@ create table if not exists sessions (
 
 -- Match ids are short human-readable strings (e.g. 'm1') used in app URLs,
 -- so the primary key is (tournament_id, id) rather than a uuid.
+--
+-- tee_time is a wall-clock time at the course, 'HH:MM' on a 24-hour clock —
+-- no date, no time zone. See db/migrations/005_tee_times.sql.
 create table if not exists matches (
   tournament_id uuid not null references tournaments(id) on delete cascade,
   id            text not null,
@@ -79,6 +82,8 @@ create table if not exists matches (
   team1_players text[] not null,
   team2_players text[] not null,
   sort_order    integer not null,
+  tee_time      text constraint matches_tee_time_check
+                  check (tee_time is null or tee_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
   primary key (tournament_id, id)
 );
 

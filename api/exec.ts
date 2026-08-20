@@ -10,6 +10,7 @@ import {
   deletePlayer,
   deleteSession,
   deleteTournament,
+  reorderMatches,
   reorderSessions,
   saveCourse,
   saveManual,
@@ -51,6 +52,7 @@ const WRITE_ACTIONS = {
   reorderSessions,
   saveMatch,
   deleteMatch,
+  reorderMatches,
   saveManual,
 } as const
 

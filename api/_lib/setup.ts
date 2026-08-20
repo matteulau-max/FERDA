@@ -7,6 +7,7 @@ import {
   SCORINGS,
   ValidationError,
   optionalBool,
+  optionalTeeTime,
   optionalText,
   requireInt,
   requireNumber,
@@ -378,23 +379,101 @@ export async function deleteSession(
   })
 }
 
-/** Reorder sessions to the given name order; unnamed sessions keep trailing. */
+/**
+ * Reconcile the order the organiser just asked for against the rows that
+ * actually exist.
+ *
+ * Anything the caller didn't mention keeps its relative position and follows
+ * the rows that were listed. Setup is never locked, so a co-organiser can add
+ * a session between the moment this list was drawn on screen and the moment
+ * it's saved — that shouldn't fail the reorder, and it certainly shouldn't
+ * leave two rows fighting over one position.
+ */
+function mergeOrder(existing: string[], requested: string[]): string[] {
+  const known = new Set(existing)
+  const placed = new Set<string>()
+  const ordered: string[] = []
+
+  for (const key of requested) {
+    if (known.has(key) && !placed.has(key)) {
+      ordered.push(key)
+      placed.add(key)
+    }
+  }
+  for (const key of existing) {
+    if (!placed.has(key)) ordered.push(key)
+  }
+  return ordered
+}
+
+function toOrderList(value: unknown, field: string): string[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new ValidationError(`${field} is required`)
+  }
+  return value.map((key) => requireText(key, field, 60))
+}
+
+/** Put the tournament's sessions in the given order, by name. */
 export async function reorderSessions(
   pool: Pool,
   t: TournamentRow,
   body: Record<string, unknown>,
-): Promise<{ success: true }> {
-  const order = Array.isArray(body.order) ? body.order.map((n) => String(n)) : []
-  if (!order.length) throw new ValidationError('No session order supplied')
+): Promise<{ success: true; order: string[] }> {
+  const requested = toOrderList(body.order, 'Session order')
 
   return tx(pool, async (client) => {
+    const { rows } = await client.query<{ name: string }>(
+      'select name from sessions where tournament_id = $1 order by sort_order, name',
+      [t.id],
+    )
+    const order = mergeOrder(rows.map((r) => r.name), requested)
+
     for (let i = 0; i < order.length; i++) {
       await client.query(
         'update sessions set sort_order = $3 where tournament_id = $1 and name = $2',
         [t.id, order[i], i + 1],
       )
     }
-    return { success: true as const }
+    return { success: true as const, order }
+  })
+}
+
+/**
+ * Put one session's matches in the given order, by match id.
+ *
+ * Matches are numbered across the whole tournament, but only ever sorted
+ * within their session — so rather than renumbering from 1 and colliding with
+ * a neighbouring session, this reuses the positions this session's matches
+ * already hold and deals them out in the new order. Reordering one session
+ * leaves every other session's numbering exactly as it was.
+ */
+export async function reorderMatches(
+  pool: Pool,
+  t: TournamentRow,
+  body: Record<string, unknown>,
+): Promise<{ success: true; order: string[] }> {
+  const sessionName = requireText(body.sessionName, 'Session', 60)
+  const requested = toOrderList(body.order, 'Match order')
+
+  return tx(pool, async (client) => {
+    const { rows } = await client.query<{ id: string; sort_order: number }>(
+      `select id, sort_order from matches
+        where tournament_id = $1 and session_name = $2
+        order by sort_order, id`,
+      [t.id, sessionName],
+    )
+    if (!rows.length) throw new ValidationError(`No matches in ${sessionName}`)
+
+    const order = mergeOrder(rows.map((r) => r.id), requested)
+    const slots = rows.map((r) => r.sort_order).sort((a, b) => a - b)
+
+    for (let i = 0; i < order.length; i++) {
+      await client.query(
+        'update matches set sort_order = $3 where tournament_id = $1 and id = $2',
+        [t.id, order[i], slots[i]],
+      )
+    }
+    return { success: true as const, order }
   })
 }
 
@@ -419,6 +498,7 @@ export async function saveMatch(
   const matchId = optionalText(body.id, 'Match id', 20)
   const team1Players = toNameList(body.team1Players, 'Team 1 players')
   const team2Players = toNameList(body.team2Players, 'Team 2 players')
+  const teeTime = optionalTeeTime(body.teeTime, 'Tee time')
 
   return tx(pool, async (client) => {
     const session = await client.query<{ format: string }>(
@@ -454,8 +534,9 @@ export async function saveMatch(
     const existing = await client.query('select 1 from matches where tournament_id = $1 and id = $2', [t.id, id])
     if (existing.rowCount) {
       await client.query(
-        'update matches set session_name = $3, team1_players = $4, team2_players = $5 where tournament_id = $1 and id = $2',
-        [t.id, id, sessionName, team1Players, team2Players],
+        `update matches set session_name = $3, team1_players = $4, team2_players = $5, tee_time = $6
+          where tournament_id = $1 and id = $2`,
+        [t.id, id, sessionName, team1Players, team2Players, teeTime],
       )
     } else {
       const { rows } = await client.query<{ next: number }>(
@@ -463,8 +544,10 @@ export async function saveMatch(
         [t.id],
       )
       await client.query(
-        'insert into matches (tournament_id, id, session_name, team1_players, team2_players, sort_order) values ($1, $2, $3, $4, $5, $6)',
-        [t.id, id, sessionName, team1Players, team2Players, rows[0].next],
+        `insert into matches
+           (tournament_id, id, session_name, team1_players, team2_players, sort_order, tee_time)
+         values ($1, $2, $3, $4, $5, $6, $7)`,
+        [t.id, id, sessionName, team1Players, team2Players, rows[0].next, teeTime],
       )
     }
     return { success: true as const, id }

@@ -3,6 +3,7 @@ import type { Match, Player, SessionCourse, SessionRules, Team } from '../lib/ty
 import { calcMatchStatus, isStrokePlay } from '../lib/matchPlay'
 import { TEAM_COLORS } from '../lib/constants'
 import { useTournamentRoute } from '../lib/paths'
+import { formatTeeTime } from '../lib/time'
 
 interface Props {
   match: Match
@@ -97,6 +98,8 @@ export function MatchRow({ match, rules, players, course }: Props) {
       ? 'A/S'
       : `thru ${status.holesPlayed}`
 
+  const teeTime = formatTeeTime(match.teeTime)
+
   return (
     <button
       onClick={() => navigate(`${base}/match/${match.id}`)}
@@ -112,7 +115,16 @@ export function MatchRow({ match, rules, players, course }: Props) {
         borderBottomWidth: 1,
       }}
     >
-      <div className="grid grid-cols-[2.5rem_1fr_auto_1fr_2.5rem]">
+      {/* The centre column is a fixed width rather than `auto`, so a tee time
+          can't widen it and squeeze the names either side — and so every row
+          lines up with its neighbours instead of each sizing to its own text.
+
+          3.25rem is set by the widest thing that has to fit: "thru 12" at 12px
+          (38px) and a two-digit tee time at 10px (41px). It needs no padding
+          of its own — the name columns either side already carry px-2 — which
+          is what keeps it within the ~48px `auto` was already handing the
+          widest rows. */}
+      <div className="grid grid-cols-[2.5rem_1fr_3.25rem_1fr_2.5rem]">
 
         {/* Col 1 — team1 score, fills same bg as team1 column */}
         <div className="flex items-center justify-center py-3" style={{ background: leftBg }}>
@@ -146,9 +158,20 @@ export function MatchRow({ match, rules, players, course }: Props) {
           ))}
         </div>
 
-        {/* Col 3 — center status */}
-        <div className="flex items-center justify-center flex-shrink-0 px-2 py-3">
-          <span className="font-body text-xs font-semibold whitespace-nowrap" style={{ color: '#555' }}>
+        {/* Col 3 — tee time over the match status */}
+        <div className="flex flex-col items-center justify-center flex-shrink-0 min-w-0 overflow-hidden py-3">
+          {teeTime && (
+            <span
+              className="font-body tabular-nums whitespace-nowrap max-w-full overflow-hidden leading-none mb-0.5"
+              style={{ color: '#999', fontSize: 'clamp(8px, 2.6vw, 10px)' }}
+            >
+              {teeTime}
+            </span>
+          )}
+          <span
+            className="font-body text-xs font-semibold whitespace-nowrap max-w-full overflow-hidden leading-tight"
+            style={{ color: '#555' }}
+          >
             {centerText}
           </span>
         </div>

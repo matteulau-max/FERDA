@@ -106,7 +106,7 @@ export async function getTournament(pool: Pool, tournament: TournamentRow) {
       [tournament.id],
     ),
     pool.query(
-      `select id, session_name, team1_players, team2_players, sort_order from matches
+      `select id, session_name, team1_players, team2_players, sort_order, tee_time from matches
         where tournament_id = $1 order by sort_order`,
       [tournament.id],
     ),
@@ -165,6 +165,9 @@ export async function getTournament(pool: Pool, tournament: TournamentRow) {
           team1Players: m.team1_players,
           team2Players: m.team2_players,
           sortOrder: m.sort_order,
+          // Omitted rather than sent as null, so the field's absence means the
+          // same thing on a tournament that predates tee times entirely.
+          ...(m.tee_time ? { teeTime: m.tee_time as string } : {}),
           scores: scoresByMatch[m.id] ?? {},
         })),
     })),

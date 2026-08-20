@@ -117,6 +117,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
           team1Players: ['Matt', 'Jake'],
           team2Players: ['Danny', 'Sam'],
           sortOrder: 1,
+          teeTime: '08:00',
           scores: {
             1:  { team1: { Matt: 5 }, team2: { Danny: 4 } },
             2:  { team1: { Matt: 5 }, team2: { Danny: 6 } },
@@ -134,6 +135,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
           team1Players: ['Tyler', 'Ben'],
           team2Players: ['Alex', 'Ryan'],
           sortOrder: 2,
+          teeTime: '08:10',
           scores: {
             1: { team1: { Tyler: 4 }, team2: { Alex: 4 } },
             2: { team1: { Tyler: 5 }, team2: { Alex: 5 } },
@@ -246,6 +248,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
           team1Players: ['Matt'],
           team2Players: ['Alex'],
           sortOrder: 1,
+          teeTime: '12:30',
           scores: {
             1:  { team1: { Matt: 5 }, team2: { Alex: 4 } },
             2:  { team1: { Matt: 5 }, team2: { Alex: 5 } },
@@ -268,6 +271,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
           team1Players: ['Tyler'],
           team2Players: ['Danny'],
           sortOrder: 2,
+          teeTime: '12:40',
           scores: {
             1:  { team1: { Tyler: 4 }, team2: { Danny: 4 } },
             2:  { team1: { Tyler: 5 }, team2: { Danny: 6 } },
@@ -290,6 +294,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
           team1Players: ['Chris'],
           team2Players: ['Nick'],
           sortOrder: 3,
+          teeTime: '12:50',
           scores: {
             1:  { team1: { Chris: 5 }, team2: { Nick: 4 } },
             2:  { team1: { Chris: 6 }, team2: { Nick: 5 } },
@@ -312,6 +317,7 @@ export const MOCK_TOURNAMENT: TournamentData = {
           team1Players: ['Ben'],
           team2Players: ['Sam'],
           sortOrder: 4,
+          teeTime: '13:00',
           scores: {
             1:  { team1: { Ben: 6 }, team2: { Sam: 5 } },
             2:  { team1: { Ben: 7 }, team2: { Sam: 6 } },

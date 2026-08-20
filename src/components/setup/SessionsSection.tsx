@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import type { Format, HoleSet, Scoring, TournamentData } from '../../lib/types'
-import { deleteSession, saveSession, type SessionFields } from '../../lib/api'
+import { deleteSession, reorderSessions, saveSession, type SessionFields } from '../../lib/api'
 import { DEFAULT_POINTS_PER_STROKE, FORMAT_LABELS, SCORING_LABELS } from '../../lib/constants'
 import { HOLE_SETS, HOLE_SET_LABELS, sessionRules } from '../../lib/holes'
-import { Button, Card, EmptyState, ErrorText, Field, SectionHeading, Select, TextInput } from './ui'
+import { moveItem } from '../../lib/order'
+import {
+  Button, Card, EmptyState, ErrorText, Field, MoveButtons, SectionHeading, Select, TextInput,
+} from './ui'
 
 interface Props {
   apiUrl: string
@@ -40,6 +43,31 @@ function pointsExample(rate: number): string {
 
 export function SessionsSection({ apiUrl, slug, data, onSaved }: Props) {
   const [editing, setEditing] = useState<{ session: SessionFields; originalName?: string } | null>(null)
+  const [reordering, setReordering] = useState(false)
+  const [orderError, setOrderError] = useState<string | null>(null)
+
+  const ordered = [...data.sessions].sort((a, b) => a.sortOrder - b.sortOrder)
+
+  /**
+   * Sessions run in this order on the leaderboard, so moving one is a real
+   * edit — it's saved immediately rather than gathered up behind a button.
+   */
+  async function move(index: number, delta: number) {
+    const names = ordered.map((s) => s.name)
+    const next = moveItem(names, index, delta)
+    if (next === names) return
+
+    setReordering(true)
+    setOrderError(null)
+    try {
+      await reorderSessions(apiUrl, slug, next)
+      onSaved()
+    } catch (err) {
+      setOrderError(err instanceof Error ? err.message : 'Could not change the order')
+    } finally {
+      setReordering(false)
+    }
+  }
 
   const blank = (): SessionFields => ({
     name: '',
@@ -84,7 +112,14 @@ export function SessionsSection({ apiUrl, slug, data, onSaved }: Props) {
         <EmptyState>No sessions yet. A session is one round: a format, a course, and its matches.</EmptyState>
       )}
 
-      {[...data.sessions].sort((a, b) => a.sortOrder - b.sortOrder).map((session) => {
+      {ordered.length > 1 && (
+        <p className="text-xs text-gray-500 font-body mb-2">
+          The arrows set the order rounds appear in on the leaderboard.
+        </p>
+      )}
+      <ErrorText>{orderError}</ErrorText>
+
+      {ordered.map((session, index) => {
         const rules = sessionRules(session)
         return (
           <Card key={session.name}>
@@ -101,23 +136,33 @@ export function SessionsSection({ apiUrl, slug, data, onSaved }: Props) {
                   {' · '}{session.matches.length} {session.matches.length === 1 ? 'match' : 'matches'}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                onClick={() => setEditing({
-                  session: {
-                    name: session.name,
-                    format: session.format,
-                    scoring: rules.scoring,
-                    courseName: session.courseName,
-                    holeSet: rules.holeSet,
-                    useHandicap: rules.useHandicap,
-                    pointsPerStroke: rules.pointsPerStroke,
-                  },
-                  originalName: session.name,
-                })}
-              >
-                Edit
-              </Button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {ordered.length > 1 && (
+                  <MoveButtons
+                    label={session.name}
+                    disabled={reordering}
+                    onUp={index > 0 ? () => move(index, -1) : undefined}
+                    onDown={index < ordered.length - 1 ? () => move(index, 1) : undefined}
+                  />
+                )}
+                <Button
+                  variant="ghost"
+                  onClick={() => setEditing({
+                    session: {
+                      name: session.name,
+                      format: session.format,
+                      scoring: rules.scoring,
+                      courseName: session.courseName,
+                      holeSet: rules.holeSet,
+                      useHandicap: rules.useHandicap,
+                      pointsPerStroke: rules.pointsPerStroke,
+                    },
+                    originalName: session.name,
+                  })}
+                >
+                  Edit
+                </Button>
+              </div>
             </div>
           </Card>
         )

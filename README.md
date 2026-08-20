@@ -43,7 +43,7 @@ because it carries an image, but it touches no tournament data — see
 Writes all POST to `/api/exec` with a JSON body, optionally `?t=<slug>`:
 `createTournament`, `updateTournament`, `deleteTournament`, `saveCourse`, `deleteCourse`,
 `savePlayer`, `deletePlayer`, `saveSession`, `deleteSession`,
-`reorderSessions`, `saveMatch`, `deleteMatch`, `saveManual`.
+`reorderSessions`, `saveMatch`, `deleteMatch`, `reorderMatches`, `saveManual`.
 
 Validation lives in `api/_lib/validate.ts` and is authoritative — the UI
 mirrors some checks for instant feedback, but nothing reaches Postgres
@@ -137,6 +137,46 @@ off, the session is played gross and no strokes are given anywhere in it.
 
 All three are per session and stay editable mid-tournament like everything
 else in setup.
+
+### Running order
+
+Sessions appear on the leaderboard in the order set under **Setup → Sessions**,
+and each session's matches in the order set under **Setup → Pairings**. Both
+use the ▲/▼ buttons on each row, and both save the moment they're tapped.
+
+Not drag-and-drop, deliberately: this gets used one-handed on a phone, and a
+drag begun inside a scrolling list is easy to start by accident and easy to
+drop in the wrong place.
+
+The server reconciles the order it's sent against what actually exists, so a
+session or match added from another phone in the meantime is kept and trails
+the rows that were listed, rather than being dropped or left fighting for the
+same position. Matches are reordered within their own session's positions, so
+putting one session in order never disturbs another.
+
+### Tee times
+
+Each match can carry a tee time — set it under **Setup → Pairings**, on the
+match. It shows on the leaderboard directly above that match's status, inside
+the score pill:
+
+```
+                8:00 AM
+Christopher     thru 5      Konstantinos
+```
+
+The pill's centre column is a fixed width, so a tee time can never widen it and
+squeeze the player names on either side; text too long for the column shrinks
+to fit instead.
+
+Times are stored as `HH:MM` on a 24-hour clock (`matches.tee_time`) and shown
+on a 12-hour one. They're wall-clock times at the course, deliberately not
+timestamps: there's no date behind them and no time zone, so an 8:10 tee time
+reads as 8:10 to everyone, including someone following the leaderboard three
+states away.
+
+Tee times are optional. A match without one shows just its status, exactly as
+before.
 
 ### Tee boxes
 

@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import type { Format, Match, Session, TournamentData } from '../../lib/types'
-import { deleteMatch, saveMatch } from '../../lib/api'
+import { deleteMatch, reorderMatches, saveMatch } from '../../lib/api'
 import { FORMAT_LABELS } from '../../lib/constants'
-import { Button, Card, EmptyState, ErrorText, SectionHeading, Select } from './ui'
+import { moveItem } from '../../lib/order'
+import { formatTeeTime } from '../../lib/time'
+import {
+  Button, Card, EmptyState, ErrorText, Field, MoveButtons, SectionHeading, Select, TextInput,
+} from './ui'
 
 interface Props {
   apiUrl: string
@@ -35,8 +39,30 @@ export function PairingsSection({ apiUrl, slug, data, onSaved }: Props) {
   const sessions = [...data.sessions].sort((a, b) => a.sortOrder - b.sortOrder)
   const [sessionName, setSessionName] = useState(sessions[0]?.name ?? '')
   const [editing, setEditing] = useState<{ match?: Match } | null>(null)
+  const [reordering, setReordering] = useState(false)
+  const [orderError, setOrderError] = useState<string | null>(null)
 
   const session = sessions.find((s) => s.name === sessionName) ?? sessions[0]
+  const matches = session ? [...session.matches].sort((a, b) => a.sortOrder - b.sortOrder) : []
+
+  /** Matches go out in this order, so it's the order they're listed in. */
+  async function move(index: number, delta: number) {
+    if (!session) return
+    const ids = matches.map((m) => m.id)
+    const next = moveItem(ids, index, delta)
+    if (next === ids) return
+
+    setReordering(true)
+    setOrderError(null)
+    try {
+      await reorderMatches(apiUrl, slug, session.name, next)
+      onSaved()
+    } catch (err) {
+      setOrderError(err instanceof Error ? err.message : 'Could not change the order')
+    } finally {
+      setReordering(false)
+    }
+  }
 
   if (!sessions.length) {
     return (
@@ -78,25 +104,48 @@ export function PairingsSection({ apiUrl, slug, data, onSaved }: Props) {
         </Select>
       </div>
 
-      {session && session.matches.length === 0 && (
+      {session && matches.length === 0 && (
         <EmptyState>No matches in {session.name} yet.</EmptyState>
       )}
 
-      {session && [...session.matches].sort((a, b) => a.sortOrder - b.sortOrder).map((match) => (
-        <Card key={match.id}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs text-gray-400 font-body mb-1">{match.id}</p>
-              <p className="font-body text-sm">
-                <span className="font-semibold">{match.team1Players.join(' & ')}</span>
-                <span className="text-gray-400"> v </span>
-                <span className="font-semibold">{match.team2Players.join(' & ')}</span>
-              </p>
+      {matches.length > 1 && (
+        <p className="text-xs text-gray-500 font-body mb-2">
+          The arrows set the order these groups are listed in.
+        </p>
+      )}
+      <ErrorText>{orderError}</ErrorText>
+
+      {matches.map((match, index) => {
+        const teeTime = formatTeeTime(match.teeTime)
+        return (
+          <Card key={match.id}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-400 font-body mb-1">
+                  {match.id}
+                  {teeTime && <span style={{ color: '#006747' }}> · {teeTime}</span>}
+                </p>
+                <p className="font-body text-sm">
+                  <span className="font-semibold">{match.team1Players.join(' & ')}</span>
+                  <span className="text-gray-400"> v </span>
+                  <span className="font-semibold">{match.team2Players.join(' & ')}</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {matches.length > 1 && (
+                  <MoveButtons
+                    label={match.id}
+                    disabled={reordering}
+                    onUp={index > 0 ? () => move(index, -1) : undefined}
+                    onDown={index < matches.length - 1 ? () => move(index, 1) : undefined}
+                  />
+                )}
+                <Button variant="ghost" onClick={() => setEditing({ match })}>Edit</Button>
+              </div>
             </div>
-            <Button variant="ghost" onClick={() => setEditing({ match })}>Edit</Button>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        )
+      })}
     </div>
   )
 }
@@ -114,6 +163,7 @@ function MatchEditor({
 }) {
   const [team1, setTeam1] = useState<string[]>(match?.team1Players ?? [])
   const [team2, setTeam2] = useState<string[]>(match?.team2Players ?? [])
+  const [teeTime, setTeeTime] = useState(match?.teeTime ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -145,6 +195,7 @@ function MatchEditor({
         sessionName: session.name,
         team1Players: team1,
         team2Players: team2,
+        teeTime,
       })
       onDone()
     } catch (err) {
@@ -218,6 +269,29 @@ function MatchEditor({
           </Card>
         )
       })}
+
+      <Card>
+        <Field
+          label="Tee time"
+          hint={
+            formatTeeTime(teeTime)
+              ? `Shown as ${formatTeeTime(teeTime)} above this match's score on the leaderboard.`
+              : 'Optional. When this group goes off — it shows above the match score on the leaderboard.'
+          }
+        >
+          <div className="flex items-center gap-2">
+            <TextInput
+              type="time"
+              aria-label="Tee time"
+              value={teeTime}
+              onChange={(e) => setTeeTime(e.target.value)}
+            />
+            {teeTime && (
+              <Button variant="ghost" onClick={() => setTeeTime('')}>Clear</Button>
+            )}
+          </div>
+        </Field>
+      </Card>
 
       {sizeError && <ErrorText>{sizeError}</ErrorText>}
 

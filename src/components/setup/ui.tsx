@@ -132,6 +132,57 @@ export function Button({
   )
 }
 
+/**
+ * Up/down controls for putting a list in order.
+ *
+ * Deliberately not drag-and-drop. This gets used one-handed, on a phone,
+ * often standing on a tee box — and a drag that begins inside a scrolling
+ * list is easy to start by accident and easy to drop in the wrong place.
+ * Two taps always land where they were aimed.
+ */
+export function MoveButtons({
+  label, onUp, onDown, disabled,
+}: {
+  /** Names the thing being moved, for screen readers: "Move Saturday AM up". */
+  label: string
+  /** Absent at the top of the list, and likewise onDown at the bottom. */
+  onUp?: () => void
+  onDown?: () => void
+  disabled?: boolean
+}) {
+  const arrow: React.CSSProperties = {
+    lineHeight: 1,
+    fontSize: 11,
+    color: '#006747',
+    background: '#fff',
+    border: '1px solid #d1d5db',
+  }
+  return (
+    <div className="flex flex-col gap-1 flex-shrink-0">
+      <button
+        type="button"
+        aria-label={`Move ${label} up`}
+        onClick={onUp}
+        disabled={disabled || !onUp}
+        className="px-2 py-1 rounded-md font-body disabled:opacity-25"
+        style={arrow}
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        aria-label={`Move ${label} down`}
+        onClick={onDown}
+        disabled={disabled || !onDown}
+        className="px-2 py-1 rounded-md font-body disabled:opacity-25"
+        style={arrow}
+      >
+        ▼
+      </button>
+    </div>
+  )
+}
+
 export function ErrorText({ children }: { children?: string | null }) {
   if (!children) return null
   return <p className="text-sm font-body mt-2" style={{ color: '#C41E3A' }}>{children}</p>
