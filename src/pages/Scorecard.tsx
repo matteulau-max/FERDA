@@ -8,6 +8,7 @@ import { ScoreTable } from '../components/ScoreTable'
 import { HandicapInfo } from '../components/HandicapInfo'
 import { MatchWormChart } from '../components/MatchWormChart'
 import { OverflowMenu } from '../components/OverflowMenu'
+import { RangefinderDialog } from '../components/rangefinder/Rangefinder'
 import { calcMatchStatus } from '../lib/matchPlay'
 import { courseForSession, sessionRules } from '../lib/holes'
 import { SCORING_LABELS } from '../lib/constants'
@@ -20,6 +21,7 @@ export function Scorecard() {
   const { slug, base } = useTournamentRoute()
   const { data, loading } = useTournament(API_URL, slug)
   const { save } = useScoreSave(API_URL, slug)
+  const [showRangefinder, setShowRangefinder] = useState(false)
 
   // Local optimistic scores state
   const [localScores, setLocalScores] = useState<MatchScores>({})
@@ -134,6 +136,13 @@ export function Scorecard() {
         </div>
         <OverflowMenu />
       </div>
+
+      <div className="px-4 py-2 flex justify-end" style={{ borderBottom: '1px solid #e8e5d8' }}>
+        <button onClick={() => setShowRangefinder(true)} className="font-body text-sm font-semibold px-3 py-2 rounded-lg" style={{ color: '#006747', border: '1px solid #c5dacc' }}>
+          Rangefinder
+        </button>
+      </div>
+      {showRangefinder && <RangefinderDialog onClose={() => setShowRangefinder(false)} context={course?.name} />}
 
       {saveStatus !== 'idle' && (
         <div

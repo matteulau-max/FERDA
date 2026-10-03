@@ -1,0 +1,75 @@
+# Rangefinder and TheGrint companion
+
+Open **Rangefinder** from a scorecard to measure without unmounting it. Closing
+the native modal restores the scorecard and its local score state. A standalone
+screen is available at `/rangefinder` and `/t/:slug/rangefinder`, also in the header
+menu. It uses Ferda's existing green, cream, yellow and serif styles.
+
+## Using it on iPhone
+
+Open Ferda directly in Safari. Allow rear camera and motion from their individual
+buttons. Enter the unadjusted horizontal distance and rear-camera height above
+your ground. Sight a visible ground point, ideally the base of the flagstick.
+Hold still and capture. Positive feet means uphill. This does not calculate a
+golf-ballistic “plays like” distance.
+
+Camera height and calibration live in device-local browser storage. No readings
+are written to tournament data. Backgrounding, hiding the page, or closing the
+rangefinder stops acquisition; re-enable camera and motion to continue.
+
+Calibration requires a reference at exactly the camera's height. Do not zero on
+a flagstick base, which is below your camera on level ground. Validate on level
+ground with measured distance and camera height; expected target elevation is 0 ft.
+Repeat ten captures to assess mean bias and spread. Camera alignment, iPhone lens
+selection and Safari sensor precision require physical testing. The stability gate
+is a repeatability check, not an accuracy guarantee.
+
+## TheGrint: available now
+
+This is a **manual companion flow**, not account linking or API synchronization.
+Check unadjusted yardage in TheGrint and enter it into Ferda. The Paste yardage
+button supports a single copied number with optional yard units; it rejects
+ambiguous text containing several distances. It does not assume TheGrint provides
+a copy button. The outbound link opens TheGrint's website; it does not promise
+to deep-link into its current round. Switching apps requires resuming sensors.
+
+No paid APIs or credentials were added. The new feature does not read TheGrint
+credentials, scrape its account pages, or change Ferda's database or scoring rules.
+
+## Direct integration: what remains
+
+TheGrint announced its **Connect API Program** in its 2025 State of the Union:
+https://thegrint.com/range/post/2025-state-of-the-union
+
+Public documentation reviewed here establishes that the program exists, but does
+not establish that third parties can retrieve live player GPS yardage, exact pin
+positions, or course geometry, nor the pricing and authentication requirements.
+The `/api` public page did not provide accessible developer documentation.
+
+To implement live integration, request the partner documentation and confirm:
+
+- Whether course/green coordinates, active-round holes, or current GPS yardages
+  are available; a handicap API alone will not solve distance import.
+- Whether yardages are horizontal/unadjusted, their accuracy, units, and pin
+  position assumptions.
+- User authorization, approved callback URLs, credentials and supported deep links.
+- Pricing, rate limits, data licensing and retention terms.
+
+Official contact published by TheGrint: `contactus@thegrint.com`. No message was
+sent. Once access and supported endpoints are known, add an authenticated server
+adapter and retain manual entry when authorization or service availability fails.
+Do not invent API endpoints or put secret partner credentials in a `VITE_` variable.
+
+## Checks
+
+`npm run build` checks the React/TypeScript application and production bundle.
+`node scripts/check-rangefinder.mjs` executes the actual geometry TypeScript via
+the existing TypeScript dependency and checks signs, known elevations, stale/noisy
+readings, and clipboard ambiguity. No dependency or database migration is needed.
+
+Device QA: grant/deny/retry permissions; verify upward camera tilt gives positive
+angle; capture and reset; zero/clear calibration; rotate to landscape; background
+and resume; close while camera permission is pending; confirm scorecard state and
+scoring remain intact behind the modal.
+
+Formula reference: https://www.w3.org/TR/orientation-event/ (Z-X-Y rotation matrix).
