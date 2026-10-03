@@ -5,7 +5,7 @@ import { href, useTournamentRoute } from '../lib/paths'
 /**
  * The "..." menu shown in every page header.
  *
- * Deliberately just two items — the two places the tab bar can't take you.
+ * Places the tab bar cannot take you, plus the standalone rangefinder.
  * Leaderboard and Manual are tabs already (and the scorecard's back arrow
  * returns to the leaderboard); copying the link lives at the bottom of setup;
  * starting a tournament is the button on the tournaments page.
@@ -65,6 +65,7 @@ export function OverflowMenu({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
         >
           <MenuItem onClick={() => { setOpen(false); navigate('/') }}>All tournaments</MenuItem>
           <MenuItem onClick={() => go('/setup')}>Event setup</MenuItem>
+          <MenuItem onClick={() => go('/rangefinder')}>Rangefinder</MenuItem>
         </div>
       )}
     </div>
