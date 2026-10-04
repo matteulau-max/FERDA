@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import teeData from '../../data/tee-yardages.json'
 import courses from '../../data/gps-courses.json'
 import { greenDistances } from '../../lib/golfGps'
 const HoleMap = lazy(() => import('./HoleMap').then(module => ({ default: module.HoleMap })))
@@ -6,6 +7,8 @@ const HoleMap = lazy(() => import('./HoleMap').then(module => ({ default: module
 type Fix = { longitude: number; latitude: number; accuracy: number; timestamp: number }
 export function GolfGps({ onDistanceChange }: { onDistanceChange: (yards: number | null, target: string) => void }) {
   const [courseId, setCourseId] = useState('dyker')
+  const [teeName, setTeeName] = useState('White')
+  const [distanceMode, setDistanceMode] = useState<'tee' | 'gps'>('tee')
   const [holeNumber, setHoleNumber] = useState(1)
   const [fix, setFix] = useState<Fix | null>(null)
   const [enabled, setEnabled] = useState(false)
@@ -15,6 +18,9 @@ export function GolfGps({ onDistanceChange }: { onDistanceChange: (yards: number
   const generation = useRef(0)
   const course = courses.find(c => c.id === courseId)!
   const hole = course.holes.find(h => h.number === holeNumber)!
+  const card = (teeData as Record<string, { source: string; sourceLabel: string; tees: Record<string, number[]> }>)[courseId]
+  const selectedTee = card.tees[teeName] ? teeName : 'White'
+  const teeYards = card.tees[selectedTee][holeNumber - 1]
   const age = fix ? Math.max(0, now - fix.timestamp) : Infinity
   const fresh = age <= 15000
   const usable = !!fix && fresh && fix.accuracy <= 30
@@ -51,8 +57,8 @@ export function GolfGps({ onDistanceChange }: { onDistanceChange: (yards: number
     }
   }, [])
   useEffect(() => {
-    onDistanceChange(onCourse ? distances!.center : null, `${courseId}:${holeNumber}`)
-  }, [onCourse, distances?.center, courseId, holeNumber, onDistanceChange])
+    onDistanceChange(distanceMode === 'gps' && onCourse ? distances!.center : null, `${courseId}:${holeNumber}`)
+  }, [distanceMode, onCourse, distances?.center, courseId, holeNumber, onDistanceChange])
   const display = (value: number | null | undefined) => onCourse && value != null ? Math.round(value) : '—'
   const status = !enabled ? message : !fix ? message : !fresh ? 'GPS reading stale · waiting for update' : fix.accuracy > 30 ? 'Weak GPS signal · waiting for accuracy' : !onCourse ? 'Check course and hole · target is far away' : `GPS ±${Math.ceil(fix.accuracy / 0.9144)} yd`
   return <section className="rf-gps" aria-label="Automatic golf GPS">
@@ -60,11 +66,16 @@ export function GolfGps({ onDistanceChange }: { onDistanceChange: (yards: number
       <label>Course<select value={courseId} onChange={e => setCourseId(e.target.value)}>{courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       <label>Hole<select value={holeNumber} onChange={e => setHoleNumber(Number(e.target.value))}>{course.holes.map(h => <option key={h.number} value={h.number}>{h.number}</option>)}</select></label>
     </div>
-    <div className="rf-gps-distances" aria-live="off">
+    <div className="rf-gps-selects rf-tee-selects">
+      <label>Tee<select value={selectedTee} onChange={e => setTeeName(e.target.value)}>{Object.entries(card.tees).map(([name, yards]) => <option key={name} value={name}>{name} · {yards.reduce((a,b) => a+b, 0).toLocaleString()} yd</option>)}</select></label>
+      <label>Yardage from<select value={distanceMode} onChange={e => setDistanceMode(e.target.value as 'tee' | 'gps')}><option value="tee">Selected tee</option><option value="gps">My GPS location</option></select></label>
+    </div>
+    {distanceMode === 'tee' ? <div className="rf-tee-yardage"><span>{selectedTee} tees · Hole {holeNumber}</span><strong>{teeYards} <small>yd</small></strong><span>Published hole yardage</span><a href={card.source} target="_blank" rel="noopener noreferrer">{card.sourceLabel}</a></div> : <><p className="rf-distance-source">From your GPS location · yards</p><div className="rf-gps-distances" aria-live="off">
       <div>Front<strong>{display(distances?.front)}</strong></div><div className="rf-middle">Middle<strong>{display(distances?.center)}</strong></div><div>Back<strong>{display(distances?.back)}</strong></div>
     </div>
-    <div className="rf-gps-status"><span role="status">{status}</span><button onClick={enabled ? () => { stop(); setMessage('GPS stopped.') } : start}>{enabled ? 'Stop GPS' : 'Enable GPS'}</button></div>
+    </>}
+    <div className="rf-gps-status"><span role="status">{distanceMode === 'tee' ? 'Select My GPS location for live front / middle / back yardages.' : status}</span><button onClick={enabled ? () => { stop(); setMessage('GPS stopped.') } : () => { setDistanceMode('gps'); start() }}>{enabled ? 'Stop GPS' : 'Enable GPS'}</button></div>
     <p className="rf-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · <a href={course.source} target="_blank" rel="noopener noreferrer">OpenGolfAPI</a></p>
-    <Suspense fallback={<p className="rf-map-hint">Loading hole map…</p>}><HoleMap key={`${courseId}:${holeNumber}`} courseId={courseId} courseName={course.name} hole={hole} position={onCourse ? fix : null} /></Suspense>
+    <Suspense fallback={<p className="rf-map-hint">Loading hole map…</p>}><HoleMap key={`${courseId}:${holeNumber}:${distanceMode}:${selectedTee}`} courseId={courseId} courseName={course.name} hole={hole} position={distanceMode === 'gps' && onCourse ? fix : null} teePreview={distanceMode === 'tee' ? { name: selectedTee, yards: teeYards } : undefined} /></Suspense>
   </section>
 }
