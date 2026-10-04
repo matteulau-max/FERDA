@@ -24,3 +24,28 @@
 .rf-tee-yardage a { font-size:11px; margin-top:5px; }
 .rf-distance-source { font-size:12px; margin:12px 0 5px; color:#315f46; }
 .rf-map-tools button:disabled { opacity:.5; cursor:default; }
+/* Yardages remain anchored to the map at every screen size. */
+.rf-map-stage { overflow:hidden; }
+.rf-hole-svg { height:600px; }
+.rf-map-hole-banner { position:absolute; top:12px; left:50%; transform:translateX(-50%); width:min(72%,310px); color:white; font-family:system-ui,sans-serif; }
+.rf-map-hole-banner > div { display:flex; align-items:center; justify-content:space-between; background:#15291ff2; border-radius:14px; padding:7px; box-shadow:0 3px 14px #0003; }
+.rf-map-hole-banner span { text-align:center; }
+.rf-map-hole-banner small { display:block; font-size:10px; color:#d4dfca; }
+.rf-map-hole-banner strong { display:block; font-size:23px; line-height:1.3; }
+.rf .rf-map-hole-banner button,.rf-map-dialog .rf-map-hole-banner button { background:#ffffff1c; color:white; border:0; border-radius:50%; width:36px; min-height:36px; padding:0; font:28px system-ui,sans-serif; }
+.rf-map-hole-banner button:disabled { opacity:.25; }
+.rf-map-hole-banner p { margin:5px 0 0; padding:5px 10px; border-radius:8px; text-align:center; font:12px system-ui,sans-serif; background:#15291ff2; }
+.rf-map-view-toggle { top:116px; right:10px; }
+.rf-map-yardage-hud,.rf-map-target-hud { position:absolute; bottom:18px; left:12px; padding:12px; color:#eff7e7; background:#14251ef2; border:1px solid #ffffff35; border-radius:13px; box-shadow:0 4px 14px #0003; font-family:system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+.rf-map-yardage-hud > small,.rf-map-target-hud small { display:block; font-size:10px; color:#d0dfc6; }
+.rf-map-yardage-hud > strong { display:block; font-size:38px; line-height:1.2; color:#d5ec87; }
+.rf-map-yardage-hud em { font-size:12px; font-style:normal; }
+.rf-map-yardage-hud > div { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.rf-map-yardage-hud span { font-size:10px; }
+.rf-map-yardage-hud b { font-size:24px; color:#d5ec87; }
+.rf-map-yardage-hud .rf-hud-middle b { font-size:34px; color:white; }
+.rf-map-target-hud { left:auto; right:12px; max-width:155px; }
+.rf-map-target-hud strong { display:block; font-size:24px; }
+.rf .rf-map-target-hud button,.rf-map-dialog .rf-map-target-hud button { color:white; background:transparent; font:11px system-ui,sans-serif; border:1px solid #ffffff50; border-radius:12px; padding:4px 8px; min-height:30px; margin-top:7px; }
+.rf-map-dialog .rf-hole-svg { height:calc(100dvh - 165px); min-height:500px; }
+@media(max-width:400px) { .rf-hole-svg { height:560px; } }
