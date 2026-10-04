@@ -10,6 +10,13 @@ near(cameraAngle(90, 0), 0)
 near(cameraAngle(100, 0), 10)
 near(cameraAngle(80, 0), -10)
 near(cameraAngle(0, 0), -90)
+// Rear-camera direction, including roll and inverted portrait; no manual zero.
+near(cameraAngle(-90, 0), 0)
+near(cameraAngle(180, 0), 90)
+near(cameraAngle(90, 45), 0)
+near(cameraAngle(120, 60), Math.asin(0.25) * 180 / Math.PI)
+const levelTargetAngle = Math.atan(-5 / (150 * 3)) * 180 / Math.PI
+near(elevation(150, cameraAngle(90 + levelTargetAngle, 0), 5).feet, 0)
 assert.equal(cameraAngle(null, 0), null)
 assert.equal(cameraAngle(90, NaN), null)
 for (const target of [-30, 0, 24]) {

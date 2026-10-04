@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cameraAngle, elevation, windowStats, type AngleSample, type ElevationReading } from '../lib/rangefinder'
 
-const OFFSET_KEY = 'ferda.rangefinder.calibration.v1'
 const HEIGHT_KEY = 'ferda.rangefinder.cameraHeight.v1'
 function savedHeight() {
   try {
@@ -10,14 +9,6 @@ function savedHeight() {
     if (Number.isFinite(height) && height >= 0 && height <= 10) return String(height)
   } catch { /* Optional browser storage. */ }
   return '5'
-}
-function savedOffset(): number | null {
-  try {
-    const text = localStorage.getItem(OFFSET_KEY)
-    const value = text === null ? NaN : Number(text)
-    if (Number.isFinite(value) && Math.abs(value) <= 10) return value
-  } catch { /* Optional browser storage. */ }
-  return null
 }
 function isPortrait() {
   const legacy = (window as Window & { orientation?: number }).orientation
@@ -37,10 +28,8 @@ export function useRangefinder() {
   const [motionBusy, setMotionBusy] = useState(false)
   const [yardage, setYardage] = useState('170')
   const [height, setHeight] = useState(savedHeight)
-  const [offset, setOffset] = useState(savedOffset)
   const [captured, setCaptured] = useState<ElevationReading | null>(null)
   const [notice, setNotice] = useState('Open in Safari and allow camera and motion when prompted.')
-  const [calibrating, setCalibrating] = useState(false)
 
   const stopCamera = useCallback(() => {
     generation.current++
@@ -133,7 +122,7 @@ export function useRangefinder() {
   }
 
   const stats = windowStats(samples.current, now)
-  const angle = stats.mean === null ? null : stats.mean - (offset ?? 0)
+  const angle = stats.mean
   const distance = yardage.trim() === '' ? NaN : Number(yardage)
   const cameraHeight = height.trim() === '' ? NaN : Number(height)
   const reading = angle === null ? null : elevation(distance, angle, cameraHeight)
@@ -142,9 +131,6 @@ export function useRangefinder() {
     && video.current && !video.current.paused && video.current.readyState >= 2)
   const portrait = isPortrait()
   const ready = motion.current && stats.fresh && stats.stable && cameraReady && portrait && Boolean(reading)
-  const calibrationReady = motion.current && stats.fresh && stats.stable && cameraReady && portrait
-    && stats.mean !== null && Math.abs(stats.mean) <= 10
-
   function changeYardage(value: string) { setYardage(value); setCaptured(null) }
   function changeHeight(value: string) {
     setHeight(value); setCaptured(null)
@@ -161,36 +147,20 @@ export function useRangefinder() {
     if (ready && currentTrack?.readyState === 'live' && !currentTrack.muted
       && video.current && !video.current.paused && isPortrait()
       && live.fresh && live.stable && live.mean !== null) {
-      setCaptured(elevation(distance, live.mean - (offset ?? 0), cameraHeight))
+      setCaptured(elevation(distance, live.mean, cameraHeight))
     }
   }
-  function saveZero() {
-    const live = windowStats(samples.current, performance.now())
-    const currentTrack = stream.current?.getVideoTracks()[0]
-    if (!calibrationReady || currentTrack?.readyState !== 'live' || currentTrack.muted
-      || !video.current || video.current.paused || !isPortrait()
-      || !live.fresh || !live.stable || live.mean === null || Math.abs(live.mean) > 10) return
-    setOffset(live.mean); setCaptured(null); setCalibrating(false)
-    try { localStorage.setItem(OFFSET_KEY, String(live.mean)); setNotice('Horizontal calibration saved.') }
-    catch { setNotice('Calibration saved for this session only.') }
-  }
-  function clearZero() {
-    setOffset(null); setCaptured(null)
-    try { localStorage.removeItem(OFFSET_KEY) } catch { /* Session only. */ }
-    setNotice('Calibration cleared.')
-  }
-
   let status = 'Motion is off'
   if (motion.current && !portrait) status = 'Hold phone upright in portrait'
   else if (motion.current && !stats.fresh) status = 'Waiting for motion data · retry in Safari if needed'
   else if (motion.current && !reading) status = 'Check yardage / height; aim near horizontal'
   else if (motion.current && !stats.stable) status = 'Hold still'
   else if (motion.current && !cameraReady) status = 'Motion steady · enable camera'
-  else if (ready) status = 'Steady · ready'
+  else if (ready) status = 'Gravity reference · steady'
 
   return { video, yardage, height, changeYardage, changeHeight, cameraReady, cameraBusy,
     hasCamera: Boolean(stream.current), hasMotion: motion.current, motionBusy, toggleCamera, toggleMotion,
     angle: stats.fresh && motion.current ? angle : null, ready, captured,
     shown: captured ?? (motion.current && stats.fresh && portrait ? reading : null), capture,
-    status, notice, setNotice, offset, calibrating, setCalibrating, calibrationReady, saveZero, clearZero }
+    status, notice, setNotice }
 }
