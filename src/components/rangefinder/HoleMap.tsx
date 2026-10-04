@@ -2,15 +2,15 @@ import { useEffect, useId, useMemo, useRef, useState, type MouseEvent, type Keyb
 import { createPortal } from 'react-dom'
 import mapData from '../../data/gps-map.json'
 import aerialData from '../../data/gps-aerial.json'
-import { distanceYards, type Coordinate } from '../../lib/golfGps'
+import { greenDistances, distanceYards, type Coordinate } from '../../lib/golfGps'
 import { holeMapProjection } from '../../lib/holeMap'
 
 type Layer = { kind: string; polygons: Coordinate[][][] }
 type MapData = { lines: Record<string, Coordinate[]>; layers: Layer[] }
-type Props = { teePreview?: { name: string; yards: number }; courseId: string; courseName: string; hole: { number: number; center: Coordinate; outline: Coordinate[] }; position: { longitude: number; latitude: number; accuracy: number } | null }
+type Props = { teeLabel: string; scorecardYards: number; onHoleChange: (delta: number) => void; teePreview?: { name: string; yards: number }; courseId: string; courseName: string; hole: { number: number; center: Coordinate; outline: Coordinate[] }; position: { longitude: number; latitude: number; accuracy: number } | null }
 const fills: Record<string, string> = { fairway: '#70a453', green: '#9cc76c', tee: '#88b75e', bunker: '#eeddb2', water_hazard: '#579cac' }
 
-export function HoleMap({ courseId, courseName, hole, position, teePreview }: Props) {
+export function HoleMap({ courseId, courseName, hole, position, teePreview, teeLabel, scorecardYards, onHoleChange }: Props) {
   const data = (mapData as Record<string, MapData>)[courseId]
   const line = data.lines[String(hole.number)]
   const [target, setTarget] = useState<Coordinate | null>(null)
@@ -32,6 +32,7 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview }: Pr
   const selected = target ?? hole.center
   const selectedPoint = project(selected), greenPoint = project(hole.center), teePoint = project(line[0])
   const userPoint = user ? project(user) : null
+  const greenYards = user ? greenDistances(user, hole.center, hole.outline) : null
   const yardage = user ? Math.round(distanceYards(user, selected)) : null
   const path = (ring: Coordinate[]) => ring.map((p, i) => `${i ? 'L' : 'M'}${project(p).map(v => v.toFixed(2)).join(',')}`).join(' ') + ' Z'
   const nearbyLayers = useMemo(() => data.layers.filter(layer => layer.polygons.some(poly => poly[0].some(p => {
@@ -50,6 +51,7 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview }: Pr
     const timer = window.setTimeout(() => setFlying(false), 4200)
     return () => window.clearTimeout(timer)
   }, [courseId, hole.number, flightKey])
+  useEffect(() => { setTarget(null); setGreenView(false) }, [hole.number])
   function flyover() { setGreenView(false); setFlightKey(k => k + 1) }
   function pick(event: MouseEvent<SVGSVGElement>) {
     if (flying || teePreview) return
@@ -111,8 +113,18 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview }: Pr
       </g>
       <g transform="translate(332 27)" stroke="white" fill="white"><line x2={projection.north[0] * 13} y2={projection.north[1] * 13} strokeWidth="2" /><circle r="2" /><text x={projection.north[0] * 22} y={projection.north[1] * 22 + 3} textAnchor="middle" stroke="none" fontSize="10">N</text></g>
       {!flying && userPoint && yardage !== null && <g transform={`translate(${Math.max(35, Math.min(325,(userPoint[0]+selectedPoint[0])/2))},${Math.max(30,Math.min(425,(userPoint[1]+selectedPoint[1])/2))})`}><rect x="-29" y="-14" width="58" height="28" rx="14" fill="#11221c" stroke="white" /><text textAnchor="middle" y="5" fill="white" fontSize="15" fontWeight="700">{yardage}</text></g>}
-      <text x="14" y="442" fontSize="10" fill="white">{terrain || imageFailed ? 'Illustrated · mapped features' : 'Aerial'} · {greenView ? 'Green view' : 'Selected hole'} · Hole {hole.number}</text>
+      <text x="14" y="442" opacity="0" fontSize="10" fill="white">{terrain || imageFailed ? 'Illustrated · mapped features' : 'Aerial'} · {greenView ? 'Green view' : 'Selected hole'} · Hole {hole.number}</text>
     </svg>
+  }
+  function overlay() {
+    return <>
+      <div className="rf-map-hole-banner"><div><button aria-label="Previous hole" disabled={hole.number === 1} onClick={() => onHoleChange(-1)}>‹</button><span><small>{courseName}</small><strong>⚑ Hole {hole.number}</strong></span><button aria-label="Next hole" disabled={hole.number === 18} onClick={() => onHoleChange(1)}>›</button></div><p>{teeLabel} tees <b>· {scorecardYards} yd</b></p></div>
+      <div className="rf-map-yardage-hud" aria-label={teePreview ? 'Selected tee yardage' : 'GPS green yardages'}>
+        <small>{teePreview ? `${teePreview.name} tees` : 'GPS · yards'}</small>
+        {teePreview ? <><strong>{teePreview.yards}<em> yd</em></strong><small>Scorecard</small></> : <>{(['back', 'center', 'front'] as const).map(k => <div key={k} className={k === 'center' ? 'rf-hud-middle' : ''}><span>{k === 'center' ? 'Middle' : k === 'back' ? 'Back' : 'Front'}</span><b>{greenYards?.[k] != null ? Math.round(greenYards[k]!) : '—'}</b></div>)}{!greenYards && <small>Waiting for GPS</small>}</>}
+      </div>
+      {!teePreview && target && <div className="rf-map-target-hud"><small>To target</small><strong>{yardage ?? '—'} yd</strong><small>Then {Math.round(distanceYards(target, hole.center))} yd to middle</small><button onClick={() => setTarget(null)}>Reset target</button></div>}
+    </>
   }
   function controls() {
     return <div className="rf-map-tools">
@@ -123,18 +135,14 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview }: Pr
       <small>{teePreview ? 'Map tee is a reference point; tee-color positions are not surveyed. Use GPS for rings and target distances.' : flying ? 'Hole preview · measuring paused' : rings ? `Rings from ${user ? 'your GPS position' : 'tee · enable GPS for your position'}` : 'Tap the map to choose a target'}</small>
     </div>
   }
-  function summary() {
-    if (teePreview) return <div className="rf-map-distance"><span>{teePreview.name} tees · scorecard</span><strong>{teePreview.yards} yd</strong></div>
-    return <div className="rf-map-distance"><span>{target ? 'Selected target' : 'Middle of green'}</span><strong>{yardage === null ? 'Enable GPS to measure' : `${yardage} yd`}</strong>{target && <button onClick={() => setTarget(null)}>Reset</button>}</div>
-  }
   return <section className="rf-hole-map" aria-label="Hole map">
     <div className="rf-map-heading"><span>HOLE {hole.number} <small>GPS MAP</small></span><button onClick={() => setExpanded(true)} aria-label="Expand hole map">Expand ↗</button></div>
-    <div className="rf-map-stage">{map()}<button className="rf-map-view-toggle" onClick={() => { setFlying(false); setGreenView(!greenView) }}>{greenView ? 'Whole hole' : 'Focus green'}</button></div>{controls()}{summary()}
+    <div className="rf-map-stage">{map()}{overlay()}<button className="rf-map-view-toggle" onClick={() => { setFlying(false); setGreenView(!greenView) }}>{greenView ? 'Whole hole' : 'Focus green'}</button></div>{controls()}
     <p className="rf-map-hint">{teePreview ? 'Selected tee yardage shown above' : 'Tap a landing spot to measure'}{!position ? ' · Course overview' : ' · Blue circle shows GPS uncertainty'}</p>
     <p className="rf-map-credit"><a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener noreferrer">Aerial: USDA / USGS</a> · Historical imagery</p>
     {expanded && createPortal(<dialog ref={dialog} className="rf-map-dialog" onCancel={e => { e.preventDefault(); setExpanded(false) }}>
       <div className="rf-map-heading"><span>{courseName} · Hole {hole.number}</span><button autoFocus onClick={() => setExpanded(false)}>Close map</button></div>
-      <div className="rf-map-stage">{map(true)}<button className="rf-map-view-toggle" onClick={() => { setFlying(false); setGreenView(!greenView) }}>{greenView ? 'Whole hole' : 'Focus green'}</button></div>{controls()}{summary()}
+      <div className="rf-map-stage">{map(true)}{overlay()}<button className="rf-map-view-toggle" onClick={() => { setFlying(false); setGreenView(!greenView) }}>{greenView ? 'Whole hole' : 'Focus green'}</button></div>{controls()}
       <p className="rf-map-hint">{teePreview ? 'Course overview · Enable GPS for target distances' : 'Tap a landing spot'} · Camera slope remains aimed at the green’s middle.</p>
       <p className="rf-map-hint">Historical aerial imagery: USDA / USGS · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · OpenGolfAPI</p>
     </dialog>, document.body)}
