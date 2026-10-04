@@ -4,7 +4,7 @@ import ts from 'typescript'
 
 const source = fs.readFileSync(new URL('../src/lib/rangefinder.ts', import.meta.url), 'utf8')
 const output = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ES2020 } }).outputText
-const { cameraAngle, elevation, windowStats, parseYardage } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`)
+const { cameraAngle, elevation, windowStats, parseYardage, slopeAdjustedYards } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`)
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`)
 near(cameraAngle(90, 0), 0)
 near(cameraAngle(100, 0), 10)
@@ -28,3 +28,9 @@ assert.equal(parseYardage(' 170 yd '), 170)
 assert.equal(parseYardage('170.5 yards'), 170.5)
 for (const text of ['Front 150 Center 170 Back 190', '170\n180', '', '0', '401', '170m', '−170']) assert.equal(parseYardage(text), null)
 console.log('PASS: rangefinder geometry, stale/noisy reading rejection, and unambiguous yardage import')
+
+near(slopeAdjustedYards(150, 0), 150)
+near(slopeAdjustedYards(150, 30), 150 * 150 / 140)
+near(slopeAdjustedYards(150, -30), 150 * 150 / 160)
+for (const values of [[0, 0], [401, 0], [150, NaN], [150, 300]]) assert.equal(slopeAdjustedYards(...values), null)
+console.log('PASS: ideal projectile slope estimate, level/uphill/downhill, and invalid input rejection')

@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useRangefinder } from '../../hooks/useRangefinder'
-import { parseYardage } from '../../lib/rangefinder'
+import { slopeAdjustedYards } from '../../lib/rangefinder'
 import { href, useTournamentRoute } from '../../lib/paths'
 import './rangefinder.css'
 import { GolfGps } from './GolfGps'
@@ -10,75 +10,63 @@ const signed = (n: number, digits = 1) => (n >= 0 ? '+' : '−') + Math.abs(n).t
 
 export function Rangefinder({ onClose, context }: { onClose: () => void; context?: string }) {
   const rf = useRangefinder()
-  const viewer = useRef<HTMLElement>(null)
-  async function pasteYardage() {
-    try {
-      if (!navigator.clipboard?.readText) throw new Error('Unavailable')
-      const yards = parseYardage(await navigator.clipboard.readText())
-      if (yards === null) {
-        rf.setNotice('Paste one yardage, such as “170” or “170 yd”. Multiple distances are ambiguous.'); return
-      }
-      rf.changeYardage(String(yards)); rf.setNotice('Pasted yardage. Confirm it matches the target you are sighting.')
-    } catch { rf.setNotice('Clipboard access unavailable. Tap the yardage field to paste or type it.') }
+  const [gps, setGps] = useState<{ yards: number | null; target: string }>({ yards: null, target: '' })
+  const [settings, setSettings] = useState(false)
+  const onDistanceChange = useCallback((yards: number | null, target: string) => setGps(old => old.yards === yards && old.target === target ? old : { yards, target }), [])
+  useEffect(() => { rf.changeYardage(gps.yards === null ? '' : gps.yards.toFixed(1)) }, [gps.yards, gps.target])
+  const reading = gps.yards !== null && rf.offset !== null && (rf.captured || rf.ready) ? rf.shown : null
+  const adjusted = reading ? slopeAdjustedYards(reading.yards, reading.feet) : null
+  function toggleView() {
+    if (rf.hasCamera || rf.hasMotion) {
+      if (rf.hasCamera) void rf.toggleCamera()
+      if (rf.hasMotion) void rf.toggleMotion()
+    } else {
+      // Request motion within the user gesture, before camera's asynchronous permission flow.
+      void rf.toggleMotion(); void rf.toggleCamera()
+    }
   }
-  function toggleCalibration() {
-    rf.setCalibrating(!rf.calibrating)
-    if (!rf.calibrating) viewer.current?.scrollIntoView({ block: 'center' })
-  }
+  function calibrate() { setSettings(true); rf.setCalibrating(true) }
+  let hint = 'Enable GPS, then start the camera.'
+  if (gps.yards !== null) hint = gps.yards > 400 ? 'Move within 400 yd for a slope estimate.' : !rf.hasCamera || !rf.hasMotion ? 'Start the camera to measure slope.' : rf.offset === null ? 'Calibrate once in Settings to measure slope.' : rf.status
 
-  return (
-    <div className="rf">
-      <header className="rf-header">
-        <div><p className="rf-eyebrow">FERDA · SLOPE PROTOTYPE</p><h1>Rangefinder</h1>{context && <p className="rf-context">{context}</p>}</div>
-        <button className="rf-close" onClick={onClose} autoFocus aria-label="Close rangefinder">Close</button>
-      </header>
-      <div className="rf-content">
-        <GolfGps />
-        <section className="rf-viewer" ref={viewer} aria-label="Target sight">
-          <video ref={rf.video} autoPlay muted playsInline aria-label="Live rear camera preview" />
-          {!rf.cameraReady && <div className="rf-empty"><strong>Your view of the green</strong><span>Enable the rear camera to aim.</span></div>}
-          <div className="rf-aim">{rf.calibrating ? 'Aim at a reference at camera height' : 'Aim at the base of the flagstick'}</div>
-          {rf.cameraReady && <div className="rf-reticle" aria-hidden="true"><i /><b /><span /></div>}
-          {rf.calibrating && <button className="rf-zero" disabled={!rf.calibrationReady} onClick={rf.saveZero}>Save horizontal zero</button>}
-          <div className="rf-view-status"><span className={rf.ready ? 'rf-ready' : ''} role="status">{rf.status}</span><span>{rf.angle === null ? '—°' : signed(rf.angle, 2) + '°'}</span></div>
-        </section>
-        <div className="rf-buttons"><button onClick={rf.toggleCamera} disabled={rf.cameraBusy}>{rf.cameraBusy ? 'Opening camera…' : rf.hasCamera ? 'Pause camera' : 'Enable camera'}</button><button onClick={rf.toggleMotion} disabled={rf.motionBusy}>{rf.motionBusy ? 'Requesting access…' : rf.hasMotion ? 'Pause motion' : 'Enable motion'}</button></div>
-        <p className="rf-notice" role="status">{rf.notice}</p>
-
-        <section className="rf-grint" aria-label="TheGrint yardage companion">
-          <div><h2>Using TheGrint?</h2><span className="rf-manual">Manual handoff</span></div>
-          <p>Check <strong>unadjusted GPS yardage</strong> in TheGrint, then return here and enter that distance. Ferda adds the elevation measurement.</p>
-          <p className="rf-subtle">Live sync is not connected. Returning from another app pauses the camera and motion; enable both again.</p>
-          <a href="https://thegrint.com/" target="_blank" rel="noopener noreferrer">TheGrint website</a>
-        </section>
-
-        <div className="rf-inputs">
-          <label htmlFor="rf-yardage"><span>Slope target yardage<small>Enter distance to the flagstick base</small></span><span className="rf-input-unit"><input id="rf-yardage" type="number" inputMode="decimal" min="1" max="400" step="1" value={rf.yardage} onChange={e => rf.changeYardage(e.target.value)} /><span>yd</span></span></label>
-          <button className="rf-paste" onClick={pasteYardage}>Paste yardage</button>
-          <label htmlFor="rf-height"><span>Camera height<small>Lens above your ground</small></span><span className="rf-input-unit"><input id="rf-height" type="number" inputMode="decimal" min="0" max="10" step="0.1" value={rf.height} onChange={e => rf.changeHeight(e.target.value)} /><span>ft</span></span></label>
-        </div>
-
-        <section className="rf-result" aria-label="Elevation result">
-          <div className="rf-result-top"><span>{rf.captured ? 'CAPTURED ELEVATION' : 'LIVE ELEVATION'}</span><span>{rf.offset === null ? 'Uncalibrated' : 'Calibrated'}</span></div>
-          <div className="rf-number">{rf.shown ? signed(rf.shown.feet) : '—'}<span>ft</span></div>
-          <p>{rf.shown ? `${Math.abs(rf.shown.feet) < 0.05 ? 'Level' : rf.shown.feet > 0 ? 'Uphill' : 'Downhill'} · ${rf.shown.yards.toFixed(0)} yd · ${signed(rf.shown.angle, 2)}°` : 'Enable camera and motion for a fresh reading.'}</p>
-          <button className="rf-primary" disabled={!rf.captured && !rf.ready} onClick={rf.capture}>{rf.captured ? 'Take another reading' : 'Capture elevation'}</button>
-        </section>
-
-        <section className="rf-calibration">
-          <button className="rf-text-button" aria-expanded={rf.calibrating} aria-controls="rf-calibration-panel" onClick={toggleCalibration}>Calibrate horizontal reference <span>{rf.calibrating ? '−' : '+'}</span></button>
-          {rf.calibrating && <div id="rf-calibration-panel"><p>Aim at a point at <strong>exactly the camera’s height</strong>, ideally 30 ft or farther away. Hold still and use Save horizontal zero on the camera view.</p><p className="rf-subtle">Do not zero on the flagstick base: it is below your camera even on level ground.</p><button onClick={rf.clearZero}>Clear calibration</button><p className="rf-subtle">{rf.offset === null ? 'No correction saved.' : `Saved correction: ${signed(rf.offset, 2)}°`}</p></div>}
-        </section>
-        <details className="rf-help"><summary>Before you trust a reading</summary>
-          <p>Keep the phone upright in portrait and aim at a visible ground point. Green-center yardage is approximate when the pin is elsewhere. Sighting flag fabric introduces a height error.</p>
-          <p>Test on level ground first using a measured distance and camera height. Aim at ground level: the elevation should be near 0 ft. Tilt the rear camera up: the angle should become positive. Repeat ten readings to check bias and spread.</p>
-          <p>Steady means repeatable sensor readings, not proven accuracy. This is ground elevation, not a “plays like” distance. Both camera alignment and Safari sensor precision still need field validation.</p>
-          <p>Camera and motion data stay on your phone. No photos, video, or readings are uploaded or added to your scores. Calibration and camera height are stored only in this browser.</p>
-        </details>
-        <footer>Automatic green GPS · Manual slope target distance · Field validation pending</footer>
-      </div>
+  return <div className="rf rf-simple">
+    <header className="rf-header"><div><p className="rf-eyebrow">FERDA</p><h1>Rangefinder</h1>{context && <p className="rf-context">{context}</p>}</div><button className="rf-close" onClick={onClose} autoFocus aria-label="Close rangefinder">Close</button></header>
+    <div className="rf-content">
+      <GolfGps onDistanceChange={onDistanceChange} />
+      <section className="rf-viewer" aria-label="Slope camera">
+        <video ref={rf.video} autoPlay muted playsInline aria-label="Live rear camera preview" />
+        {!rf.cameraReady && <div className="rf-empty"><strong>Sight the green</strong><span>Start camera to measure slope</span></div>}
+        <div className="rf-aim">{rf.calibrating ? 'Aim at a point at camera height' : 'Aim at the middle of the green · ground level'}</div>
+        {rf.cameraReady && <div className="rf-reticle" aria-hidden="true"><i /><b /><span /></div>}
+        {rf.calibrating && <button className="rf-zero" disabled={!rf.calibrationReady} onClick={rf.saveZero}>Save horizontal zero</button>}
+        <div className="rf-view-status"><span role="status">{hint}</span>{rf.angle !== null && <span>{signed(rf.angle, 1)}°</span>}</div>
+      </section>
+      <button className="rf-primary rf-start" disabled={rf.cameraBusy || rf.motionBusy} onClick={toggleView}>{rf.cameraBusy || rf.motionBusy ? 'Requesting access…' : rf.hasCamera || rf.hasMotion ? 'Pause camera' : 'Start camera & slope'}</button>
+      <section className="rf-result" aria-label="Slope-adjusted distance">
+        <div className="rf-result-top"><span>SLOPE-ADJUSTED MIDDLE</span><span>Estimate</span></div>
+        <div className="rf-number">{adjusted === null ? '—' : Math.round(adjusted)}<span>yd</span></div>
+        <p>{reading ? `${signed(reading.feet, 0)} ft elevation · ${Math.round(reading.yards)} yd actual` : hint}</p>
+        {rf.offset === null && rf.hasCamera && <button onClick={calibrate}>Calibrate camera</button>}
+        {rf.offset !== null && <button disabled={!rf.captured && (!rf.ready || gps.yards === null)} onClick={rf.capture}>{rf.captured ? 'Resume live reading' : 'Hold reading'}</button>}
+      </section>
+      <section className="rf-settings">
+        <button className="rf-text-button" aria-expanded={settings} aria-controls="rf-settings-panel" onClick={() => { setSettings(!settings); if (settings) rf.setCalibrating(false) }}>Settings & help <span>{settings ? '−' : '+'}</span></button>
+        {settings && <div id="rf-settings-panel">
+          <p role="status">{rf.notice}</p>
+          <div className="rf-inputs"><label htmlFor="rf-height"><span>Camera height<small>Lens above the ground</small></span><span className="rf-input-unit"><input id="rf-height" type="number" inputMode="decimal" min="0" max="10" step="0.1" value={rf.height} onChange={e => rf.changeHeight(e.target.value)} /><span>ft</span></span></label></div>
+          <button onClick={() => rf.setCalibrating(!rf.calibrating)}>{rf.calibrating ? 'Cancel calibration' : 'Calibrate horizontal reference'}</button>
+          {rf.calibrating && <p>Aim at a point exactly at camera height, at least 30 ft away. Hold still and tap Save horizontal zero in the camera. Do not calibrate on the ground.</p>}
+          <p>{rf.offset === null ? 'Camera not calibrated.' : `Saved correction ${signed(rf.offset, 2)}°.`}</p>
+          {rf.offset !== null && <button onClick={rf.clearZero}>Clear calibration</button>}
+          <p>Select each hole manually. GPS updates while Ferda is open. After switching apps, enable GPS and camera again.</p>
+          <p>For slope, aim at the middle of the green at ground level—not the flag if it is elsewhere. Front/back follow your approach through the mapped middle.</p>
+          <p>The adjusted distance is an experimental estimate using an ideal 45° projectile model. It does not account for club trajectory, ball lift or drag, wind, or roll. Camera, phone GPS, and mapping accuracy need field testing.</p>
+          <p>Compare middle yardage with TheGrint or 18Birdies from the same spot. Test elevation on measured level ground first. Positions and camera data stay on your phone; calibration and camera height are saved in this browser.</p>
+          <p>Map data: © OpenStreetMap contributors via OpenGolfAPI, ODbL 1.0. Bundled maps cover all 18 holes at Dyker Beach and Patriot Hills.</p>
+        </div>}
+      </section>
     </div>
-  )
+  </div>
 }
 
 /** The scorecard stays mounted behind the native modal, preserving optimistic scores. */

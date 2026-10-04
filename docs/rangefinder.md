@@ -85,3 +85,9 @@ Center targets use mapped hole-path endpoints inside matched green polygons. Fro
 Field comparison: record course, hole, same-location Ferda center yardage, reference app center yardage, reported accuracy, and reading age. Keep testing separate from official scoring. Physical iPhone GPS and slope accuracy remain unvalidated.
 
 Validation: `node scripts/check-gps.mjs`, `node scripts/check-rangefinder.mjs`, `npm run build`.
+
+## Simplified camera UI
+
+The main screen now shows course/hole, front/middle/back distances, camera, and estimated slope-adjusted middle distance. GPS feeds the mapped middle target directly into the elevation measurement. Aim at that middle target at ground level, not a displaced daily flag. The earlier manual flag-yardage workflow and Grint companion card are removed from this screen. Height, calibration, troubleshooting, model assumptions, and testing instructions live in Settings & help. Camera and motion permissions are requested from one button. Calibration is required before displaying an adjusted estimate. Weak/stale/off-course GPS suppresses both automatic target distance and its slope estimate. Course/hole/yardage changes invalidate held measurements.
+
+The adjustment is an ideal projectile approximation with a fixed 45-degree launch and no lift/drag: with horizontal D and elevation H in yards, the flat-ground equivalent is D²/(D−H), derived from the projectile trajectory equation at https://openstax.org/books/university-physics-volume-1/pages/4-3-projectile-motion. This is explicitly an experimental estimate, not a calibrated golf-ball or club model. The derivation and limitations are an implementation choice, not an OpenStax claim about golf accuracy. No adjusted reading is displayed outside the existing 1–400 yd measurement range or with elevation exceeding half the range.
