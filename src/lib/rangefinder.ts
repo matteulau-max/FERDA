@@ -32,3 +32,11 @@ export function parseYardage(text: string): number | null {
   const yards = Number(match[1])
   return yards >= 1 && yards <= 400 ? yards : null
 }
+
+/** Ideal 45-degree projectile flat-ground equivalent. Estimate only: no drag/lift or club model. */
+export function slopeAdjustedYards(yards: number, elevationFeet: number): number | null {
+  if (![yards, elevationFeet].every(Number.isFinite) || yards < 1 || yards > 400) return null
+  const heightYards = elevationFeet / 3
+  if (Math.abs(heightYards) > yards * 0.5) return null
+  return yards * yards / (yards - heightYards)
+}
