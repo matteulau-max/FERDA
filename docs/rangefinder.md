@@ -73,3 +73,15 @@ and resume; close while camera permission is pending; confirm scorecard state an
 scoring remain intact behind the modal.
 
 Formula reference: https://www.w3.org/TR/orientation-event/ (Z-X-Y rotation matrix).
+
+## Automatic GPS field test
+
+The rangefinder includes local browser geolocation and bundled green maps for Dyker Beach and Patriot Hills. Select the course and hole manually, then Enable GPS. No camera or motion permission is needed for GPS alone. All position calculations remain on the device. Location watches stop on hiding or unmounting; enable GPS again after returning. Readings older than 15 seconds, reported accuracy worse than 30 meters, and targets more than 1,500 yards away are hidden. A 30-meter gate is a field-test display threshold, not a guarantee of golf accuracy.
+
+Center targets use mapped hole-path endpoints inside matched green polygons. Front/back use the approach line through that target and the containing polygon's entry and exit. Exact daily pin location is unknown. Do not feed center GPS into flag-base slope measurements automatically: they may target different points.
+
+`src/data/gps-courses.json` is the downloadable derived course dataset, with source URLs and OSM feature IDs. © OpenStreetMap contributors via OpenGolfAPI. The dataset is distributed under ODbL 1.0 (https://opendatacommons.org/licenses/odbl/1-0/); attribution: https://www.openstreetmap.org/copyright. Geometry was checked October 4, 2026: all 36 hole endpoints are contained in distinct matched green polygons. Dyker's numbering agrees with the course's April 2025 scorecard. No par data is imported (Patriot's OSM hole 16 par disagrees with the official course tour). None of these checks establish surveyed positional accuracy.
+
+Field comparison: record course, hole, same-location Ferda center yardage, reference app center yardage, reported accuracy, and reading age. Keep testing separate from official scoring. Physical iPhone GPS and slope accuracy remain unvalidated.
+
+Validation: `node scripts/check-gps.mjs`, `node scripts/check-rangefinder.mjs`, `npm run build`.

@@ -4,6 +4,7 @@ import { useRangefinder } from '../../hooks/useRangefinder'
 import { parseYardage } from '../../lib/rangefinder'
 import { href, useTournamentRoute } from '../../lib/paths'
 import './rangefinder.css'
+import { GolfGps } from './GolfGps'
 
 const signed = (n: number, digits = 1) => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(digits)
 
@@ -32,6 +33,7 @@ export function Rangefinder({ onClose, context }: { onClose: () => void; context
         <button className="rf-close" onClick={onClose} autoFocus aria-label="Close rangefinder">Close</button>
       </header>
       <div className="rf-content">
+        <GolfGps />
         <section className="rf-viewer" ref={viewer} aria-label="Target sight">
           <video ref={rf.video} autoPlay muted playsInline aria-label="Live rear camera preview" />
           {!rf.cameraReady && <div className="rf-empty"><strong>Your view of the green</strong><span>Enable the rear camera to aim.</span></div>}
@@ -51,7 +53,7 @@ export function Rangefinder({ onClose, context }: { onClose: () => void; context
         </section>
 
         <div className="rf-inputs">
-          <label htmlFor="rf-yardage"><span>GPS yardage<small>Unadjusted distance to your target</small></span><span className="rf-input-unit"><input id="rf-yardage" type="number" inputMode="decimal" min="1" max="400" step="1" value={rf.yardage} onChange={e => rf.changeYardage(e.target.value)} /><span>yd</span></span></label>
+          <label htmlFor="rf-yardage"><span>Slope target yardage<small>Enter distance to the flagstick base</small></span><span className="rf-input-unit"><input id="rf-yardage" type="number" inputMode="decimal" min="1" max="400" step="1" value={rf.yardage} onChange={e => rf.changeYardage(e.target.value)} /><span>yd</span></span></label>
           <button className="rf-paste" onClick={pasteYardage}>Paste yardage</button>
           <label htmlFor="rf-height"><span>Camera height<small>Lens above your ground</small></span><span className="rf-input-unit"><input id="rf-height" type="number" inputMode="decimal" min="0" max="10" step="0.1" value={rf.height} onChange={e => rf.changeHeight(e.target.value)} /><span>ft</span></span></label>
         </div>
@@ -73,7 +75,7 @@ export function Rangefinder({ onClose, context }: { onClose: () => void; context
           <p>Steady means repeatable sensor readings, not proven accuracy. This is ground elevation, not a “plays like” distance. Both camera alignment and Safari sensor precision still need field validation.</p>
           <p>Camera and motion data stay on your phone. No photos, video, or readings are uploaded or added to your scores. Calibration and camera height are stored only in this browser.</p>
         </details>
-        <footer>Manual GPS input · Field validation pending</footer>
+        <footer>Automatic green GPS · Manual slope target distance · Field validation pending</footer>
       </div>
     </div>
   )
