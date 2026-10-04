@@ -24,3 +24,22 @@ for (const c of courses) {
   }
 }
 console.log('PASS: 36 hole orientations, golfer auto-fit, inverse tap coordinates, and map layers')
+
+const aerial = JSON.parse(fs.readFileSync('src/data/gps-aerial.json'))
+for (const c of courses) {
+  const e = aerial[c.id].extent
+  assert.equal(e.spatialReference.wkid, 4326)
+  assert.ok(fs.statSync(`public${aerial[c.id].image}`).size > 10000)
+  for (const h of c.holes) {
+    const p = holeMapProjection(maps[c.id].lines[h.number], h.outline, [], [h.center])
+    const tl = p.project([e.xmin, e.ymax]), tr = p.project([e.xmax, e.ymax]), bl = p.project([e.xmin, e.ymin])
+    for (const q of h.outline) {
+      assert.ok(q[0] >= e.xmin && q[0] <= e.xmax && q[1] >= e.ymin && q[1] <= e.ymax)
+      const u = (q[0]-e.xmin)/(e.xmax-e.xmin), v = (e.ymax-q[1])/(e.ymax-e.ymin)
+      const raster = [tl[0]+u*(tr[0]-tl[0])+v*(bl[0]-tl[0]),tl[1]+u*(tr[1]-tl[1])+v*(bl[1]-tl[1])]
+      const vector = p.project(q)
+      assert.ok(Math.hypot(raster[0]-vector[0], raster[1]-vector[1]) < 1e-6, 'aerial must align with green geometry')
+    }
+  }
+}
+console.log('PASS: aerial georeferencing and selected-green focus for all 36 holes')
