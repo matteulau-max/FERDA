@@ -17,3 +17,10 @@
 .rf-flight-world { transform-origin:0 0; animation:rf-hole-flyover 4.2s ease-in-out both; }
 @keyframes rf-hole-flyover { 0%,12% { transform:translate(var(--tee-x),var(--tee-y)) scale(1.65); } 65%,78% { transform:translate(var(--green-x),var(--green-y)) scale(1.65); } 100% { transform:translate(0,0) scale(1); } }
 @media (prefers-reduced-motion:reduce) { .rf-flight-world { animation:none; } }
+.rf-tee-selects { margin-top:10px; }
+.rf-tee-yardage { margin-top:12px; padding:18px; display:flex; flex-direction:column; align-items:center; gap:5px; background:white; border:1px solid #d4ddca; border-radius:12px; color:#155d43; }
+.rf-tee-yardage strong { font-size:48px; line-height:1.1; }
+.rf-tee-yardage strong small { font-size:18px; }
+.rf-tee-yardage a { font-size:11px; margin-top:5px; }
+.rf-distance-source { font-size:12px; margin:12px 0 5px; color:#315f46; }
+.rf-map-tools button:disabled { opacity:.5; cursor:default; }
