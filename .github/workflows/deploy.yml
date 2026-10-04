@@ -17,3 +17,4 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: node scripts/check-rangefinder.mjs
+      - run: node scripts/check-gps.mjs
