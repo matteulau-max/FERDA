@@ -1,0 +1,30 @@
+{
+  "dyker": {
+    "extent": {
+      "xmin": -74.02570450000002,
+      "ymin": 40.60608110000001,
+      "xmax": -74.01356690000001,
+      "ymax": 40.618218700000014,
+      "spatialReference": {
+        "wkid": 4326,
+        "latestWkid": 4326
+      }
+    },
+    "image": "/maps/dyker.jpg",
+    "source": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/export?bbox=-74.0254021%2C40.6060811%2C-74.01386930000001%2C40.6182187&bboxSR=4326&imageSR=4326&size=1600%2C1600&format=jpg&f=json"
+  },
+  "patriot": {
+    "extent": {
+      "xmin": -74.0346022,
+      "ymin": 41.216504300000004,
+      "xmax": -74.0145499,
+      "ymax": 41.23655659999999,
+      "spatialReference": {
+        "wkid": 4326,
+        "latestWkid": 4326
+      }
+    },
+    "image": "/maps/patriot.jpg",
+    "source": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/export?bbox=-74.0346022%2C41.2183221%2C-74.0145499%2C41.2347388&bboxSR=4326&imageSR=4326&size=1600%2C1600&format=jpg&f=json"
+  }
+}

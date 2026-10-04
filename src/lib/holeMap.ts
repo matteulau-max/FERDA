@@ -1,7 +1,7 @@
 import type { Coordinate } from './golfGps'
 
 /** Local metric projection, rotated so the tee is below the green. */
-export function holeMapProjection(line: Coordinate[], outline: Coordinate[], extra: Coordinate[] = []) {
+export function holeMapProjection(line: Coordinate[], outline: Coordinate[], extra: Coordinate[] = [], focus?: Coordinate[]) {
   const origin = line[line.length - 1]
   const k = 111195.08, lonScale = k * Math.cos(origin[1] * Math.PI / 180)
   const east = (origin[0] - line[0][0]) * lonScale, north = (origin[1] - line[0][1]) * k
@@ -10,7 +10,7 @@ export function holeMapProjection(line: Coordinate[], outline: Coordinate[], ext
     const x = (p[0] - origin[0]) * lonScale, y = (p[1] - origin[1]) * k
     return [x * fy - y * fx, -(x * fx + y * fy)]
   }
-  const points = [...line, ...outline, ...extra].map(local)
+  const points = [...(focus ?? line), ...outline, ...extra].map(local)
   const minX = Math.min(...points.map(p => p[0])) - 35, maxX = Math.max(...points.map(p => p[0])) + 35
   const minY = Math.min(...points.map(p => p[1])) - 40, maxY = Math.max(...points.map(p => p[1])) + 40
   const scale = Math.min(320 / (maxX - minX), 410 / (maxY - minY))
