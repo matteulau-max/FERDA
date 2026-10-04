@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import courses from '../../data/gps-courses.json'
 import { greenDistances } from '../../lib/golfGps'
+const HoleMap = lazy(() => import('./HoleMap').then(module => ({ default: module.HoleMap })))
 
 type Fix = { longitude: number; latitude: number; accuracy: number; timestamp: number }
 export function GolfGps({ onDistanceChange }: { onDistanceChange: (yards: number | null, target: string) => void }) {
@@ -64,5 +65,6 @@ export function GolfGps({ onDistanceChange }: { onDistanceChange: (yards: number
     </div>
     <div className="rf-gps-status"><span role="status">{status}</span><button onClick={enabled ? () => { stop(); setMessage('GPS stopped.') } : start}>{enabled ? 'Stop GPS' : 'Enable GPS'}</button></div>
     <p className="rf-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · <a href={course.source} target="_blank" rel="noopener noreferrer">OpenGolfAPI</a></p>
+    <Suspense fallback={<p className="rf-map-hint">Loading hole map…</p>}><HoleMap key={`${courseId}:${holeNumber}`} courseId={courseId} courseName={course.name} hole={hole} position={onCourse ? fix : null} /></Suspense>
   </section>
 }
