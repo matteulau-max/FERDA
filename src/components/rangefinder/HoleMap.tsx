@@ -51,6 +51,7 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview, teeL
     const timer = window.setTimeout(() => setFlying(false), 4200)
     return () => window.clearTimeout(timer)
   }, [courseId, hole.number, flightKey])
+  useEffect(() => { setTarget(null); setGreenView(false) }, [hole.number])
   function flyover() { setGreenView(false); setFlightKey(k => k + 1) }
   function pick(event: MouseEvent<SVGSVGElement>) {
     if (flying || teePreview) return
