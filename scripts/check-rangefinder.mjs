@@ -10,6 +10,13 @@ near(cameraAngle(90, 0), 0)
 near(cameraAngle(100, 0), 10)
 near(cameraAngle(80, 0), -10)
 near(cameraAngle(0, 0), -90)
+// Rear-camera direction, including roll and inverted portrait; no manual zero.
+near(cameraAngle(-90, 0), 0)
+near(cameraAngle(180, 0), 90)
+near(cameraAngle(90, 45), 0)
+near(cameraAngle(120, 60), Math.asin(0.25) * 180 / Math.PI)
+const levelTargetAngle = Math.atan(-5 / (150 * 3)) * 180 / Math.PI
+near(elevation(150, cameraAngle(90 + levelTargetAngle, 0), 5).feet, 0)
 assert.equal(cameraAngle(null, 0), null)
 assert.equal(cameraAngle(90, NaN), null)
 for (const target of [-30, 0, 24]) {
@@ -34,3 +41,27 @@ near(slopeAdjustedYards(150, 30), 150 * 150 / 140)
 near(slopeAdjustedYards(150, -30), 150 * 150 / 160)
 for (const values of [[0, 0], [401, 0], [150, NaN], [150, 300]]) assert.equal(slopeAdjustedYards(...values), null)
 console.log('PASS: ideal projectile slope estimate, level/uphill/downhill, and invalid input rejection')
+
+// Sensor -> signed averaging -> elevation -> plays-like, including crossing horizontal.
+for (const targetFeet of [-60, -30, -5, 0, 5, 30, 60]) {
+  const yards = 165, height = 5
+  const expectedAngle = Math.atan((targetFeet - height) / (yards * 3)) * 180 / Math.PI
+  const samples = Array.from({ length: 21 }, (_, i) => ({
+    time: i * 30, angle: cameraAngle(90 + expectedAngle + (i % 3 - 1) * 0.01, 0)
+  }))
+  const stats = windowStats(samples, 610)
+  assert.equal(stats.stable, true)
+  near(stats.mean, expectedAngle)
+  const feet = elevation(yards, stats.mean, height).feet
+  near(feet, targetFeet)
+  const adjusted = slopeAdjustedYards(yards, feet)
+  if (targetFeet < 0) assert.ok(adjusted < yards)
+  if (targetFeet > 0) assert.ok(adjusted > yards)
+}
+const crossed = [
+  ...Array.from({ length: 21 }, (_, i) => ({ time: i * 30, angle: 5 })),
+  ...Array.from({ length: 25 }, (_, i) => ({ time: 800 + i * 30, angle: -5 }))
+]
+near(windowStats(crossed, 1520).mean, -5)
+assert.equal(windowStats(crossed, 1520).stable, true)
+console.log('PASS: signed downhill sensor pipeline and uphill-to-downhill settling')

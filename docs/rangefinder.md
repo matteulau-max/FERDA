@@ -13,13 +13,14 @@ your ground. Sight a visible ground point, ideally the base of the flagstick.
 Hold still and capture. Positive feet means uphill. This does not calculate a
 golf-ballistic “plays like” distance.
 
-Camera height and calibration live in device-local browser storage. No readings
+Camera height lives in device-local browser storage. No readings
 are written to tournament data. Backgrounding, hiding the page, or closing the
 rangefinder stops acquisition; re-enable camera and motion to continue.
 
-Calibration requires a reference at exactly the camera's height. Do not zero on
-a flagstick base, which is below your camera on level ground. Validate on level
-ground with measured distance and camera height; expected target elevation is 0 ft.
+Horizontal comes directly from gravity-referenced device orientation; no user zero
+or stored calibration offset is applied. Aim at the mapped middle at ground level.
+Validate on level ground with measured distance and camera height; expected target
+elevation is 0 ft.
 Repeat ten captures to assess mean bias and spread. Camera alignment, iPhone lens
 selection and Safari sensor precision require physical testing. The stability gate
 is a repeatability check, not an accuracy guarantee.
@@ -68,7 +69,7 @@ the existing TypeScript dependency and checks signs, known elevations, stale/noi
 readings, and clipboard ambiguity. No dependency or database migration is needed.
 
 Device QA: grant/deny/retry permissions; verify upward camera tilt gives positive
-angle; capture and reset; zero/clear calibration; rotate to landscape; background
+angle; capture and reset; verify no calibration prompt or old stored offset is applied; rotate to landscape; background
 and resume; close while camera permission is pending; confirm scorecard state and
 scoring remain intact behind the modal.
 
@@ -88,7 +89,7 @@ Validation: `node scripts/check-gps.mjs`, `node scripts/check-rangefinder.mjs`, 
 
 ## Simplified camera UI
 
-The main screen now shows course/hole, front/middle/back distances, camera, and estimated slope-adjusted middle distance. GPS feeds the mapped middle target directly into the elevation measurement. Aim at that middle target at ground level, not a displaced daily flag. The earlier manual flag-yardage workflow and Grint companion card are removed from this screen. Height, calibration, troubleshooting, model assumptions, and testing instructions live in Settings & help. Camera and motion permissions are requested from one button. Calibration is required before displaying an adjusted estimate. Weak/stale/off-course GPS suppresses both automatic target distance and its slope estimate. Course/hole/yardage changes invalidate held measurements.
+The main screen now shows course/hole, front/middle/back distances, camera, and estimated slope-adjusted middle distance. GPS feeds the mapped middle target directly into the elevation measurement. Aim at that middle target at ground level, not a displaced daily flag. The earlier manual flag-yardage workflow and Grint companion card are removed from this screen. Height, troubleshooting, model assumptions, and testing instructions live in Settings & help. Camera and motion permissions are requested from one button. Gravity-referenced orientation is used automatically before displaying an adjusted estimate. Weak/stale/off-course GPS suppresses both automatic target distance and its slope estimate. Course/hole/yardage changes invalidate held measurements.
 
 The adjustment is an ideal projectile approximation with a fixed 45-degree launch and no lift/drag: with horizontal D and elevation H in yards, the flat-ground equivalent is D²/(D−H), derived from the projectile trajectory equation at https://openstax.org/books/university-physics-volume-1/pages/4-3-projectile-motion. This is explicitly an experimental estimate, not a calibrated golf-ball or club model. The derivation and limitations are an implementation choice, not an OpenStax claim about golf accuracy. No adjusted reading is displayed outside the existing 1–400 yd measurement range or with elevation exceeding half the range.
 
@@ -111,3 +112,23 @@ The default vector map uses mapped course polygons, grass/mowing textures and re
 
 ### Tee selection and distance source
 Select a tee color and choose Selected tee (published hole yardage) or My GPS location (live front/middle/back). Dyker uses its official April 2025 scorecard; Patriot Hills uses Zomma's attributed OSM scorecard, checked August 2026, since the club's linked scorecard image is unavailable. Each source is linked in the UI. Tee colors have no verified coordinates in our dataset: map reference tee remains explicitly generic, and rings/target picking are disabled in tee preview. Tee scorecard distances never feed the camera slope calculation. GPS mode retains freshness, accuracy and distance guards; enabling GPS explicitly selects GPS mode.
+
+## Downhill validation and aiming zoom
+
+The existing camera-angle, signed sample mean, elevation, and slope-adjustment
+functions preserve negative values; no negative-to-zero clamp was found. The
+reported downhill issue has not been reproduced on a physical phone. Do not treat
+this change as a confirmed sensor fix. The gravity-reference change removes saved
+calibration bias. Regression checks now exercise the full signed pipeline and
+settling after changing aim from uphill to downhill.
+
+The camera shows the live signed angle to two decimals; held results are explicitly
+labeled. Elevation displays tenths of a foot. Centered 1x/2x/4x digital preview zoom
+leaves the central sightline and sensor math unchanged, and changing zoom releases
+a held result. Digital enlargement adds no optical resolution.
+
+Phone QA: compare level, uphill, and downhill ground targets using matching GPS
+target distances. Wait for steady after moving; verify negative live angles below
+horizontal and lower adjusted yardage for negative ground elevation. Repeat at each
+zoom and after Hold/Resume. If live angle stays near zero while tilting down, record
+the phone/browser and live angle; sensor acquisition needs further investigation.

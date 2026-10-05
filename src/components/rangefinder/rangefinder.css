@@ -49,3 +49,5 @@
 .rf .rf-map-target-hud button,.rf-map-dialog .rf-map-target-hud button { color:white; background:transparent; font:11px system-ui,sans-serif; border:1px solid #ffffff50; border-radius:12px; padding:4px 8px; min-height:30px; margin-top:7px; }
 .rf-map-dialog .rf-hole-svg { height:calc(100dvh - 165px); min-height:500px; }
 @media(max-width:400px) { .rf-hole-svg { height:560px; } }
+
+.rf-zoom{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px}.rf-zoom span{font-size:12px;margin-right:4px}.rf-zoom button[aria-pressed="true"]{background:#006747;color:white}
