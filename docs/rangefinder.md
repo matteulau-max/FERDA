@@ -112,3 +112,23 @@ The default vector map uses mapped course polygons, grass/mowing textures and re
 
 ### Tee selection and distance source
 Select a tee color and choose Selected tee (published hole yardage) or My GPS location (live front/middle/back). Dyker uses its official April 2025 scorecard; Patriot Hills uses Zomma's attributed OSM scorecard, checked August 2026, since the club's linked scorecard image is unavailable. Each source is linked in the UI. Tee colors have no verified coordinates in our dataset: map reference tee remains explicitly generic, and rings/target picking are disabled in tee preview. Tee scorecard distances never feed the camera slope calculation. GPS mode retains freshness, accuracy and distance guards; enabling GPS explicitly selects GPS mode.
+
+## Downhill validation and aiming zoom
+
+The existing camera-angle, signed sample mean, elevation, and slope-adjustment
+functions preserve negative values; no negative-to-zero clamp was found. The
+reported downhill issue has not been reproduced on a physical phone. Do not treat
+this change as a confirmed sensor fix. The gravity-reference change removes saved
+calibration bias. Regression checks now exercise the full signed pipeline and
+settling after changing aim from uphill to downhill.
+
+The camera shows the live signed angle to two decimals; held results are explicitly
+labeled. Elevation displays tenths of a foot. Centered 1x/2x/4x digital preview zoom
+leaves the central sightline and sensor math unchanged, and changing zoom releases
+a held result. Digital enlargement adds no optical resolution.
+
+Phone QA: compare level, uphill, and downhill ground targets using matching GPS
+target distances. Wait for steady after moving; verify negative live angles below
+horizontal and lower adjusted yardage for negative ground elevation. Repeat at each
+zoom and after Hold/Resume. If live angle stays near zero while tilting down, record
+the phone/browser and live angle; sensor acquisition needs further investigation.

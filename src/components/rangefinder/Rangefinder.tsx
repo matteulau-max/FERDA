@@ -12,6 +12,7 @@ export function Rangefinder({ onClose, context }: { onClose: () => void; context
   const rf = useRangefinder()
   const [gps, setGps] = useState<{ yards: number | null; target: string }>({ yards: null, target: '' })
   const [settings, setSettings] = useState(false)
+  const [zoom, setZoom] = useState(1)
   const onDistanceChange = useCallback((yards: number | null, target: string) => setGps(old => old.yards === yards && old.target === target ? old : { yards, target }), [])
   useEffect(() => { rf.changeYardage(gps.yards === null ? '' : gps.yards.toFixed(1)) }, [gps.yards, gps.target])
   const reading = gps.yards !== null && (rf.captured || rf.ready) ? rf.shown : null
@@ -33,23 +34,28 @@ export function Rangefinder({ onClose, context }: { onClose: () => void; context
     <div className="rf-content">
       <GolfGps onDistanceChange={onDistanceChange} />
       <section className="rf-viewer" aria-label="Slope camera">
-        <video ref={rf.video} autoPlay muted playsInline aria-label="Live rear camera preview" />
+        <video ref={rf.video} style={{ transform: `scale(${zoom})`, transformOrigin: '50% 50%' }} autoPlay muted playsInline aria-label="Live rear camera preview" />
         {!rf.cameraReady && <div className="rf-empty"><strong>Sight the green</strong><span>Start camera to measure slope</span></div>}
         <div className="rf-aim">Aim at the middle of the green · ground level</div>
         {rf.cameraReady && <div className="rf-reticle" aria-hidden="true"><i /><b /><span /></div>}
-        <div className="rf-view-status"><span role="status">{hint}</span>{rf.angle !== null && <span>{signed(rf.angle, 1)}°</span>}</div>
+        <div className="rf-view-status"><span role="status">{hint}</span>{rf.angle !== null && <span>Live {signed(rf.angle, 2)}°</span>}</div>
       </section>
+      <div className="rf-zoom" role="group" aria-label="Digital aiming zoom">
+        <span>Digital zoom</span>{[1, 2, 4].map(value => <button key={value} aria-pressed={zoom === value} onClick={() => { setZoom(value); if (rf.captured) rf.capture() }}>{value}×</button>)}
+      </div>
       <button className="rf-primary rf-start" disabled={rf.cameraBusy || rf.motionBusy} onClick={toggleView}>{rf.cameraBusy || rf.motionBusy ? 'Requesting access…' : rf.hasCamera || rf.hasMotion ? 'Pause camera' : 'Start camera & slope'}</button>
       <section className="rf-result" aria-label="Slope-adjusted distance">
-        <div className="rf-result-top"><span>SLOPE-ADJUSTED MIDDLE</span><span>Estimate</span></div>
+        <div className="rf-result-top"><span>SLOPE-ADJUSTED MIDDLE</span><span>{rf.captured ? 'Held reading' : 'Live estimate'}</span></div>
         <div className="rf-number">{adjusted === null ? '—' : Math.round(adjusted)}<span>yd</span></div>
-        <p>{reading ? `${signed(reading.feet, 0)} ft elevation · ${Math.round(reading.yards)} yd actual` : hint}</p>
+        <p>{reading ? `${signed(reading.feet, 1)} ft elevation · ${Math.round(reading.yards)} yd actual` : hint}</p>
         <button disabled={!rf.captured && (!rf.ready || gps.yards === null)} onClick={rf.capture}>{rf.captured ? 'Resume live reading' : 'Hold reading'}</button>
       </section>
       <section className="rf-settings">
         <button className="rf-text-button" aria-expanded={settings} aria-controls="rf-settings-panel" onClick={() => setSettings(!settings)}>Settings & help <span>{settings ? '−' : '+'}</span></button>
         {settings && <div id="rf-settings-panel">
           <p role="status">{rf.notice}</p>
+          <p>Live camera angle: {rf.angle === null ? 'unavailable' : `${signed(rf.angle, 2)}°`}. Negative angles point below horizontal. {rf.captured ? `Held angle: ${signed(rf.captured.angle, 2)}°. Resume live reading before aiming at another target.` : 'Hold still for a fresh slope estimate.'}</p>
+          <p>Digital zoom enlarges the center of the preview for aiming; it adds no optical detail and does not change the measured angle. Aim at ground level at the mapped middle, using the center crosshair.</p>
           <div className="rf-inputs"><label htmlFor="rf-height"><span>Camera height<small>Lens above the ground</small></span><span className="rf-input-unit"><input id="rf-height" type="number" inputMode="decimal" min="0" max="10" step="0.1" value={rf.height} onChange={e => rf.changeHeight(e.target.value)} /><span>ft</span></span></label></div>
           <p>Horizontal is determined automatically from your phone’s orientation sensors using gravity. No manual calibration is needed. Hold the phone upright and steady before holding a reading.</p>
           <p>Select each hole manually. GPS updates while Ferda is open. After switching apps, enable GPS and camera again.</p>
