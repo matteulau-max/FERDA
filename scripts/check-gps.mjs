@@ -25,4 +25,4 @@ for (const c of courses) {
     assert.ok(d.front > 0 && d.front < d.center && d.back > d.center, `${c.id} hole ${h.number}`)
   }
 }
-console.log('PASS: spherical distance, approach-line green edges, on-green behavior, and 36 mapped targets')
+console.log('PASS: spherical distance, approach-line green edges, on-green behavior, and 72 mapped targets')

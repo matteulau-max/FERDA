@@ -7,11 +7,11 @@ import { holeMapProjection } from '../../lib/holeMap'
 
 type Layer = { kind: string; polygons: Coordinate[][][] }
 type MapData = { lines: Record<string, Coordinate[]>; layers: Layer[] }
-type Props = { teeLabel: string; scorecardYards: number; onHoleChange: (delta: number) => void; teePreview?: { name: string; yards: number }; courseId: string; courseName: string; hole: { number: number; center: Coordinate; outline: Coordinate[] }; position: { longitude: number; latitude: number; accuracy: number } | null }
+type Props = { mapOverride?: MapData; lastHole: number; teeLabel: string; scorecardYards: number | null; onHoleChange: (delta: number) => void; teePreview?: { name: string; yards: number }; courseId: string; courseName: string; hole: { number: number; center: Coordinate; outline: Coordinate[] }; position: { longitude: number; latitude: number; accuracy: number } | null }
 const fills: Record<string, string> = { fairway: '#70a453', green: '#9cc76c', tee: '#88b75e', bunker: '#eeddb2', water_hazard: '#579cac' }
 
-export function HoleMap({ courseId, courseName, hole, position, teePreview, teeLabel, scorecardYards, onHoleChange }: Props) {
-  const data = (mapData as Record<string, MapData>)[courseId]
+export function HoleMap({ mapOverride, lastHole, courseId, courseName, hole, position, teePreview, teeLabel, scorecardYards, onHoleChange }: Props) {
+  const data = mapOverride ?? (mapData as Record<string, MapData>)[courseId]
   const line = data.lines[String(hole.number)]
   const [target, setTarget] = useState<Coordinate | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -70,7 +70,7 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview, teeL
   }
   function map(large = false) {
     const id = uniqueId + (large ? '-large' : '-small')
-    const e = aerial.extent
+    const e = aerial?.extent ?? { xmin: 0, xmax: 0, ymin: 0, ymax: 0 }
     const tl = project([e.xmin, e.ymax]), tr = project([e.xmax, e.ymax]), bl = project([e.xmin, e.ymin])
     const transform = `matrix(${tr[0]-tl[0]} ${tr[1]-tl[1]} ${bl[0]-tl[0]} ${bl[1]-tl[1]} ${tl[0]} ${tl[1]})`
     const route = line.map(p => project(p).join(',')).join(' ')
@@ -92,7 +92,7 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview, teeL
       <g key={flightKey} className={flying ? 'rf-flight-world' : undefined} style={{ '--tee-x': `${180 - teePoint[0] * 1.65}px`, '--tee-y': `${290 - teePoint[1] * 1.65}px`, '--green-x': `${180 - greenPoint[0] * 1.65}px`, '--green-y': `${160 - greenPoint[1] * 1.65}px` } as React.CSSProperties}>
       <rect x="-1000" y="-1000" width="2360" height="2460" fill={terrain || imageFailed ? `url(#${id}-grass)` : '#354c32'} />
       {(terrain || imageFailed) && nearbyLayers.map((layer, i) => <g key={i} fill={fills[layer.kind]} stroke="#304b2b" strokeWidth="0.7" filter={`url(#${id}-relief)`}>{layer.polygons.map((poly, j) => <path key={j} d={poly.map(path).join(' ')} fillRule="evenodd" />)}{['fairway', 'green', 'tee'].includes(layer.kind) && layer.polygons.map((poly, j) => <path key={`stripe-${j}`} d={poly.map(path).join(' ')} fill={`url(#${id}-mown)`} stroke="none" fillRule="evenodd" />)}</g>)}
-      {!terrain && !imageFailed && <image href={aerial.image} x="0" y="0" width="1" height="1" preserveAspectRatio="none" transform={transform} onError={() => setImageFailed(true)} />}
+      {!terrain && aerial && !imageFailed && <image href={aerial.image} x="0" y="0" width="1" height="1" preserveAspectRatio="none" transform={transform} onError={() => setImageFailed(true)} />}
       <rect width="360" height="460" fill="#071710" opacity=".7" mask={`url(#${id}-focus)`} pointerEvents="none" />
       <rect width="360" height="460" fill={`url(#${id}-shade)`} pointerEvents="none" />
       {rings && !teePreview && !greenView && <g fill="none" stroke="#e5f3c5" strokeWidth="1" opacity=".8" pointerEvents="none">{[50, 100, 150, 200, 250].map(yards => {
@@ -118,7 +118,7 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview, teeL
   }
   function overlay() {
     return <>
-      <div className="rf-map-hole-banner"><div><button aria-label="Previous hole" disabled={hole.number === 1} onClick={() => onHoleChange(-1)}>‹</button><span><small>{courseName}</small><strong>⚑ Hole {hole.number}</strong></span><button aria-label="Next hole" disabled={hole.number === 18} onClick={() => onHoleChange(1)}>›</button></div><p>{teeLabel} tees <b>· {scorecardYards} yd</b></p></div>
+      <div className="rf-map-hole-banner"><div><button aria-label="Previous hole" disabled={hole.number === 1} onClick={() => onHoleChange(-1)}>‹</button><span><small>{courseName}</small><strong>⚑ Hole {hole.number}</strong></span><button aria-label="Next hole" disabled={hole.number === lastHole} onClick={() => onHoleChange(1)}>›</button></div><p>{scorecardYards === null ? "GPS map · tee scorecard unavailable" : <>{teeLabel} tees <b>· {scorecardYards} yd</b></>}</p></div>
       <div className="rf-map-yardage-hud" aria-label={teePreview ? 'Selected tee yardage' : 'GPS green yardages'}>
         <small>{teePreview ? `${teePreview.name} tees` : 'GPS · yards'}</small>
         {teePreview ? <><strong>{teePreview.yards}<em> yd</em></strong><small>Scorecard</small></> : <>{(['back', 'center', 'front'] as const).map(k => <div key={k} className={k === 'center' ? 'rf-hud-middle' : ''}><span>{k === 'center' ? 'Middle' : k === 'back' ? 'Back' : 'Front'}</span><b>{greenYards?.[k] != null ? Math.round(greenYards[k]!) : '—'}</b></div>)}{!greenYards && <small>Waiting for GPS</small>}</>}
@@ -128,7 +128,7 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview, teeL
   }
   function controls() {
     return <div className="rf-map-tools">
-      <button onClick={() => setTerrain(!terrain)}>{terrain ? 'Aerial view' : 'Illustrated view'}</button>
+      <button disabled={!aerial} onClick={() => setTerrain(!terrain)}>{!aerial ? 'No aerial imagery' : terrain ? 'Aerial view' : 'Illustrated view'}</button>
       <button onClick={flying ? () => setFlying(false) : flyover}>{flying ? 'Stop flyover' : 'Flyover'}</button>
       <button disabled={!!teePreview} aria-pressed={rings && !teePreview} onClick={() => setRings(!rings)}>Rings {rings && !teePreview ? 'on' : 'off'}</button>
       {rings && !teePreview && <label>Carry <input aria-label="Carry distance in yards" type="number" min="25" max="350" step="5" value={carry} onChange={e => setCarry(Math.max(25, Math.min(350, Number(e.target.value) || 25)))} /> yd</label>}
@@ -139,12 +139,12 @@ export function HoleMap({ courseId, courseName, hole, position, teePreview, teeL
     <div className="rf-map-heading"><span>HOLE {hole.number} <small>GPS MAP</small></span><button onClick={() => setExpanded(true)} aria-label="Expand hole map">Expand ↗</button></div>
     <div className="rf-map-stage">{map()}{overlay()}<button className="rf-map-view-toggle" onClick={() => { setFlying(false); setGreenView(!greenView) }}>{greenView ? 'Whole hole' : 'Focus green'}</button></div>{controls()}
     <p className="rf-map-hint">{teePreview ? 'Selected tee yardage shown above' : 'Tap a landing spot to measure'}{!position ? ' · Course overview' : ' · Blue circle shows GPS uncertainty'}</p>
-    <p className="rf-map-credit"><a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener noreferrer">Aerial: USDA / USGS</a> · Historical imagery</p>
+    {aerial && <p className="rf-map-credit"><a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener noreferrer">Aerial: USDA / USGS</a> · Historical imagery</p>}
     {expanded && createPortal(<dialog ref={dialog} className="rf-map-dialog" onCancel={e => { e.preventDefault(); setExpanded(false) }}>
       <div className="rf-map-heading"><span>{courseName} · Hole {hole.number}</span><button autoFocus onClick={() => setExpanded(false)}>Close map</button></div>
       <div className="rf-map-stage">{map(true)}{overlay()}<button className="rf-map-view-toggle" onClick={() => { setFlying(false); setGreenView(!greenView) }}>{greenView ? 'Whole hole' : 'Focus green'}</button></div>{controls()}
       <p className="rf-map-hint">{teePreview ? 'Course overview · Enable GPS for target distances' : 'Tap a landing spot'} · Camera slope remains aimed at the green’s middle.</p>
-      <p className="rf-map-hint">Historical aerial imagery: USDA / USGS · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · OpenGolfAPI</p>
+      <p className="rf-map-hint">{aerial ? 'Historical aerial imagery: USDA / USGS · ' : ''}<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · OpenGolfAPI</p>
     </dialog>, document.body)}
   </section>
 }

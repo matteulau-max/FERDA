@@ -62,7 +62,7 @@ export function Rangefinder({ onClose, context }: { onClose: () => void; context
           <p>For slope, aim at the middle of the green at ground level—not the flag if it is elsewhere. Front/back follow your approach through the mapped middle.</p>
           <p>The adjusted distance is an experimental estimate using an ideal 45° projectile model. It does not account for club trajectory, ball lift or drag, wind, or roll. Camera, phone GPS, and mapping accuracy need field testing.</p>
           <p>Compare middle yardage with TheGrint or 18Birdies from the same spot. Test elevation on measured level ground first. Positions and camera data stay on your phone; camera height is saved in this browser.</p>
-          <p>Map data: © OpenStreetMap contributors via OpenGolfAPI, ODbL 1.0. Bundled maps cover all 18 holes at Dyker Beach and Patriot Hills.</p>
+          <p>Map data: © OpenStreetMap contributors via OpenGolfAPI, ODbL 1.0. Bundled maps cover Dyker Beach, Patriot Hills, Marine Park, and La Tourette. Find another course loads available GPS maps from OpenGolfAPI.</p>
         </div>}
       </section>
     </div>

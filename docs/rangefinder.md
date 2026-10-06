@@ -132,3 +132,10 @@ target distances. Wait for steady after moving; verify negative live angles belo
 horizontal and lower adjusted yardage for negative ground elevation. Repeat at each
 zoom and after Hold/Resume. If live angle stays near zero while tilting down, record
 the phone/browser and live angle; sensor acquisition needs further investigation.
+
+## Course catalog (October 6, 2026)
+Marine Park (OpenGolfAPI 7ca51491-fdee-4599-85d0-02eb6cc306dd) and La Tourette (f5329a1a-9092-46ed-8bd8-42df10a94bc0) are bundled with 18 numbered hole routes and distinct containing green polygons each. Feature source URLs are stored on each course. Maps remain community-sourced and not survey-validated. New courses have vector maps and GPS mode; no unverified tee scorecards or aerial imagery are supplied.
+
+Find another course calls the public, CORS-enabled OpenGolfAPI /v1/courses/search and /api/v1/features?course= endpoints without a key. Requests are submitted explicitly, abort on unmount, and time out after 20 seconds. Rate limits/outages leave the selected course intact. Search transmits the query, not golfer coordinates. Imported maps last for the session. Only complete 9/18/27/36-hole numbered routes with unique containing greens are accepted; missing, ambiguous, malformed, or incomplete geometry is rejected. This deliberately prioritizes reliable target assignment over directory coverage. Course search is not a guarantee of available GPS mapping.
+
+Data: © OpenStreetMap contributors via OpenGolfAPI, ODbL 1.0. Provider documentation: https://www.opengolfapi.org/docs/ . Current anonymous limits may change (live response reported 500/day during verification); no paid plan or key required for this integration.
