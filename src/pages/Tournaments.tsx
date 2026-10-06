@@ -36,13 +36,22 @@ export function Tournaments() {
       </div>
 
       <div className="px-4 py-6 max-w-md w-full mx-auto flex flex-col gap-3">
-        <Link
-          to="/new"
-          className="block text-center py-3 rounded-lg font-body font-semibold text-white"
-          style={{ background: '#006747' }}
-        >
-          Start a tournament
-        </Link>
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            to="/new"
+            className="flex items-center justify-center text-center min-h-12 px-2 py-3 rounded-lg font-body font-semibold text-white leading-snug focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            style={{ background: '#006747' }}
+          >
+            Start a tournament
+          </Link>
+          <Link
+            to="/rangefinder"
+            className="flex items-center justify-center text-center min-h-12 px-2 py-3 rounded-lg font-body font-semibold text-white leading-snug focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            style={{ background: '#006747' }}
+          >
+            Rangefinder
+          </Link>
+        </div>
 
         {error && (
           <div className="rounded-xl px-4 py-6 text-center" style={{ background: '#fff', border: '1px solid #e8e5d8' }}>
