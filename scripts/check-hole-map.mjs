@@ -23,10 +23,11 @@ for (const c of courses) {
     }
   }
 }
-console.log('PASS: 36 hole orientations, golfer auto-fit, inverse tap coordinates, and map layers')
+console.log('PASS: 72 hole orientations, golfer auto-fit, inverse tap coordinates, and map layers')
 
 const aerial = JSON.parse(fs.readFileSync('src/data/gps-aerial.json'))
 for (const c of courses) {
+  if (!aerial[c.id]) continue // Imported courses have vector maps only.
   const e = aerial[c.id].extent
   assert.equal(e.spatialReference.wkid, 4326)
   assert.ok(fs.statSync(`public${aerial[c.id].image}`).size > 10000)
@@ -42,4 +43,4 @@ for (const c of courses) {
     }
   }
 }
-console.log('PASS: aerial georeferencing and selected-green focus for all 36 holes')
+console.log('PASS: aerial georeferencing and selected-green focus for courses with bundled aerial imagery')
