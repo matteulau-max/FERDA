@@ -146,3 +146,5 @@ Open-Meteo provides modeled current temperature (°F), wind speed/gusts (mph), m
 Wind arrows show where air is moving in the rotated map. Components follow the GPS-to-selected-target bearing, falling back to an explicitly labeled generic tee reference. Headwind is positive along the wind-from bearing; rightward crosswind uses the wind-to vector. Manual speed/from-direction inputs override only wind and suppress forecast gusts. Overrides reset when the map remounts (course/tee/mode). Weather does not alter slope or yardages. Altitude is not a surveyed golfer-to-green elevation difference. Validate against on-course conditions; modeled 10 m wind cannot resolve individual trees or gusts.
 
 Validation: node scripts/check-weather.mjs covers signs, rotated headings, calm, altitude conversion, and malformed weather data.
+
+Weather is compact by default: the map wind box includes temperature and opens weather details/manual wind controls on tap. The panel can be closed or dismissed with Escape. Unavailable or stale data retains a tappable box for retry/manual entry.
