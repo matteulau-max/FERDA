@@ -5,6 +5,10 @@ import aerialData from '../../data/gps-aerial.json'
 import { greenDistances, distanceYards, type Coordinate } from '../../lib/golfGps'
 import { holeMapProjection } from '../../lib/holeMap'
 
+import { useCourseWeather } from '../../hooks/useCourseWeather'
+import { bearing } from '../../lib/weather'
+import { CourseWeather, type ManualWind } from './CourseWeather'
+
 type Layer = { kind: string; polygons: Coordinate[][][] }
 type MapData = { lines: Record<string, Coordinate[]>; layers: Layer[] }
 type Props = { mapOverride?: MapData; lastHole: number; teeLabel: string; scorecardYards: number | null; onHoleChange: (delta: number) => void; teePreview?: { name: string; yards: number }; courseId: string; courseName: string; hole: { number: number; center: Coordinate; outline: Coordinate[] }; position: { longitude: number; latitude: number; accuracy: number } | null }
@@ -13,6 +17,10 @@ const fills: Record<string, string> = { fairway: '#70a453', green: '#9cc76c', te
 export function HoleMap({ mapOverride, lastHole, courseId, courseName, hole, position, teePreview, teeLabel, scorecardYards, onHoleChange }: Props) {
   const data = mapOverride ?? (mapData as Record<string, MapData>)[courseId]
   const line = data.lines[String(hole.number)]
+  const weather = useCourseWeather(courseId, data.lines['1'][0])
+  const [manual, setManual] = useState<ManualWind>({ enabled: false, speed: '10', direction: '0' })
+  const manualValid = manual.speed.trim() !== '' && manual.direction.trim() !== '' && Number.isFinite(Number(manual.speed)) && Number(manual.speed) >= 0 && Number(manual.speed) <= 100 && Number.isFinite(Number(manual.direction)) && Number(manual.direction) >= 0 && Number(manual.direction) <= 360
+  const wind = manual.enabled ? manualValid ? { speed: Number(manual.speed), direction: Number(manual.direction) } : null : weather.fresh ? weather.data : null
   const [target, setTarget] = useState<Coordinate | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [greenView, setGreenView] = useState(false)
@@ -28,6 +36,10 @@ export function HoleMap({ mapOverride, lastHole, courseId, courseName, hole, pos
   const projection = useMemo(() => holeMapProjection(line, hole.outline, !greenView && user ? [user] : [], greenView ? [hole.center] : undefined), [line, hole.outline, position?.longitude, position?.latitude, greenView])
   const project = projection.project
   const selected = target ?? hole.center
+  const shotOrigin = user ?? line[0]
+  const heading = distanceYards(shotOrigin, selected) >= 1 ? bearing(shotOrigin, selected) : null
+  const mapWindRotation = wind ? wind.direction + 180 - bearing(line[0], line[line.length - 1]) : 0
+  const conditions = () => <CourseWeather {...weather} manual={manual} setManual={setManual} heading={heading} hasPosition={!!user} />
   const selectedPoint = project(selected), greenPoint = project(hole.center), teePoint = project(line[0])
   const userPoint = user ? project(user) : null
   const greenYards = user ? greenDistances(user, hole.center, hole.outline) : null
@@ -109,6 +121,7 @@ export function HoleMap({ mapOverride, lastHole, courseId, courseName, hole, pos
   }
   function overlay() {
     return <>
+      {wind && <div className="rf-wind-arrow" aria-label={`Wind blowing from ${Math.round(wind.direction)} degrees at ${Math.round(wind.speed)} miles per hour`}><span aria-hidden="true" style={{ transform: `rotate(${mapWindRotation}deg)` }}>{wind.speed < 0.5 ? '○' : '↑'}</span><b>{Math.round(wind.speed)} mph</b><small>{manual.enabled ? 'Manual wind' : 'Forecast wind'}</small></div>}
       <div className="rf-map-hole-banner"><div><button aria-label="Previous hole" disabled={hole.number === 1} onClick={() => onHoleChange(-1)}>‹</button><span><small>{courseName}</small><strong>⚑ Hole {hole.number}</strong></span><button aria-label="Next hole" disabled={hole.number === lastHole} onClick={() => onHoleChange(1)}>›</button></div><p>{scorecardYards === null ? "GPS map · tee scorecard unavailable" : <>{teeLabel} tees <b>· {scorecardYards} yd</b></>}</p></div>
       <div className="rf-map-yardage-hud" aria-label={teePreview ? 'Selected tee yardage' : 'GPS green yardages'}>
         <small>{teePreview ? `${teePreview.name} tees` : 'GPS · yards'}</small>
@@ -126,12 +139,14 @@ export function HoleMap({ mapOverride, lastHole, courseId, courseName, hole, pos
     </div>
   }
   return <section className="rf-hole-map" aria-label="Hole map">
+    {conditions()}
     <div className="rf-map-heading"><span>HOLE {hole.number} <small>GPS MAP</small></span><button onClick={() => setExpanded(true)} aria-label="Expand hole map">Expand ↗</button></div>
     <div className="rf-map-stage">{map()}{overlay()}<button className="rf-map-view-toggle" onClick={() => { setGreenView(!greenView) }}>{greenView ? 'Whole hole' : 'Focus green'}</button></div>{controls()}
     <p className="rf-map-hint">{teePreview ? 'Selected tee yardage shown above' : 'Tap a landing spot to measure'}{!position ? ' · Course overview' : ' · Blue circle shows GPS uncertainty'}</p>
     {aerial && <p className="rf-map-credit"><a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener noreferrer">Aerial: USDA / USGS</a> · Historical imagery</p>}
     {expanded && createPortal(<dialog ref={dialog} className="rf-map-dialog" onCancel={e => { e.preventDefault(); setExpanded(false) }}>
       <div className="rf-map-heading"><span>{courseName} · Hole {hole.number}</span><button autoFocus onClick={() => setExpanded(false)}>Close map</button></div>
+      {conditions()}
       <div className="rf-map-stage">{map(true)}{overlay()}<button className="rf-map-view-toggle" onClick={() => { setGreenView(!greenView) }}>{greenView ? 'Whole hole' : 'Focus green'}</button></div>{controls()}
       <p className="rf-map-hint">{teePreview ? 'Course overview · Enable GPS for target distances' : 'Tap a landing spot'} · Camera slope remains aimed at the green’s middle.</p>
       <p className="rf-map-hint">{aerial ? 'Historical aerial imagery: USDA / USGS · ' : ''}<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · OpenGolfAPI</p>
