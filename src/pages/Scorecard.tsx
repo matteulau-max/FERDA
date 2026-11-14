@@ -19,7 +19,7 @@ export function Scorecard() {
   const { matchId } = useParams<{ matchId: string }>()
   const navigate = useNavigate()
   const { slug, base } = useTournamentRoute()
-  const { data, loading } = useTournament(API_URL, slug)
+  const { data, loading, refetch } = useTournament(API_URL, slug)
   const { save } = useScoreSave(API_URL, slug)
   const [showRangefinder, setShowRangefinder] = useState(false)
 
@@ -29,6 +29,8 @@ export function Scorecard() {
   // Save status indicator
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const inFlightRef = useRef(0)
+  // Only unsynchronized edits override server data; confirmed scores are server-owned.
+  const pendingRef = useRef<Record<string, number>>({})
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
   // Find the match + session
@@ -38,7 +40,7 @@ export function Scorecard() {
   // Sync local scores with fetched scores (merge — local optimistic wins if same hole)
   useEffect(() => {
     if (match) {
-      setLocalScores((prev) => mergeScores(match.scores, prev))
+      setLocalScores(mergePendingScores(match.scores, pendingRef.current))
     }
   }, [match?.scores]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -46,6 +48,12 @@ export function Scorecard() {
     async (hole: number, side: 'team1' | 'team2', player: string, gross: number | '') => {
       if (gross === 0) return
       if (gross === '') {
+        // The API has no delete-score operation; do not show a deletion that cannot persist.
+        setSaveStatus('error')
+        return
+      }
+      /* obsolete clear handler */
+      if (false) {
         setLocalScores((prev) => {
           const updated = { ...prev }
           if (!updated[hole]) return prev
@@ -57,6 +65,8 @@ export function Scorecard() {
         return
       }
 
+      const key = scoreKey(hole, side, player)
+      pendingRef.current[key] = gross as number
       // Optimistic update
       setLocalScores((prev) => {
         const updated = { ...prev }
@@ -74,7 +84,11 @@ export function Scorecard() {
 
       try {
         await save({ matchId: matchId!, hole, side, player, grossScore: gross as number })
+        // A subsequent authoritative fetch reconciles this optimistic edit.
+        void refetch()
       } catch {
+        delete pendingRef.current[key]
+        void refetch()
         inFlightRef.current--
         setSaveStatus('error')
         return
@@ -86,7 +100,7 @@ export function Scorecard() {
         savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000)
       }
     },
-    [matchId, save],
+    [matchId, save, refetch],
   )
 
   if (loading) return <ScorecardSkeleton />
@@ -221,19 +235,22 @@ export function Scorecard() {
   )
 }
 
-/** Merge fetched scores with local optimistic scores. Local wins on conflict. */
-function mergeScores(fetched: MatchScores, local: MatchScores): MatchScores {
-  const result: MatchScores = { ...fetched }
-  for (const [holeStr, holeScores] of Object.entries(local)) {
-    const hole = Number(holeStr)
-    if (!result[hole]) {
-      result[hole] = holeScores
-    } else {
-      result[hole] = {
-        team1: { ...result[hole].team1, ...holeScores.team1 },
-        team2: { ...result[hole].team2, ...holeScores.team2 },
-      }
+/** A stable key for one golfer's score on one hole. */
+function scoreKey(hole: number, side: string, player: string): string {
+  return JSON.stringify([hole, side, player])
+}
+
+/** Server scores win except while an optimistic edit has not yet appeared on the server. */
+function mergePendingScores(server: MatchScores, pending: Record<string, number>): MatchScores {
+  const result: MatchScores = structuredClone(server)
+  for (const [key, value] of Object.entries(pending)) {
+    const [hole, side, player] = JSON.parse(key) as [number, 'team1' | 'team2', string]
+    if (server[hole]?.[side]?.[player] === value) {
+      delete pending[key]
+      continue
     }
+    if (!result[hole]) result[hole] = { team1: {}, team2: {} }
+    result[hole][side][player] = value
   }
   return result
 }
