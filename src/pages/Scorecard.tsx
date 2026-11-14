@@ -284,21 +284,47 @@ function TeamPulse({ data, expanded, onToggle }: {
     }
   }
   const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1)
-  return <section className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
-    <button type="button" onClick={onToggle} aria-expanded={expanded}
-      className="w-full px-4 py-2 text-left flex justify-between items-center gap-2">
-      <span className="text-xs font-bold" style={{ color: '#006747' }}>TEAM PULSE</span>
-      <span className="text-sm font-bold tabular-nums">{data.teams.team1.name} {fmt(locked.team1)} – {fmt(locked.team2)} {data.teams.team2.name}</span>
-      <span className="text-xs text-gray-500">{expanded ? '▲' : '▼'}</span>
-    </button>
-    {expanded && <div className="px-4 pb-3 text-xs font-body space-y-2">
-      <p className="text-gray-600">Secured points above · Live projection: {fmt(projected1)} – {fmt(projected2)} · {live} matches in progress</p>
-      {matches.map(m => <div key={m.id} className="flex justify-between gap-3 border-t pt-2">
-        <span className="min-w-0">{m.label}</span><span className="shrink-0 font-semibold">{m.status}</span>
-      </div>)}
-      {live === 0 && <p className="text-gray-500">No matches currently underway.</p>}
-    </div>}
-  </section>
+  const team1 = data.teams.team1.name
+  const team2 = data.teams.team2.name
+  const projectedLead = projected1 === projected2 ? 'Projected tie'
+    : `${projected1 > projected2 ? team1 : team2} leads projected points`
+  const highlight = matches.find(m => m.status.includes('All square'))
+    ? 'A live match is all square — every remaining hole matters.'
+    : live > 0 ? `${live} match${live === 1 ? '' : 'es'} in progress. ${projectedLead}.`
+      : 'No matches currently underway.'
+  return (
+    <section className="sticky top-0 z-20 overflow-hidden border-b border-emerald-900/20 bg-white shadow-sm" aria-label="Team Pulse">
+      <button type="button" onClick={onToggle} aria-expanded={expanded}
+        className="w-full bg-[#063d2c] px-4 py-3 text-left text-white">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-[.16em]">Ferda Open · Team Pulse</span>
+          <span className="text-xs text-emerald-100">{expanded ? 'Collapse ▲' : 'Matches ▼'}</span>
+        </div>
+        <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
+          <div><p className="truncate text-xs text-emerald-100">{team1}</p><p className="text-3xl font-black tabular-nums">{fmt(locked.team1)}</p></div>
+          <div className="text-[10px] font-semibold uppercase leading-tight text-emerald-100">Secured<br />points</div>
+          <div><p className="truncate text-xs text-emerald-100">{team2}</p><p className="text-3xl font-black tabular-nums">{fmt(locked.team2)}</p></div>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs">
+          <span>Projected: {fmt(projected1)} – {fmt(projected2)}</span>
+          <span>{live} live {live === 1 ? 'match' : 'matches'}</span>
+        </div>
+      </button>
+      {expanded && <div className="space-y-3 px-4 py-3 font-body text-sm">
+        <div className="rounded-xl bg-amber-50 px-3 py-2 text-amber-950" role="status">
+          <p className="text-xs font-bold uppercase tracking-wide">Tournament watch</p>
+          <p className="mt-1 text-xs">{highlight}</p>
+        </div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Live match tracker</p>
+        {matches.map(m => <div key={m.id} className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2">
+          <span className="min-w-0 text-xs text-gray-600">{m.label}</span>
+          <span className="shrink-0 text-right text-xs font-bold text-emerald-900">{m.status}</span>
+        </div>)}
+        {live === 0 && <p className="text-xs text-gray-500">No matches currently underway.</p>}
+        <p className="text-[11px] text-gray-500">Secured points reflect completed results. Projections include current live leaders and may change.</p>
+      </div>}
+    </section>
+  )
 }
 
 function ScorecardSkeleton() {
