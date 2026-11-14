@@ -22,7 +22,7 @@ function snapshots(match: Match, rules: SessionRules, players: Player[], course:
     const status = calcMatchStatus(partial, rules, players, course)
     if (status.holesPlayed > out.length) {
       out.push({ hole: hole.number, lead: status.t1Up, played: status.holesPlayed, remaining: status.holesRemaining })
-      if (status.isComplete) break
+      // Keep reading subsequent holes so a corrected score can recalculate the latest state.
     }
   }
   return out
@@ -47,9 +47,12 @@ export function tournamentHighlights(data: TournamentData): PulseHighlight[] {
       const margin = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1)
       const id = (kind: PulseHighlight['kind'], hole: number) => match.id + ':' + kind + ':' + hole
       // A genuine comeback requires a documented deficit of at least two, followed by recovery.
-      const priorPeak = states.slice(0, -1).reduce((best, s) =>
-        Math.abs(s.lead) > Math.abs(best.lead) ? s : best, states[0])
-      if (Math.abs(priorPeak.lead) >= 2 && Math.sign(priorPeak.lead) !== 0 &&
+      // Only consider a deficit suffered by the team now recovering; never call a growing lead a comeback.
+      const trailingSide = last.lead > 0 ? -1 : last.lead < 0 ? 1 : -Math.sign(previous.lead)
+      const deficits = states.slice(0, -1).filter(s => Math.sign(s.lead) === trailingSide)
+      const priorPeak = deficits.reduce((best, state) =>
+        !best || Math.abs(state.lead) > Math.abs(best.lead) ? state : best, undefined as typeof states[number] | undefined)
+      if (priorPeak && Math.abs(priorPeak.lead) >= 2 &&
           (last.lead === 0 || Math.sign(last.lead) !== Math.sign(priorPeak.lead) ||
             Math.abs(last.lead) <= Math.abs(priorPeak.lead) - 2)) {
         const recovering = priorPeak.lead > 0 ? data.teams.team2.name : data.teams.team1.name
