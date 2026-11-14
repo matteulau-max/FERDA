@@ -10,6 +10,7 @@ import { MatchWormChart } from '../components/MatchWormChart'
 import { OverflowMenu } from '../components/OverflowMenu'
 import { RangefinderDialog } from '../components/rangefinder/Rangefinder'
 import { calcMatchStatus, totalPoints, calcSessionTotals } from '../lib/matchPlay'
+import { tournamentHighlights } from '../lib/teamPulseHighlights'
 import { courseForSession, sessionRules } from '../lib/holes'
 import { SCORING_LABELS } from '../lib/constants'
 import type { Match, MatchScores } from '../lib/types'
@@ -286,12 +287,7 @@ function TeamPulse({ data, expanded, onToggle }: {
   const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1)
   const team1 = data.teams.team1.name
   const team2 = data.teams.team2.name
-  const projectedLead = projected1 === projected2 ? 'Projected tie'
-    : `${projected1 > projected2 ? team1 : team2} leads projected points`
-  const highlight = matches.find(m => m.status.includes('All square'))
-    ? 'A live match is all square — every remaining hole matters.'
-    : live > 0 ? `${live} match${live === 1 ? '' : 'es'} in progress. ${projectedLead}.`
-      : 'No matches currently underway.'
+  const highlights = tournamentHighlights(data)
   return (
     <section className="sticky top-0 z-20 overflow-hidden border-b border-emerald-900/20 bg-white shadow-sm" aria-label="Team Pulse">
       <button type="button" onClick={onToggle} aria-expanded={expanded}
@@ -312,8 +308,10 @@ function TeamPulse({ data, expanded, onToggle }: {
       </button>
       {expanded && <div className="space-y-3 px-4 py-3 font-body text-sm">
         <div className="rounded-xl bg-amber-50 px-3 py-2 text-amber-950" role="status">
-          <p className="text-xs font-bold uppercase tracking-wide">Tournament watch</p>
-          <p className="mt-1 text-xs">{highlight}</p>
+          <p className="text-xs font-bold uppercase tracking-wide">Tournament highlights</p>
+          {highlights.length > 0 ? <ul className="mt-2 space-y-2">
+            {highlights.map(event => <li key={event.id} className="text-xs">{event.text}</li>)}
+          </ul> : <p className="mt-1 text-xs">No notable match swings yet. Highlights appear as holes are scored.</p>}
         </div>
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Live match tracker</p>
         {matches.map(m => <div key={m.id} className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2">
