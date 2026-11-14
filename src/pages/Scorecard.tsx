@@ -52,19 +52,6 @@ export function Scorecard() {
         setSaveStatus('error')
         return
       }
-      /* obsolete clear handler */
-      if (false) {
-        setLocalScores((prev) => {
-          const updated = { ...prev }
-          if (!updated[hole]) return prev
-          const side_ = { ...updated[hole][side] }
-          delete side_[player]
-          updated[hole] = { ...updated[hole], [side]: side_ }
-          return updated
-        })
-        return
-      }
-
       const key = scoreKey(hole, side, player)
       pendingRef.current[key] = gross as number
       // Optimistic update
