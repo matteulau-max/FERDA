@@ -9,7 +9,7 @@ import { HandicapInfo } from '../components/HandicapInfo'
 import { MatchWormChart } from '../components/MatchWormChart'
 import { OverflowMenu } from '../components/OverflowMenu'
 import { RangefinderDialog } from '../components/rangefinder/Rangefinder'
-import { calcMatchStatus } from '../lib/matchPlay'
+import { calcMatchStatus, totalPoints, calcSessionTotals } from '../lib/matchPlay'
 import { courseForSession, sessionRules } from '../lib/holes'
 import { SCORING_LABELS } from '../lib/constants'
 import type { Match, MatchScores } from '../lib/types'
@@ -22,6 +22,7 @@ export function Scorecard() {
   const { data, loading } = useTournament(API_URL, slug)
   const { save } = useScoreSave(API_URL, slug)
   const [showRangefinder, setShowRangefinder] = useState(false)
+  const [showTeamPulse, setShowTeamPulse] = useState(false)
 
   // Local optimistic scores state
   const [localScores, setLocalScores] = useState<MatchScores>({})
@@ -137,6 +138,8 @@ export function Scorecard() {
         <OverflowMenu />
       </div>
 
+      <TeamPulse data={data} expanded={showTeamPulse} onToggle={() => setShowTeamPulse(v => !v)} />
+
       <div className="px-4 py-2 flex justify-end" style={{ borderBottom: '1px solid #e8e5d8' }}>
         <button onClick={() => setShowRangefinder(true)} className="font-body text-sm font-semibold px-3 py-2 rounded-lg" style={{ color: '#006747', border: '1px solid #c5dacc' }}>
           Rangefinder
@@ -236,6 +239,62 @@ function mergeScores(fetched: MatchScores, local: MatchScores): MatchScores {
     }
   }
   return result
+}
+
+function TeamPulse({ data, expanded, onToggle }: {
+  data: import('../lib/types').TournamentData
+  expanded: boolean
+  onToggle: () => void
+}) {
+  const locked = totalPoints(data.sessions, data.players, data.courses)
+  let projected1 = locked.team1, projected2 = locked.team2, live = 0
+  const matches: { id: string; label: string; status: string }[] = []
+  for (const session of data.sessions) {
+    const rules = sessionRules(session)
+    const course = courseForSession(data.courses, session)
+    if (!course) continue
+    if (rules.scoring === 'Total Stroke Play') {
+      const totals = calcSessionTotals(session, data.players, data.courses)
+      if (!totals.isComplete) {
+        projected1 += totals.points.team1
+        projected2 += totals.points.team2
+      }
+    }
+    for (const match of session.matches) {
+      const status = calcMatchStatus(match, rules, data.players, course)
+      if (!status.isComplete && status.holesPlayed > 0) {
+        live++
+        if (rules.scoring !== 'Total Stroke Play') {
+          if (status.t1Up > 0) projected1 += 1
+          else if (status.t1Up < 0) projected2 += 1
+          else { projected1 += 0.5; projected2 += 0.5 }
+        }
+        const lead = status.t1Up === 0 ? 'All square'
+          : `${status.t1Up > 0 ? data.teams.team1.name : data.teams.team2.name} ${Math.abs(status.t1Up)} ${rules.scoring === 'Match Play' ? 'UP' : 'strokes ahead'}`
+        matches.push({
+          id: match.id,
+          label: `${match.team1Players.join(' / ')} vs ${match.team2Players.join(' / ')}`,
+          status: `${lead} · thru ${status.holesPlayed}`,
+        })
+      }
+    }
+  }
+  const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1)
+  return <section className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+    <button type="button" onClick={onToggle} aria-expanded={expanded}
+      className="w-full px-4 py-2 text-left flex justify-between items-center gap-2">
+      <span className="text-xs font-bold" style={{ color: '#006747' }}>TEAM PULSE</span>
+      <span className="text-sm font-bold tabular-nums">{data.teams.team1.name} {fmt(locked.team1)} – {fmt(locked.team2)} {data.teams.team2.name}</span>
+      <span className="text-xs text-gray-500">{expanded ? '▲' : '▼'}</span>
+    </button>
+    {expanded && <div className="px-4 pb-3 text-xs font-body space-y-2">
+      <p className="text-gray-600">Secured points above · Live projection: {fmt(projected1)} – {fmt(projected2)} · {live} matches in progress</p>
+      {matches.map(m => <div key={m.id} className="flex justify-between gap-3 border-t pt-2">
+        <span className="min-w-0">{m.label}</span><span className="shrink-0 font-semibold">{m.status}</span>
+      </div>)}
+      {live === 0 && <p className="text-gray-500">No matches currently underway.</p>}
+    </div>}
+  </section>
 }
 
 function ScorecardSkeleton() {
