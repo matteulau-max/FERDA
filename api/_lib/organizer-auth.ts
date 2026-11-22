@@ -26,8 +26,16 @@ export async function requireEventOrganizer(
     signal: AbortSignal.timeout(5000),
   })
   if (!response.ok) throw new OrganizerAuthError(401, 'Invalid or expired organizer session')
-  const user = await response.json() as { id?: unknown }
+  const user = await response.json() as { id?: unknown; email?: unknown; email_confirmed_at?: unknown }
   if (typeof user.id !== 'string') throw new OrganizerAuthError(401, 'Invalid organizer session')
+
+  if (typeof user.email !== 'string' || !user.email_confirmed_at) throw new OrganizerAuthError(401, 'Verified email required')
+
+  // Provision only a verified identity matching a server-maintained invitation.
+  await pool.query(`insert into public.event_organizers(tournament_id,user_id,role)
+    select tournament_id,$2,role from public.event_organizer_invites
+    where tournament_id=$1 and email=$3
+    on conflict (tournament_id,user_id) do nothing`, [tournamentId, user.id, user.email.toLowerCase()])
 
   const membership = await pool.query(
     'select 1 from public.event_organizers where tournament_id = $1 and user_id = $2 limit 1',
