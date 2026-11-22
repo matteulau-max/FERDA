@@ -26,6 +26,12 @@ export function Organizer() {
   const [notice, setNotice] = useState('')
   const [data, setData] = useState<Planning | null>(null)
   const [task, setTask] = useState('')
+  const [invitee, setInvitee] = useState('')
+  const [scheduleTitle, setScheduleTitle] = useState('')
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [expenseDescription, setExpenseDescription] = useState('')
+  const [expenseCategory, setExpenseCategory] = useState('Courses')
+  const [expenseAmount, setExpenseAmount] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -72,21 +78,34 @@ export function Organizer() {
     finally { setBusy(false) }
   }
 
-  async function addTask() {
-    if (!session || !slug || !task.trim()) return
+  async function write(action: string, fields: Record<string, unknown>) {
+    if (!session || !slug) return
     setBusy(true)
     try {
       const response = await fetch(`${PLANNING_URL}?t=${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'createTask', title: task.trim() }),
+        body: JSON.stringify({ action, ...fields }),
       })
       const body = await response.json()
-      if (!response.ok) throw new Error(body.error || 'Could not add task')
-      setData(previous => previous ? { ...previous, tasks: [...previous.tasks, body.task] } : previous)
-      setTask('')
-    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not add task') }
-    finally { setBusy(false) }
+      if (!response.ok) throw new Error(body.error || 'Could not save')
+      // Refresh the entire organizer view after every mutation.
+      const refreshed = await fetch(`${PLANNING_URL}?t=${encodeURIComponent(slug)}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` }, cache: 'no-store',
+      })
+      const next = await refreshed.json()
+      if (!refreshed.ok) throw new Error(next.error || 'Could not refresh')
+      setData(next as Planning)
+      setNotice('')
+      return true
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not save')
+      return false
+    } finally { setBusy(false) }
+  }
+
+  async function addTask() {
+    if (await write('createTask', { title: task.trim() })) setTask('')
   }
 
   return <div className="min-h-screen bg-[#FDF8E8] pb-16">
@@ -113,7 +132,7 @@ export function Organizer() {
           <section className="bg-white rounded-xl p-4 border space-y-3">
             <h2 className="font-semibold text-lg">Planning tasks</h2>
             {data.tasks.length === 0 && <p className="text-sm text-gray-500">No tasks yet. Add the first planning item.</p>}
-            {data.tasks.map(item => <p key={item.id} className="text-sm border-b pb-2">{item.title} <span className="text-gray-500">· {item.status}</span></p>)}
+            {data.tasks.map(item => <div key={item.id} className="flex justify-between items-center gap-2 border-b pb-2"><span className="text-sm">{item.title}</span><select aria-label={`Status for ${item.title}`} value={item.status} disabled={busy} onChange={event => void write('setTaskStatus', { id: item.id, status: event.target.value })} className="text-sm border rounded p-2"><option value="todo">To do</option><option value="doing">Doing</option><option value="done">Done</option></select></div>)}
             <div className="flex gap-2"><input aria-label="New task" value={task} onChange={event => setTask(event.target.value)}
               placeholder="e.g. Confirm courses" className="border rounded-lg p-3 min-w-0 flex-1" />
               <button disabled={busy || !task.trim()} onClick={addTask} className="bg-[#006747] text-white px-4 rounded-lg disabled:opacity-50">Add</button></div>
@@ -121,7 +140,7 @@ export function Organizer() {
           <section className="bg-white rounded-xl p-4 border space-y-2">
             <h2 className="font-semibold text-lg">Attendees</h2>
             {data.invitations.length === 0 ? <p className="text-sm text-gray-500">No invitations yet.</p> :
-              data.invitations.map(item => <p key={item.id} className="text-sm">{item.invitee_name} · {item.status}</p>)}
+              data.invitations.map(item => <div key={item.id} className="flex items-center justify-between gap-2"><span className="text-sm">{item.invitee_name}</span><select aria-label={`RSVP for ${item.invitee_name}`} value={item.status} disabled={busy} onChange={event => void write('setRsvp', { id: item.id, status: event.target.value })} className="text-sm border rounded p-2"><option value="invited">Invited</option><option value="yes">Going</option><option value="maybe">Maybe</option><option value="no">Not going</option></select></div>)}
           </section>
           <section className="bg-white rounded-xl p-4 border space-y-2">
             <h2 className="font-semibold text-lg">Itinerary</h2>
@@ -131,6 +150,10 @@ export function Organizer() {
           <section className="bg-white rounded-xl p-4 border">
             <h2 className="font-semibold text-lg">Budget overview</h2>
             <p className="text-sm text-gray-600 mt-2">Estimated: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(data.expenses.reduce((sum, item) => sum + Number(item.estimated_cents) / 100, 0))}</p>
+            {data.expenses.map(item => <p key={item.id} className="text-sm">{item.description} · {(Number(item.estimated_cents) / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>)}
+            <div className="grid grid-cols-2 gap-2"><input aria-label="Expense category" value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} placeholder="Category" className="border rounded-lg p-3" /><input aria-label="Estimated cost in dollars" type="number" min="0" step="0.01" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} placeholder="USD" className="border rounded-lg p-3" /></div>
+            <input aria-label="Expense description" value={expenseDescription} onChange={e => setExpenseDescription(e.target.value)} placeholder="Expense description" className="border rounded-lg p-3 w-full" />
+            <button disabled={busy || !expenseDescription.trim() || !expenseCategory.trim() || !expenseAmount || !Number.isSafeInteger(Math.round(Number(expenseAmount) * 100)) || Number(expenseAmount) < 0} onClick={async () => { if (await write('addExpense', { category: expenseCategory, description: expenseDescription, estimatedCents: Math.round(Number(expenseAmount) * 100) })) { setExpenseDescription(''); setExpenseAmount('') } }} className="bg-[#006747] text-white px-4 py-2 rounded-lg disabled:opacity-50">Add budget item</button>
             <p className="text-xs text-gray-500 mt-2">Detailed allocations and payment reconciliation are coming next.</p>
           </section>
         </> : <p className="text-sm text-gray-500">Loading organizer workspace…</p>}
