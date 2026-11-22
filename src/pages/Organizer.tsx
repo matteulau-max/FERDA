@@ -86,7 +86,7 @@ export function Organizer() {
     setBusy(true)
     try {
       const endpoint = authMode === 'signup' ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password'
-      const response = await fetch(`${SUPABASE_URL.replace(/\\/$/, '')}${endpoint}`, {
+      const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}${endpoint}`, {
         method: 'POST',
         headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -111,7 +111,7 @@ export function Organizer() {
   function googleSignIn() {
     if (!SUPABASE_URL || !SUPABASE_KEY) { setNotice('Organizer sign-in is not configured yet.'); return }
     const redirectTo = window.location.href.split('#')[0]
-    window.location.assign(`${SUPABASE_URL.replace(/\\/$/, '')}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`)
+    window.location.assign(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`)
   }
 
   async function write(action: string, fields: Record<string, unknown>) {
