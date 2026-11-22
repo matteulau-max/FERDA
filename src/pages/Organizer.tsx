@@ -6,9 +6,9 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 type Task = { id: string; title: string; status: string; due_at: string | null }
 type Invite = { id: string; invitee_name: string; status: string }
-type Schedule = { id: string; title: string; starts_at: string; location: string | null }
+type Schedule = { id: string; title: string; starts_at: string; location: string | null; visibility: string }
 type Expense = { id: string; description: string; estimated_cents: string; actual_cents: string | null }
-type Planning = { tournament: { name: string }; tasks: Task[]; invitations: Invite[]; schedule: Schedule[]; expenses: Expense[]; payments: unknown[] }
+type Planning = { tournament: { name: string }; tasks: Task[]; invitations: Invite[]; schedule: Schedule[]; expenses: Expense[]; payments: unknown[]; publications: { section: string; published_at: string }[] }
 type Session = { access_token: string; refresh_token: string; expires_at: number }
 const sessionKey = 'ferda-organizer-session'
 
@@ -144,9 +144,10 @@ export function Organizer() {
             <div className="flex gap-2"><input aria-label="Invitee name" placeholder="Add attendee" value={invitee} onChange={e => setInvitee(e.target.value)} className="border rounded-lg p-3 min-w-0 flex-1" /><button disabled={busy || !invitee.trim()} onClick={async () => { if (await write('addInvitee', { name: invitee })) setInvitee('') }} className="bg-[#006747] text-white px-4 rounded-lg disabled:opacity-50">Add</button></div>
           </section>
           <section className="bg-white rounded-xl p-4 border space-y-2">
-            <h2 className="font-semibold text-lg">Itinerary</h2>
+            <div className="flex justify-between items-center gap-2"><h2 className="font-semibold text-lg">Itinerary</h2><Link to={`/t/${slug}/info`} className="text-sm underline text-[#006747]">Guest view</Link></div>
+            <div className="flex items-center justify-between gap-3 bg-[#FDF8E8] p-3 rounded-lg"><div><p className="text-sm font-medium">Publish schedule to guests</p><p className="text-xs text-gray-600">Only items marked Public will appear.</p></div><input type="checkbox" aria-label="Publish schedule to guests" checked={data.publications.some(p => p.section === 'schedule')} disabled={busy} onChange={e => void write('publishSchedule', { published: e.target.checked })} className="w-5 h-5" /></div>
             {data.schedule.length === 0 ? <p className="text-sm text-gray-500">No itinerary items yet.</p> :
-              data.schedule.map(item => <p key={item.id} className="text-sm">{item.title} · {new Date(item.starts_at).toLocaleString()}</p>)}
+              data.schedule.map(item => <div key={item.id} className="flex items-center justify-between gap-2 border-b pb-2"><div><p className="text-sm font-medium">{item.title}</p><p className="text-xs text-gray-500">{new Date(item.starts_at).toLocaleString()}</p></div><select aria-label={`Visibility for ${item.title}`} value={item.visibility} disabled={busy} onChange={e => void write('setScheduleVisibility', { id: item.id, visibility: e.target.value })} className="border rounded p-2 text-sm"><option value="draft">Draft</option><option value="published">Public</option></select></div>)}
             <input aria-label="Schedule title" placeholder="Event or tee time" value={scheduleTitle} onChange={e => setScheduleTitle(e.target.value)} className="border rounded-lg p-3 w-full" />
             <input aria-label="Schedule date and time" type="datetime-local" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="border rounded-lg p-3 w-full" />
             <button disabled={busy || !scheduleTitle.trim() || !scheduleDate} onClick={async () => { if (await write('addSchedule', { title: scheduleTitle, startsAt: new Date(scheduleDate).toISOString() })) { setScheduleTitle(''); setScheduleDate('') } }} className="bg-[#006747] text-white px-4 py-2 rounded-lg disabled:opacity-50">Add itinerary item</button>
