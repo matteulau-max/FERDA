@@ -23,6 +23,8 @@ export function Organizer() {
   const { slug } = useParams<{ slug: string }>()
   const [session, setSession] = useState<Session | null>(loadSession)
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'link'>('login')
   const [notice, setNotice] = useState('')
   const [data, setData] = useState<Planning | null>(null)
   const [task, setTask] = useState('')
@@ -78,6 +80,40 @@ export function Organizer() {
     finally { setBusy(false) }
   }
 
+  async function passwordAuth() {
+    if (!SUPABASE_URL || !SUPABASE_KEY) { setNotice('Organizer sign-in is not configured yet.'); return }
+    if (password.length < 8) { setNotice('Use a password of at least 8 characters.'); return }
+    setBusy(true)
+    try {
+      const endpoint = authMode === 'signup' ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password'
+      const response = await fetch(`${SUPABASE_URL.replace(/\\/$/, '')}${endpoint}`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.msg || body.error_description || body.message || 'Authentication failed')
+      if (body.access_token && body.refresh_token) {
+        const next: Session = { access_token: body.access_token, refresh_token: body.refresh_token, expires_at: Math.floor(Date.now() / 1000) + Number(body.expires_in || 3600) }
+        sessionStorage.setItem(sessionKey, JSON.stringify(next))
+        setSession(next)
+        setPassword('')
+        setNotice('')
+      } else {
+        setNotice('Check your email to confirm the new account, then sign in with your password.')
+        setAuthMode('login')
+        setPassword('')
+      }
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Authentication failed') }
+    finally { setBusy(false) }
+  }
+
+  function googleSignIn() {
+    if (!SUPABASE_URL || !SUPABASE_KEY) { setNotice('Organizer sign-in is not configured yet.'); return }
+    const redirectTo = window.location.href.split('#')[0]
+    window.location.assign(`${SUPABASE_URL.replace(/\\/$/, '')}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`)
+  }
+
   async function write(action: string, fields: Record<string, unknown>) {
     if (!session || !slug) return
     setBusy(true)
@@ -118,10 +154,20 @@ export function Organizer() {
       {notice && <p role="status" className="bg-white rounded-lg border p-3 text-sm">{notice}</p>}
       {!session ? <section className="bg-white rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-lg">Organizer sign-in</h2>
-        <p className="text-sm text-gray-600">Only invited organizers can access planning and payment information.</p>
-        <input type="email" aria-label="Organizer email" value={email} onChange={event => setEmail(event.target.value)}
+        <p className="text-sm text-gray-600">Only Matt and PJ's invited accounts can access private planning information.</p>
+        <button type="button" onClick={googleSignIn} className="w-full border rounded-lg px-4 py-3 font-medium">Continue with Google</button>
+        <div className="text-center text-xs text-gray-500">or sign in with email and password</div>
+        <input type="email" autoComplete="email" aria-label="Organizer email" value={email} onChange={event => setEmail(event.target.value)}
           placeholder="Email address" className="w-full border rounded-lg p-3" />
-        <button disabled={busy || !email.includes('@')} onClick={signIn} className="bg-[#006747] text-white rounded-lg px-4 py-3 disabled:opacity-50">Email me a sign-in link</button>
+        {authMode !== 'link' && <input type="password" autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} aria-label="Password" value={password} onChange={event => setPassword(event.target.value)}
+          placeholder="Password (8+ characters)" className="w-full border rounded-lg p-3" />}
+        {authMode === 'link'
+          ? <button disabled={busy || !email.includes('@')} onClick={signIn} className="bg-[#006747] text-white rounded-lg px-4 py-3 disabled:opacity-50 w-full">Email me a sign-in link</button>
+          : <button disabled={busy || !email.includes('@') || password.length < 8} onClick={passwordAuth} className="bg-[#006747] text-white rounded-lg px-4 py-3 disabled:opacity-50 w-full">{authMode === 'signup' ? 'Create password account' : 'Sign in'}</button>}
+        <div className="flex flex-wrap gap-3 text-sm text-[#006747]">
+          <button type="button" className="underline" onClick={() => setAuthMode(authMode === 'signup' ? 'login' : 'signup')}>{authMode === 'signup' ? 'Already have an account?' : 'Create account'}</button>
+          <button type="button" className="underline" onClick={() => setAuthMode(authMode === 'link' ? 'login' : 'link')}>{authMode === 'link' ? 'Use password' : 'Use email link instead'}</button>
+        </div>
       </section> : <>
         <div className="flex justify-end"><button className="text-sm underline" onClick={() => { sessionStorage.removeItem(sessionKey); setSession(null); setData(null) }}>Sign out</button></div>
         {data ? <>
