@@ -5,6 +5,7 @@ import { Manual } from './pages/Manual'
 import { NewTournament } from './pages/NewTournament'
 import { Setup } from './pages/Setup'
 import { Tournaments } from './pages/Tournaments'
+import { History } from './pages/History'
 import { RangefinderPage } from './components/rangefinder/Rangefinder'
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         {/* The landing page: every tournament, and the way to add one */}
         <Route path="/" element={<Tournaments />} />
         <Route path="/new" element={<NewTournament />} />
+        <Route path="/history" element={<History />} />
         <Route path="/rangefinder" element={<RangefinderPage />} />
 
         {/* The default tournament — keeps existing links and bookmarks working.
