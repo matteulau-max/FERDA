@@ -53,6 +53,8 @@ export function Tournaments() {
           </Link>
         </div>
 
+        <Link to="/history" className="block text-center rounded-lg py-3 font-body font-semibold" style={{ background: "#FFF200", color: "#003d26" }}>Completed events · History</Link>
+
         {error && (
           <div className="rounded-xl px-4 py-6 text-center" style={{ background: '#fff', border: '1px solid #e8e5d8' }}>
             <p className="font-serif text-lg text-gray-600 mb-1">Unable to load tournaments</p>
