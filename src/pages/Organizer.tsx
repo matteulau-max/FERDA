@@ -69,10 +69,11 @@ export function Organizer() {
     if (!SUPABASE_URL || !SUPABASE_KEY) { setNotice('Organizer sign-in is not configured yet.'); return }
     setBusy(true)
     try {
-      const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/otp`, {
+      const redirectTo = window.location.origin + window.location.pathname
+      const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
         method: 'POST',
         headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, create_user: true, options: { email_redirect_to: window.location.href.split('#')[0] } }),
+        body: JSON.stringify({ email, create_user: false }),
       })
       if (!response.ok) throw new Error('Could not send sign-in link')
       setNotice('Check your email for your organizer sign-in link.')
