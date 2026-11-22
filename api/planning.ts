@@ -23,17 +23,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const actorId = await requireEventOrganizer(req, pool, tournament.id)
 
     if (req.method === 'GET') {
-      const [tasks, invitations, schedule, expenses, payments] = await Promise.all([
+      const [tasks, invitations, schedule, expenses, payments, publications] = await Promise.all([
         pool.query('select id,title,owner_user_id,due_at,status from public.planning_tasks where tournament_id=$1 order by due_at nulls last,created_at', [tournament.id]),
         pool.query('select id,player_id,invitee_name,status from public.event_invitations where tournament_id=$1 order by invitee_name', [tournament.id]),
         pool.query('select id,title,starts_at,ends_at,location,visibility from public.event_schedule where tournament_id=$1 order by starts_at', [tournament.id]),
         pool.query('select id,category,description,estimated_cents,actual_cents,status from public.event_expenses where tournament_id=$1 order by category,description', [tournament.id]),
         pool.query('select player_id,coalesce(sum(amount_cents),0)::text as paid_cents from public.event_payments where tournament_id=$1 group by player_id', [tournament.id]),
+        pool.query('select section,published_at from public.event_publications where tournament_id=$1', [tournament.id]),
       ])
       return res.status(200).json({
         tournament: { slug: tournament.slug, name: tournament.name },
         tasks: tasks.rows, invitations: invitations.rows, schedule: schedule.rows,
-        expenses: expenses.rows, payments: payments.rows,
+        expenses: expenses.rows, payments: payments.rows, publications: publications.rows,
       })
     }
 
@@ -80,6 +81,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!title || !Number.isFinite(start.getTime()) || (body.location && !location)) return res.status(400).json({ error: 'Valid title, date and location required' })
         result = await pool.query('insert into public.event_schedule(tournament_id,title,starts_at,location) values($1,$2,$3,$4) returning id,title,starts_at,location,visibility', [tournament.id,title,start.toISOString(),location])
         action = 'planning.schedule.create'
+        break
+      }
+      case 'setScheduleVisibility': {
+        const id = uuid(body.id)
+        if (!id || !['draft','published'].includes(String(body.visibility))) return res.status(400).json({ error: 'Invalid schedule item or visibility' })
+        result = await pool.query('update public.event_schedule set visibility=$3 where tournament_id=$1 and id=$2 returning id,title,visibility', [tournament.id,id,body.visibility])
+        action = 'planning.schedule.visibility'
+        break
+      }
+      case 'publishSchedule': {
+        const enabled = body.published === true
+        if (enabled) {
+          result = await pool.query('insert into public.event_publications(tournament_id,section,published_by) values($1,$2,$3) on conflict(tournament_id,section) do update set published_at=now(),published_by=excluded.published_by returning section', [tournament.id,'schedule',actorId])
+        } else {
+          result = await pool.query('delete from public.event_publications where tournament_id=$1 and section=$2 returning section', [tournament.id,'schedule'])
+          if (!result.rows[0]) return res.status(200).json({ item: { section: 'schedule', published: false } })
+        }
+        action = enabled ? 'planning.schedule.publish' : 'planning.schedule.unpublish'
         break
       }
       case 'addExpense': {
