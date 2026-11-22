@@ -7,6 +7,7 @@ import { Setup } from './pages/Setup'
 import { Tournaments } from './pages/Tournaments'
 import { History } from './pages/History'
 import { Organizer } from './pages/Organizer'
+import { EventInfoPage } from './pages/EventInfo'
 import { RangefinderPage } from './components/rangefinder/Rangefinder'
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/t/:slug/manual" element={<Manual />} />
         <Route path="/t/:slug/setup" element={<Setup />} />
         <Route path="/t/:slug/organizer" element={<Organizer />} />
+        <Route path="/t/:slug/info" element={<EventInfoPage />} />
         <Route path="/t/:slug/rangefinder" element={<RangefinderPage />} />
         <Route path="/t/:slug/match/:matchId" element={<Scorecard />} />
       </Routes>
