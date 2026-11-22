@@ -141,11 +141,15 @@ export function Organizer() {
             <h2 className="font-semibold text-lg">Attendees</h2>
             {data.invitations.length === 0 ? <p className="text-sm text-gray-500">No invitations yet.</p> :
               data.invitations.map(item => <div key={item.id} className="flex items-center justify-between gap-2"><span className="text-sm">{item.invitee_name}</span><select aria-label={`RSVP for ${item.invitee_name}`} value={item.status} disabled={busy} onChange={event => void write('setRsvp', { id: item.id, status: event.target.value })} className="text-sm border rounded p-2"><option value="invited">Invited</option><option value="yes">Going</option><option value="maybe">Maybe</option><option value="no">Not going</option></select></div>)}
+            <div className="flex gap-2"><input aria-label="Invitee name" placeholder="Add attendee" value={invitee} onChange={e => setInvitee(e.target.value)} className="border rounded-lg p-3 min-w-0 flex-1" /><button disabled={busy || !invitee.trim()} onClick={async () => { if (await write('addInvitee', { name: invitee })) setInvitee('') }} className="bg-[#006747] text-white px-4 rounded-lg disabled:opacity-50">Add</button></div>
           </section>
           <section className="bg-white rounded-xl p-4 border space-y-2">
             <h2 className="font-semibold text-lg">Itinerary</h2>
             {data.schedule.length === 0 ? <p className="text-sm text-gray-500">No itinerary items yet.</p> :
               data.schedule.map(item => <p key={item.id} className="text-sm">{item.title} · {new Date(item.starts_at).toLocaleString()}</p>)}
+            <input aria-label="Schedule title" placeholder="Event or tee time" value={scheduleTitle} onChange={e => setScheduleTitle(e.target.value)} className="border rounded-lg p-3 w-full" />
+            <input aria-label="Schedule date and time" type="datetime-local" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="border rounded-lg p-3 w-full" />
+            <button disabled={busy || !scheduleTitle.trim() || !scheduleDate} onClick={async () => { if (await write('addSchedule', { title: scheduleTitle, startsAt: new Date(scheduleDate).toISOString() })) { setScheduleTitle(''); setScheduleDate('') } }} className="bg-[#006747] text-white px-4 py-2 rounded-lg disabled:opacity-50">Add itinerary item</button>
           </section>
           <section className="bg-white rounded-xl p-4 border">
             <h2 className="font-semibold text-lg">Budget overview</h2>
