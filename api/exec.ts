@@ -89,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(data)
     }
 
-    if (action === 'saveScore') {
+    if (tournament.slug === 'ferda-invitational-2026' && (action === 'saveScore' || action in WRITE_ACTIONS)) {\n      return res.status(403).json({ success: false, error: 'This historical tournament is read-only.' })\n    }\n\n    if (action === 'saveScore') {
       const result = await saveScore(pool, tournament, query)
       res.setHeader('Cache-Control', 'no-store')
       return res.status(200).json(result)
