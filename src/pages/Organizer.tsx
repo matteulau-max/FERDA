@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
-const API_URL = import.meta.env.VITE_API_URL as string
+const PLANNING_URL = '/api/planning'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 type Task = { id: string; title: string; status: string; due_at: string | null }
@@ -44,9 +44,9 @@ export function Organizer() {
   }, [])
 
   useEffect(() => {
-    if (!session || !slug || !API_URL) return
+    if (!session || !slug) return
     let active = true
-    fetch(`${API_URL.replace(/\/exec(?:\?.*)?$/, '')}/planning?t=${encodeURIComponent(slug)}`, {
+    fetch(`${PLANNING_URL}?t=${encodeURIComponent(slug)}`, {
       headers: { Authorization: `Bearer ${session.access_token}` }, cache: 'no-store',
     }).then(async response => {
       const body = await response.json()
@@ -76,7 +76,7 @@ export function Organizer() {
     if (!session || !slug || !task.trim()) return
     setBusy(true)
     try {
-      const response = await fetch(`${API_URL.replace(/\/exec(?:\?.*)?$/, '')}/planning?t=${encodeURIComponent(slug)}`, {
+      const response = await fetch(`${PLANNING_URL}?t=${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'createTask', title: task.trim() }),
