@@ -46,7 +46,8 @@ export function History() {
         const results = await Promise.allSettled(summaries.map(async summary => {
           const data = await fetchTournament(API_URL, summary.slug)
           if (summary.slug !== 'ferda-invitational-2026' && !completed(data)) return null
-          const isArchive = summary.slug === 'ferda-invitational-2026'\n          const points = isArchive ? null : totalPoints(data.sessions, data.players, data.courses)
+          const isArchive = summary.slug === 'ferda-invitational-2026'
+          const points = isArchive ? null : totalPoints(data.sessions, data.players, data.courses)
           return {
             slug: summary.slug,
             name: summary.name,
@@ -85,7 +86,8 @@ export function History() {
         {error && <p role="alert" className="text-center text-sm text-red-700">{error}</p>}
         {!loading && !error && events.length === 0 && <p className="text-center text-sm text-gray-500">No completed tournaments yet. Events appear here automatically when every match is final.</p>}
         {events.map(event => {
-          const isArchive = event.slug === 'ferda-invitational-2026'\n          const winner = isArchive ? '' : event.points1 === event.points2 ? 'Tie' : (event.points1 ?? 0) > (event.points2 ?? 0) ? event.team1 : event.team2
+          const isArchive = event.slug === 'ferda-invitational-2026'
+          const winner = isArchive ? '' : event.points1 === event.points2 ? 'Tie' : (event.points1 ?? 0) > (event.points2 ?? 0) ? event.team1 : event.team2
           return (
             <Link key={event.slug} to={`/t/${event.slug}`} className="block rounded-xl bg-white p-5 shadow-sm active:bg-gray-50" style={{ border: '1px solid #e8e5d8' }}>
               <div className="flex justify-between items-start gap-2">
