@@ -38,18 +38,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const body = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>
-    if (body.action !== 'createTask') return res.status(400).json({ error: 'Unknown planning action' })
-    const title = typeof body.title === 'string' ? body.title.trim() : ''
-    if (!title || title.length > 240) return res.status(400).json({ error: 'Task title must be 1–240 characters' })
-    const result = await pool.query(
-      'insert into public.planning_tasks(tournament_id,title,owner_user_id) values($1,$2,$3) returning id,title,status',
-      [tournament.id, title, actorId],
-    )
-    await pool.query(
-      'insert into public.event_audit_log(tournament_id,actor_user_id,action) values($1,$2,$3)',
-      [tournament.id, actorId, 'planning.task.create'],
-    )
-    return res.status(201).json({ task: result.rows[0] })
+    const str = (value: unknown, max = 240) =>
+      typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max ? value.trim() : null
+    const uuid = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value : null
+    const cents = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null
+    let result: { rows: Record<string, unknown>[]; rowCount: number | null }
+    let action = ''
+    switch (body.action) {
+      case 'createTask': {
+        const title = str(body.title)
+        if (!title) return res.status(400).json({ error: 'Task title must be 1–240 characters' })
+        result = await pool.query('insert into public.planning_tasks(tournament_id,title,owner_user_id) values($1,$2,$3) returning id,title,status', [tournament.id,title,actorId])
+        action = 'planning.task.create'
+        break
+      }
+      case 'setTaskStatus': {
+        const id = uuid(body.id)
+        if (!id || !['todo','doing','done'].includes(String(body.status))) return res.status(400).json({ error: 'Invalid task or status' })
+        result = await pool.query('update public.planning_tasks set status=$3 where tournament_id=$1 and id=$2 returning id,title,status', [tournament.id,id,body.status])
+        action = 'planning.task.status'
+        break
+      }
+      case 'addInvitee': {
+        const name = str(body.name,120)
+        if (!name) return res.status(400).json({ error: 'Invitee name required' })
+        result = await pool.query('insert into public.event_invitations(tournament_id,invitee_name) values($1,$2) returning id,invitee_name,status', [tournament.id,name])
+        action = 'planning.invitation.create'
+        break
+      }
+      case 'setRsvp': {
+        const id = uuid(body.id)
+        if (!id || !['invited','yes','no','maybe'].includes(String(body.status))) return res.status(400).json({ error: 'Invalid invitation or RSVP' })
+        result = await pool.query('update public.event_invitations set status=$3 where tournament_id=$1 and id=$2 returning id,invitee_name,status', [tournament.id,id,body.status])
+        action = 'planning.invitation.status'
+        break
+      }
+      case 'addSchedule': {
+        const title = str(body.title)
+        const start = typeof body.startsAt === 'string' ? new Date(body.startsAt) : new Date(NaN)
+        const location = body.location === '' || body.location == null ? null : str(body.location)
+        if (!title || !Number.isFinite(start.getTime()) || (body.location && !location)) return res.status(400).json({ error: 'Valid title, date and location required' })
+        result = await pool.query('insert into public.event_schedule(tournament_id,title,starts_at,location) values($1,$2,$3,$4) returning id,title,starts_at,location,visibility', [tournament.id,title,start.toISOString(),location])
+        action = 'planning.schedule.create'
+        break
+      }
+      case 'addExpense': {
+        const category = str(body.category,80)
+        const description = str(body.description)
+        const amount = cents(body.estimatedCents)
+        if (!category || !description || amount === null) return res.status(400).json({ error: 'Valid category, description and estimated amount required' })
+        result = await pool.query('insert into public.event_expenses(tournament_id,category,description,estimated_cents) values($1,$2,$3,$4) returning id,category,description,estimated_cents,actual_cents,status', [tournament.id,category,description,amount])
+        action = 'planning.expense.create'
+        break
+      }
+      default: return res.status(400).json({ error: 'Unknown planning action' })
+    }
+    if (!result.rows[0]) return res.status(404).json({ error: 'Planning item not found' })
+    await pool.query('insert into public.event_audit_log(tournament_id,actor_user_id,action) values($1,$2,$3)', [tournament.id,actorId,action])
+    return res.status(200).json({ item: result.rows[0], task: result.rows[0] })
   } catch (error) {
     if (error instanceof OrganizerAuthError) return res.status(error.status).json({ error: error.message })
     if (error instanceof Error && error.name === 'NotFoundError') return res.status(404).json({ error: 'Tournament not found' })
