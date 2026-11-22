@@ -64,7 +64,7 @@ export function Organizer() {
       const response = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/otp`, {
         method: 'POST',
         headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, create_user: false, options: { email_redirect_to: window.location.href.split('#')[0] } }),
+        body: JSON.stringify({ email, create_user: true, options: { email_redirect_to: window.location.href.split('#')[0] } }),
       })
       if (!response.ok) throw new Error('Could not send sign-in link')
       setNotice('Check your email for your organizer sign-in link.')
