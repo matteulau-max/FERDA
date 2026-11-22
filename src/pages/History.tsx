@@ -13,8 +13,8 @@ interface CompletedEvent {
   createdAt: string
   team1: string
   team2: string
-  points1: number
-  points2: number
+  points1: number | null
+  points2: number | null
   matches: number
 }
 
@@ -45,16 +45,16 @@ export function History() {
         // The summary endpoint does not expose completion, so inspect each event.
         const results = await Promise.allSettled(summaries.map(async summary => {
           const data = await fetchTournament(API_URL, summary.slug)
-          if (!completed(data)) return null
-          const points = totalPoints(data.sessions, data.players, data.courses)
+          if (summary.slug !== 'ferda-invitational-2026' && !completed(data)) return null
+          const isArchive = summary.slug === 'ferda-invitational-2026'\n          const points = isArchive ? null : totalPoints(data.sessions, data.players, data.courses)
           return {
             slug: summary.slug,
             name: summary.name,
             createdAt: summary.createdAt,
             team1: data.teams.team1.name,
             team2: data.teams.team2.name,
-            points1: points.team1,
-            points2: points.team2,
+            points1: points?.team1 ?? null,
+            points2: points?.team2 ?? null,
             matches: summary.matchCount,
           } satisfies CompletedEvent
         }))
@@ -85,21 +85,21 @@ export function History() {
         {error && <p role="alert" className="text-center text-sm text-red-700">{error}</p>}
         {!loading && !error && events.length === 0 && <p className="text-center text-sm text-gray-500">No completed tournaments yet. Events appear here automatically when every match is final.</p>}
         {events.map(event => {
-          const winner = event.points1 === event.points2 ? 'Tie' : event.points1 > event.points2 ? event.team1 : event.team2
+          const isArchive = event.slug === 'ferda-invitational-2026'\n          const winner = isArchive ? '' : event.points1 === event.points2 ? 'Tie' : (event.points1 ?? 0) > (event.points2 ?? 0) ? event.team1 : event.team2
           return (
             <Link key={event.slug} to={`/t/${event.slug}`} className="block rounded-xl bg-white p-5 shadow-sm active:bg-gray-50" style={{ border: '1px solid #e8e5d8' }}>
               <div className="flex justify-between items-start gap-2">
                 <h2 className="font-serif italic text-xl font-bold" style={{ color: '#003d26' }}>{event.name}</h2>
-                <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: '#006747' }}>Final</span>
+                <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: '#006747' }}>{isArchive ? 'Read-only archive' : 'Final'}</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">{event.createdAt ? new Date(event.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''} · {event.matches} matches</p>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mt-4 text-center">
                 <div className="text-sm font-semibold">{event.team1}</div>
-                <div className="font-serif font-bold text-xl tabular-nums">{event.points1} – {event.points2}</div>
+                <div className="font-serif font-bold text-xl tabular-nums">{isArchive ? 'Archived scores' : `${event.points1} – ${event.points2}`}</div>
                 <div className="text-sm font-semibold">{event.team2}</div>
               </div>
-              <p className="text-center text-sm mt-3" style={{ color: '#006747' }}>{winner === 'Tie' ? 'Tied event' : `${winner} wins`}</p>
-              <p className="text-center text-xs uppercase tracking-widest mt-3 text-gray-500">View final leaderboard and scorecards →</p>
+              <p className="text-center text-sm mt-3" style={{ color: '#006747' }}>{isArchive ? 'Imported from the July 2026 Google Sheets scoring workbook' : winner === 'Tie' ? 'Tied event' : `${winner} wins`}</p>
+              <p className="text-center text-xs uppercase tracking-widest mt-3 text-gray-500">View historical leaderboard and scorecards →</p>
             </Link>
           )
         })}
