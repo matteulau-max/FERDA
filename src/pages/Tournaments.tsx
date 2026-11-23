@@ -70,10 +70,6 @@ export function Tournaments() {
           <h2 className="font-serif text-xl font-bold text-[#19271f]">Tournaments</h2>
           <Link to="/new" className="rounded-lg bg-[#006747] px-4 py-2.5 text-sm font-semibold text-white">+ New event</Link>
         </div>
-        <nav aria-label="More Ferda tools" className="flex items-center gap-5 text-sm text-[#006747]">
-          <Link to="#past-tournaments" className="underline underline-offset-4">Past results ↓</Link>
-          <Link to="/rangefinder" className="underline underline-offset-4">Rangefinder</Link>
-        </nav>
 
         {error && (
           <div className="rounded-xl px-4 py-6 text-center" style={{ background: '#fff', border: '1px solid #e8e5d8' }}>
