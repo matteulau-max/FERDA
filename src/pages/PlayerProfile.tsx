@@ -4,7 +4,7 @@ import { HomeSignIn } from '../components/HomeSignIn'
 import { consumeAuthCallback, useFerdaSession } from '../lib/ferdaAuth'
 import { avatarUrl, uploadAvatar } from '../lib/avatar'
 
-type Profile = { full_name: string | null; phone: string | null; handicap_index: string | null; avatar_path: string | null }
+type Profile = { full_name: string | null; phone: string | null; handicap_index: string | null; avatar_path: string | null; ghin_number: string | null }
 type ProfileResponse = { email: string; userId: string; profile: Profile | null }
 
 export function PlayerProfile() {
@@ -14,6 +14,7 @@ export function PlayerProfile() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [handicap, setHandicap] = useState('')
+  const [ghin, setGhin] = useState('')
   const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
@@ -37,6 +38,7 @@ export function PlayerProfile() {
         setPhone(data.profile.phone || '')
         setHandicap(data.profile.handicap_index == null ? '' : String(data.profile.handicap_index))
         setAvatarPath(data.profile.avatar_path)
+        setGhin(data.profile.ghin_number || '')
       }
     }).catch(error => { if (!controller.signal.aborted) setNotice(error instanceof Error ? error.message : 'Could not load profile') })
     return () => controller.abort()
@@ -52,7 +54,7 @@ export function PlayerProfile() {
       const response = await fetch('/api/profile', {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName: name.trim(), phone: phone.trim(), handicap: Number(handicap), ...(nextPath ? { avatarPath: nextPath } : {}) }),
+        body: JSON.stringify({ fullName: name.trim(), phone: phone.trim(), handicap: Number(handicap), ghinNumber: ghin.trim(), ...(nextPath ? { avatarPath: nextPath } : {}) }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Could not save profile')
@@ -88,6 +90,10 @@ export function PlayerProfile() {
         <label className="text-sm block">Current golf handicap index
           <input value={handicap} onChange={e => setHandicap(e.target.value)} type="number" min="-10" max="54" step="0.1" className="w-full mt-1 p-3 border rounded-lg" />
         </label>
+        <label className="text-sm block">GHIN number (optional)
+          <input value={ghin} onChange={e => setGhin(e.target.value.replace(/[^0-9]/g, ''))} inputMode="numeric" maxLength={12} placeholder="Your GHIN number" className="w-full mt-1 p-3 border rounded-lg" />
+        </label>
+        <p className="text-xs text-gray-500">Used for organizer-assisted GHIN lookup. Ferda does not automatically verify GHIN handicaps.</p>
         <p className="text-xs text-gray-500">Updating your profile does not rewrite the handicap snapshot saved for a previous event.</p>
         <button type="button" disabled={busy || !userId || !name.trim() || !phone.trim() || handicap.trim() === ''} onClick={() => void save()} className="w-full rounded-lg bg-[#006747] text-white p-3 font-semibold disabled:opacity-50">
           {busy ? 'Saving…' : 'Save profile'}
