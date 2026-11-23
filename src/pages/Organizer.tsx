@@ -75,7 +75,11 @@ export function Organizer() {
         headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, create_user: false }),
       })
-      if (!response.ok) throw new Error('Could not send sign-in link')
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { msg?: string; message?: string; error_description?: string }
+        if (response.status === 429) throw new Error('Too many sign-in emails requested. Please wait before trying again, or use your password.')
+        throw new Error(body.msg || body.error_description || body.message || 'Could not send sign-in link')
+      }
       setNotice('Check your email for your organizer sign-in link.')
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Sign-in failed') }
     finally { setBusy(false) }
