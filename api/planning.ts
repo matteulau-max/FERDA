@@ -23,9 +23,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const actorId = await requireEventOrganizer(req, pool, tournament.id)
 
     if (req.method === 'GET') {
-      const [tasks, invitations, schedule, expenses, payments, publications] = await Promise.all([
+      const [tasks, invitations, registrations, schedule, expenses, payments, publications] = await Promise.all([
         pool.query('select id,title,owner_user_id,due_at,status from public.planning_tasks where tournament_id=$1 order by due_at nulls last,created_at', [tournament.id]),
         pool.query('select id,player_id,invitee_name,status from public.event_invitations where tournament_id=$1 order by invitee_name', [tournament.id]),
+        pool.query('select id,full_name,email,phone,handicap_index,rsvp_status,updated_at from public.event_registrations where tournament_id=$1 order by updated_at desc', [tournament.id]),
         pool.query('select id,title,starts_at,ends_at,location,visibility from public.event_schedule where tournament_id=$1 order by starts_at', [tournament.id]),
         pool.query('select id,category,description,estimated_cents,actual_cents,status from public.event_expenses where tournament_id=$1 order by category,description', [tournament.id]),
         pool.query('select player_id,coalesce(sum(amount_cents),0)::text as paid_cents from public.event_payments where tournament_id=$1 group by player_id', [tournament.id]),
@@ -33,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ])
       return res.status(200).json({
         tournament: { slug: tournament.slug, name: tournament.name },
-        tasks: tasks.rows, invitations: invitations.rows, schedule: schedule.rows,
+        tasks: tasks.rows, invitations: invitations.rows, registrations: registrations.rows, schedule: schedule.rows,
         expenses: expenses.rows, payments: payments.rows, publications: publications.rows,
       })
     }
