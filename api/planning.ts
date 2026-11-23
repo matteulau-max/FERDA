@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const [tasks, invitations, registrations, schedule, expenses, payments, publications] = await Promise.all([
         pool.query('select id,title,owner_user_id,due_at,status from public.planning_tasks where tournament_id=$1 order by due_at nulls last,created_at', [tournament.id]),
         pool.query('select id,player_id,invitee_name,status from public.event_invitations where tournament_id=$1 order by invitee_name', [tournament.id]),
-        pool.query('select id,full_name,email,phone,handicap_index,rsvp_status,updated_at from public.event_registrations where tournament_id=$1 order by updated_at desc', [tournament.id]),
+        pool.query('select r.id,r.full_name,r.email,r.phone,r.handicap_index,r.rsvp_status,r.updated_at,p.avatar_path from public.event_registrations r left join public.player_profiles p on p.user_id=r.user_id where r.tournament_id=$1 order by r.updated_at desc', [tournament.id]),
         pool.query('select id,title,starts_at,ends_at,location,visibility from public.event_schedule where tournament_id=$1 order by starts_at', [tournament.id]),
         pool.query('select id,category,description,estimated_cents,actual_cents,status from public.event_expenses where tournament_id=$1 order by category,description', [tournament.id]),
         pool.query('select player_id,coalesce(sum(amount_cents),0)::text as paid_cents from public.event_payments where tournament_id=$1 group by player_id', [tournament.id]),
