@@ -67,7 +67,7 @@ export function ProfileMenu() {
       onClick={() => setOpen(value => !value)}
       className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-[#FFF200] bg-white text-[#006747] font-bold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFF200]"
     >
-      {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : <span aria-hidden="true">{session ? initials : '♙'}</span>}
+      {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : <span aria-hidden="true">{session ? initials : '👤'}</span>}
     </button>
 
     {open && <div role="group" aria-label="Ferda account" className="absolute right-0 top-14 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-[#e8e5d8] bg-[#FDF8E8] p-3 text-left text-[#19271f] shadow-xl">
