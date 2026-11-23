@@ -180,6 +180,7 @@ export function Scorecard() {
 
       {scoreView === 'hole' && course && activeHole !== undefined && <HoleScoreView
         match={matchWithLocal}
+        players={data.players}
         rules={rules}
         course={course}
         holeNumber={activeHole}
