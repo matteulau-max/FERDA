@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { avatarUrl } from '../lib/avatar'
 
 const PLANNING_URL = '/api/planning'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
@@ -8,7 +9,7 @@ type Task = { id: string; title: string; status: string; due_at: string | null }
 type Invite = { id: string; invitee_name: string; status: string }
 type Schedule = { id: string; title: string; starts_at: string; location: string | null; visibility: string }
 type Expense = { id: string; description: string; estimated_cents: string; actual_cents: string | null }
-type Registration = { id: string; full_name: string; email: string; phone: string; handicap_index: string; rsvp_status: string }
+type Registration = { id: string; full_name: string; email: string; phone: string; handicap_index: string; rsvp_status: string; avatar_path: string | null }
 type Planning = { registrations: Registration[]; tournament: { name: string }; tasks: Task[]; invitations: Invite[]; schedule: Schedule[]; expenses: Expense[]; payments: unknown[]; publications: { section: string; published_at: string }[] }
 type Session = { access_token: string; refresh_token: string; expires_at: number }
 const sessionKey = 'ferda-organizer-session'
@@ -204,9 +205,16 @@ export function Organizer() {
             <p className="text-xs text-gray-600">Self-service RSVPs. Only organizers can see contact information. These entries are not yet players.</p>
             {(data.registrations || []).length === 0 ? <p className="text-sm text-gray-500">No one has registered through the link yet.</p> :
               (data.registrations || []).map(person => <div key={person.id} className="border-b pb-2 text-sm">
-                <div className="flex justify-between gap-2"><strong>{person.full_name}</strong><span>{person.rsvp_status === 'yes' ? 'Going' : person.rsvp_status === 'maybe' ? 'Maybe' : 'Not going'}</span></div>
+                <div className="flex items-center gap-2">
+                  {person.avatar_path && avatarUrl(person.avatar_path) ?
+                    <img className="w-10 h-10 object-cover rounded-full" alt="" src={avatarUrl(person.avatar_path) || ''} /> :
+                    <span className="w-10 h-10 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center font-semibold" aria-hidden="true">{person.full_name.slice(0,1).toUpperCase()}</span>}
+                  <div className="flex-1">
+                    <div className="flex justify-between gap-2"><strong>{person.full_name}</strong><span>{person.rsvp_status === 'yes' ? 'Going' : person.rsvp_status === 'maybe' ? 'Maybe' : 'Not going'}</span></div>
                 <p className="text-gray-600">{person.email} · {person.phone}</p>
                 <p className="text-gray-600">Handicap index: {person.handicap_index}</p>
+                  </div>
+                </div>
               </div>)}
           </section>
           <section className="bg-white rounded-xl p-4 border space-y-2">
