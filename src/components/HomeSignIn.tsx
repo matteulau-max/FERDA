@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { authConfig, redirectHome, saveFerdaSession, useFerdaSession } from '../lib/ferdaAuth'
+import { authConfig, saveFerdaSession, useFerdaSession } from '../lib/ferdaAuth'
 
-export function HomeSignIn() {
+export function HomeSignIn({ returnPath = '/' }: { returnPath?: string }) {
+  const returnUrl = window.location.origin + (returnPath.startsWith('/') && !returnPath.startsWith('//') ? returnPath : '/')
   const session = useFerdaSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -10,14 +11,14 @@ export function HomeSignIn() {
   const [notice, setNotice] = useState('')
 
   if (session) return <div className="rounded-xl bg-white border p-4 flex items-center justify-between gap-3">
-    <span className="text-sm text-[#006747]">Signed in · Organizer options appear on events you manage.</span>
+    <span className="text-sm text-[#006747]">Signed in · Your event options are available.</span>
     <button type="button" className="text-sm underline" onClick={() => { saveFerdaSession(null); setNotice('') }}>Sign out</button>
   </div>
 
   function google() {
     try {
       const { base } = authConfig()
-      window.location.assign(`${base}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectHome())}`)
+      window.location.assign(`${base}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(returnUrl)}`)
     } catch (err) { setNotice(err instanceof Error ? err.message : 'Google sign-in unavailable') }
   }
   async function submit() {
@@ -28,7 +29,7 @@ export function HomeSignIn() {
       if (mode !== 'link' && password.length < 8) throw new Error('Enter a password of at least 8 characters.')
       const endpoint = mode === 'link'
         ? `/auth/v1/otp?redirect_to=${encodeURIComponent(redirectHome())}`
-        : mode === 'signup' ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password'
+        : mode === 'signup' ? `/auth/v1/signup?redirect_to=${encodeURIComponent(returnUrl)}` : '/auth/v1/token?grant_type=password'
       const res = await fetch(base + endpoint, {
         method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' },
         body: JSON.stringify(mode === 'link' ? { email, create_user: false } : { email, password }),
