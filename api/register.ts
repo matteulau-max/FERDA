@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ])
       return res.status(200).json({
         tournament: { name: tournament.name, slug: tournament.slug },
-        email: user.email, registration: registration.rows[0] || null, profile: profile.rows[0] || null,
+        email: user.email, userId: user.id, registration: registration.rows[0] || null, profile: profile.rows[0] || null,
       })
     }
 
