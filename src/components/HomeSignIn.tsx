@@ -28,7 +28,7 @@ export function HomeSignIn({ returnPath = '/' }: { returnPath?: string }) {
       const { base, key } = authConfig()
       if (mode !== 'link' && password.length < 8) throw new Error('Enter a password of at least 8 characters.')
       const endpoint = mode === 'link'
-        ? `/auth/v1/otp?redirect_to=${encodeURIComponent(redirectHome())}`
+        ? `/auth/v1/otp?redirect_to=${encodeURIComponent(returnUrl)}`
         : mode === 'signup' ? `/auth/v1/signup?redirect_to=${encodeURIComponent(returnUrl)}` : '/auth/v1/token?grant_type=password'
       const res = await fetch(base + endpoint, {
         method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' },
