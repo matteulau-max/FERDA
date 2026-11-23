@@ -22,6 +22,7 @@ export function EventRegistration() {
   const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [saved, setSaved] = useState(false)
+  const [eventHandicap, setEventHandicap] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
 
   useEffect(() => { consumeAuthCallback() }, [])
@@ -47,9 +48,10 @@ export function EventRegistration() {
         setAvatarPath(data.profile.avatar_path)
       }
       if (data.registration) {
-        setName(data.registration.full_name)
-        setPhone(data.registration.phone)
-        setHandicap(String(data.registration.handicap_index))
+        if (!data.profile?.full_name) setName(data.registration.full_name)
+        if (!data.profile?.phone) setPhone(data.registration.phone)
+        if (data.profile?.handicap_index == null) setHandicap(String(data.registration.handicap_index))
+        setEventHandicap(String(data.registration.handicap_index))
         setStatus(data.registration.rsvp_status as 'yes' | 'maybe' | 'no')
         setSaved(true)
       }
@@ -70,6 +72,7 @@ export function EventRegistration() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Could not save RSVP')
+      if (!eventHandicap) setEventHandicap(String(data.registration.handicap_index))
       if (avatarFile) {
         const path = await uploadAvatar(avatarFile, session, userId)
         const profileResponse = await fetch('/api/profile', {
@@ -109,6 +112,7 @@ export function EventRegistration() {
         <label className="block text-sm font-medium">Golf handicap index
           <input type="number" step="0.1" min="-10" max="54" value={handicap} onChange={e => setHandicap(e.target.value)} placeholder="e.g. 18.2" className="mt-1 w-full border rounded-lg p-3" />
         </label>
+        {eventHandicap && <p className="text-xs text-gray-600">Event handicap snapshot: {eventHandicap}. Updating your profile does not rewrite this event’s recorded handicap.</p>}
         <div className="space-y-2">
           <p className="text-sm font-medium">Profile picture (optional)</p>
           <div className="flex items-center gap-3">
