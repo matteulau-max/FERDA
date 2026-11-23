@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!input) return res.status(400).json({ error: 'Enter valid name, phone and handicap index (-10 to 54)' })
     // Accept only a fixed file in the caller's own avatar folder.
     const avatar = body.avatarPath === null ? null : body.avatarPath
-    const validPath = typeof avatar === 'string' && new RegExp(`^${user.id}/avatar\\.(jpg|png|webp)$`).test(avatar)
+    const validPath = typeof avatar === 'string' && ['jpg','png','webp'].some(ext => avatar === `${user.id}/avatar.${ext}`)
     if (avatar !== undefined && avatar !== null && !validPath) return res.status(400).json({ error: 'Invalid avatar path' })
     const result = await pool.query(
       `insert into public.player_profiles(user_id,full_name,phone,handicap_index,avatar_path)
