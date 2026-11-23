@@ -5,7 +5,7 @@ import { consumeAuthCallback, useFerdaSession } from '../lib/ferdaAuth'
 import { avatarUrl, uploadAvatar } from '../lib/avatar'
 
 type Registration = { full_name: string; email: string; phone: string; handicap_index: string; rsvp_status: string }
-type Profile = { full_name: string; phone: string; handicap_index: string; avatar_path: string | null }
+type Profile = { full_name: string; phone: string; handicap_index: string; avatar_path: string | null; ghin_number: string | null }
 type Response = { tournament: { name: string; slug: string }; email: string; userId: string; registration: Registration | null; profile: Profile | null }
 
 export function EventRegistration() {
@@ -16,6 +16,7 @@ export function EventRegistration() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [handicap, setHandicap] = useState('')
+  const [ghin, setGhin] = useState('')
   const [status, setStatus] = useState<'yes' | 'maybe' | 'no'>('yes')
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState('')
@@ -46,6 +47,7 @@ export function EventRegistration() {
         setPhone(data.profile.phone || '')
         setHandicap(data.profile.handicap_index == null ? '' : String(data.profile.handicap_index))
         setAvatarPath(data.profile.avatar_path)
+        setGhin(data.profile.ghin_number || '')
       }
       if (data.registration) {
         if (!data.profile?.full_name) setName(data.registration.full_name)
@@ -68,7 +70,7 @@ export function EventRegistration() {
       const response = await fetch(`/api/register?t=${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName: name.trim(), phone: phone.trim(), handicap: Number(handicap), status }),
+        body: JSON.stringify({ fullName: name.trim(), phone: phone.trim(), handicap: Number(handicap), ghinNumber: ghin.trim(), status }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Could not save RSVP')
@@ -78,7 +80,7 @@ export function EventRegistration() {
         const profileResponse = await fetch('/api/profile', {
           method: 'POST',
           headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fullName: name.trim(), phone: phone.trim(), handicap: Number(handicap), avatarPath: path }),
+          body: JSON.stringify({ fullName: name.trim(), phone: phone.trim(), handicap: Number(handicap), ghinNumber: ghin.trim(), avatarPath: path }),
         })
         const profileResult = await profileResponse.json()
         if (!profileResponse.ok) throw new Error(profileResult.error || 'Photo uploaded, but profile update failed')
@@ -112,6 +114,10 @@ export function EventRegistration() {
         <label className="block text-sm font-medium">Golf handicap index
           <input type="number" step="0.1" min="-10" max="54" value={handicap} onChange={e => setHandicap(e.target.value)} placeholder="e.g. 18.2" className="mt-1 w-full border rounded-lg p-3" />
         </label>
+        <label className="text-sm block">GHIN number (optional)
+          <input value={ghin} onChange={e => setGhin(e.target.value.replace(/[^0-9]/g, ''))} inputMode="numeric" maxLength={12} placeholder="Your GHIN number" className="w-full mt-1 p-3 border rounded-lg" />
+        </label>
+        <p className="text-xs text-gray-500">Used for organizer-assisted GHIN lookup. Ferda does not automatically verify GHIN handicaps.</p>
         {eventHandicap && <p className="text-xs text-gray-600">Event handicap snapshot: {eventHandicap}. Updating your profile does not rewrite this event’s recorded handicap.</p>}
         <div className="space-y-2">
           <p className="text-sm font-medium">Profile picture (optional)</p>
