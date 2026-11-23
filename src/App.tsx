@@ -9,6 +9,7 @@ import { History } from './pages/History'
 import { Organizer } from './pages/Organizer'
 import { EventInfoPage } from './pages/EventInfo'
 import { EventRegistration } from './pages/EventRegistration'
+import { PlayerProfile } from './pages/PlayerProfile'
 import { RangefinderPage } from './components/rangefinder/Rangefinder'
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/" element={<Tournaments />} />
         <Route path="/new" element={<NewTournament />} />
         <Route path="/history" element={<History />} />
+        <Route path="/profile" element={<PlayerProfile />} />
         <Route path="/rangefinder" element={<RangefinderPage />} />
 
         {/* The default tournament — keeps existing links and bookmarks working.
