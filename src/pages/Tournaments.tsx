@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { HomeSignIn } from '../components/HomeSignIn'
+import { consumeAuthCallback, useFerdaSession } from '../lib/ferdaAuth'
 import { fetchTournaments, type TournamentSummary } from '../lib/api'
 
 const API_URL = import.meta.env.VITE_API_URL as string
@@ -10,6 +12,8 @@ const API_URL = import.meta.env.VITE_API_URL as string
  * with the site URL can find and open any event.
  */
 export function Tournaments() {
+  const session = useFerdaSession()
+  useEffect(() => { consumeAuthCallback() }, [])
   const [tournaments, setTournaments] = useState<TournamentSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,6 +40,7 @@ export function Tournaments() {
       </div>
 
       <div className="px-4 py-6 max-w-md w-full mx-auto flex flex-col gap-3">
+        <HomeSignIn />
         <div className="grid grid-cols-2 gap-3">
           <Link
             to="/new"
@@ -76,13 +81,27 @@ export function Tournaments() {
           </p>
         )}
 
-        {tournaments?.map((t) => <TournamentCard key={t.slug} tournament={t} />)}
+        {tournaments?.map((t) => <TournamentCard key={t.slug} tournament={t} accessToken={session?.access_token || null} />)}
       </div>
     </div>
   )
 }
 
-function TournamentCard({ tournament: t }: { tournament: TournamentSummary }) {
+function TournamentCard({ tournament: t, accessToken }: { tournament: TournamentSummary; accessToken: string | null }) {
+  const [organizer, setOrganizer] = useState(false)
+  useEffect(() => {
+    let alive = true
+    setOrganizer(false)
+    if (!accessToken) return
+    fetch(`/api/organizer-access?t=${encodeURIComponent(t.slug)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }, cache: 'no-store',
+    }).then(async response => {
+      if (!response.ok) throw new Error('Permission lookup failed')
+      return response.json()
+    }).then(body => { if (alive) setOrganizer(body.organizer === true) })
+      .catch(() => { if (alive) setOrganizer(false) })
+    return () => { alive = false }
+  }, [accessToken, t.slug])
   return (
     <div className="rounded-xl overflow-hidden shadow-sm" style={{ background: '#fff', border: '1px solid #e8e5d8' }}>
       <Link to={`/t/${t.slug}`} className="block px-4 pt-4 pb-3 active:bg-gray-50">
@@ -102,13 +121,16 @@ function TournamentCard({ tournament: t }: { tournament: TournamentSummary }) {
         >
           Leaderboard
         </Link>
-        <Link
-          to={`/t/${t.slug}/setup`}
+        <Link to={`/t/${t.slug}/info`}
           className="flex-1 text-center py-2.5 font-body text-xs uppercase tracking-widest active:bg-gray-100"
-          style={{ color: '#006747', borderLeft: '1px solid #f0ece0' }}
-        >
-          Setup
+          style={{ color: '#006747', borderLeft: '1px solid #f0ece0' }}>
+          Event info
         </Link>
+        {organizer && <Link to={`/t/${t.slug}/organizer`}
+          className="flex-1 text-center py-2.5 font-body text-xs uppercase tracking-widest active:bg-gray-100"
+          style={{ color: '#006747', borderLeft: '1px solid #f0ece0' }}>
+          Manage Event
+        </Link>}
       </div>
     </div>
   )
