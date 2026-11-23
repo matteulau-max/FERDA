@@ -41,6 +41,7 @@ export function Tournaments() {
 
       <div className="px-4 py-6 max-w-md w-full mx-auto flex flex-col gap-3">
         <HomeSignIn />
+        {session && <Link to="/profile" className="block rounded-lg bg-white border text-center p-3 text-sm font-semibold text-[#006747]">My player profile · Handicap & photo</Link>}
         <div className="grid grid-cols-2 gap-3">
           <Link
             to="/new"
