@@ -8,7 +8,8 @@ type Task = { id: string; title: string; status: string; due_at: string | null }
 type Invite = { id: string; invitee_name: string; status: string }
 type Schedule = { id: string; title: string; starts_at: string; location: string | null; visibility: string }
 type Expense = { id: string; description: string; estimated_cents: string; actual_cents: string | null }
-type Planning = { tournament: { name: string }; tasks: Task[]; invitations: Invite[]; schedule: Schedule[]; expenses: Expense[]; payments: unknown[]; publications: { section: string; published_at: string }[] }
+type Registration = { id: string; full_name: string; email: string; phone: string; handicap_index: string; rsvp_status: string }
+type Planning = { registrations: Registration[]; tournament: { name: string }; tasks: Task[]; invitations: Invite[]; schedule: Schedule[]; expenses: Expense[]; payments: unknown[]; publications: { section: string; published_at: string }[] }
 type Session = { access_token: string; refresh_token: string; expires_at: number }
 const sessionKey = 'ferda-organizer-session'
 
@@ -35,6 +36,7 @@ export function Organizer() {
   const [expenseCategory, setExpenseCategory] = useState('Courses')
   const [expenseAmount, setExpenseAmount] = useState('')
   const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     // Supabase magic-link redirects return a session in the URL fragment.
@@ -156,6 +158,15 @@ export function Organizer() {
       <Link to={`/t/${slug}`} className="text-sm underline mt-2 inline-block">Back to leaderboard</Link>
     </header>
     <main className="max-w-3xl mx-auto p-4 space-y-5">
+      <section className="bg-white rounded-xl p-4 border space-y-2">
+        <h2 className="font-semibold">Share registration link</h2>
+        <p className="text-sm text-gray-600">Guests can sign in or create an account and RSVP to this tournament. Registration does not assign teams or pairings.</p>
+        <p className="text-xs break-all text-[#006747]">{window.location.origin}/t/{slug}/register</p>
+        <button type="button" className="bg-[#006747] text-white rounded-lg px-4 py-2 text-sm" onClick={async () => {
+          try { await navigator.clipboard.writeText(`${window.location.origin}/t/${slug}/register`); setCopied(true) }
+          catch { setNotice('Copy unavailable. Select the link above to share it.') }
+        }}>{copied ? 'Copied!' : 'Copy invite link'}</button>
+      </section>
       {notice && <p role="status" className="bg-white rounded-lg border p-3 text-sm">{notice}</p>}
       {!session ? <section className="bg-white rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-lg">Organizer sign-in</h2>
@@ -177,7 +188,7 @@ export function Organizer() {
         <div className="flex justify-end"><button className="text-sm underline" onClick={() => { sessionStorage.removeItem(sessionKey); setSession(null); setData(null) }}>Sign out</button></div>
         {data ? <>
           <div className="grid grid-cols-2 gap-3">
-            {([['RSVPs', data.invitations.length], ['Tasks', data.tasks.length], ['Schedule items', data.schedule.length], ['Expenses', data.expenses.length]] as const).map(([label, count]) =>
+            {([['Registrations', data.registrations?.length ?? 0], ['Tasks', data.tasks.length], ['Schedule items', data.schedule.length], ['Expenses', data.expenses.length]] as const).map(([label, count]) =>
               <div key={label} className="bg-white rounded-xl p-4 border"><p className="text-2xl font-bold text-[#006747]">{count}</p><p className="text-sm text-gray-600">{label}</p></div>)}
           </div>
           <section className="bg-white rounded-xl p-4 border space-y-3">
@@ -187,6 +198,16 @@ export function Organizer() {
             <div className="flex gap-2"><input aria-label="New task" value={task} onChange={event => setTask(event.target.value)}
               placeholder="e.g. Confirm courses" className="border rounded-lg p-3 min-w-0 flex-1" />
               <button disabled={busy || !task.trim()} onClick={addTask} className="bg-[#006747] text-white px-4 rounded-lg disabled:opacity-50">Add</button></div>
+          </section>
+          <section className="bg-white rounded-xl p-4 border space-y-3">
+            <h2 className="font-semibold text-lg">Event registrations</h2>
+            <p className="text-xs text-gray-600">Self-service RSVPs. Only organizers can see contact information. These entries are not yet players.</p>
+            {(data.registrations || []).length === 0 ? <p className="text-sm text-gray-500">No one has registered through the link yet.</p> :
+              (data.registrations || []).map(person => <div key={person.id} className="border-b pb-2 text-sm">
+                <div className="flex justify-between gap-2"><strong>{person.full_name}</strong><span>{person.rsvp_status === 'yes' ? 'Going' : person.rsvp_status === 'maybe' ? 'Maybe' : 'Not going'}</span></div>
+                <p className="text-gray-600">{person.email} · {person.phone}</p>
+                <p className="text-gray-600">Handicap index: {person.handicap_index}</p>
+              </div>)}
           </section>
           <section className="bg-white rounded-xl p-4 border space-y-2">
             <h2 className="font-semibold text-lg">Attendees</h2>
