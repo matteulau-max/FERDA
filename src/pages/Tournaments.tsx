@@ -2,22 +2,49 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ProfileMenu } from '../components/ProfileMenu'
 import { consumeAuthCallback, useFerdaSession } from '../lib/ferdaAuth'
-import { fetchTournaments, type TournamentSummary } from '../lib/api'
+import { fetchTournament, fetchTournaments, type TournamentSummary } from '../lib/api'
+import { totalPoints } from '../lib/matchPlay'
+import { isHistoricalTournament } from '../lib/tournamentCompletion'
 
 const API_URL = import.meta.env.VITE_API_URL as string
+
+type TournamentWithStatus = {
+  summary: TournamentSummary
+  historical: boolean
+  score: { team1: number; team2: number } | null
+}
+
 
 /** Public tournament hub with account controls in the header. */
 export function Tournaments() {
   const session = useFerdaSession()
   useEffect(() => { consumeAuthCallback() }, [])
-  const [tournaments, setTournaments] = useState<TournamentSummary[] | null>(null)
+  const [tournaments, setTournaments] = useState<TournamentWithStatus[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    fetchTournaments(API_URL)
-      .then((list) => { if (!cancelled) setTournaments(list) })
-      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load tournaments') })
+    async function load() {
+      try {
+        const list = await fetchTournaments(API_URL)
+        const entries = await Promise.all(list.map(async summary => {
+          const data = await fetchTournament(API_URL, summary.slug)
+          const historical = isHistoricalTournament(summary.slug, data)
+          const points = historical && summary.slug !== 'ferda-invitational-2026'
+            ? totalPoints(data.sessions, data.players, data.courses)
+            : null
+          return {
+            summary,
+            historical,
+            score: points ? { team1: points.team1, team2: points.team2 } : null,
+          } satisfies TournamentWithStatus
+        }))
+        if (!cancelled) setTournaments(entries)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load tournaments')
+      }
+    }
+    void load()
     return () => { cancelled = true }
   }, [])
 
@@ -44,7 +71,7 @@ export function Tournaments() {
           <Link to="/new" className="rounded-lg bg-[#006747] px-4 py-2.5 text-sm font-semibold text-white">+ New event</Link>
         </div>
         <nav aria-label="More Ferda tools" className="flex items-center gap-5 text-sm text-[#006747]">
-          <Link to="/history" className="underline underline-offset-4">Past results</Link>
+          <Link to="#past-tournaments" className="underline underline-offset-4">Past results ↓</Link>
           <Link to="/rangefinder" className="underline underline-offset-4">Rangefinder</Link>
         </nav>
 
@@ -63,13 +90,28 @@ export function Tournaments() {
           </>
         )}
 
-        {tournaments?.length === 0 && (
-          <p className="text-center font-body text-sm text-gray-500 py-8">
-            No tournaments yet. Start one above.
-          </p>
-        )}
-
-        {tournaments?.map((t) => <TournamentCard key={t.slug} tournament={t} accessToken={session?.access_token || null} />)}
+        {tournaments && <>
+          <section aria-labelledby="current-events-title" className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 id="current-events-title" className="font-serif text-lg font-bold text-[#19271f]">Live & upcoming</h3>
+              <span className="text-xs text-gray-500">{tournaments.filter(t => !t.historical).length} events</span>
+            </div>
+            {tournaments.filter(t => !t.historical).length === 0
+              ? <p className="rounded-xl border bg-white p-4 text-sm text-gray-500">No current tournaments. Start a new one above.</p>
+              : tournaments.filter(t => !t.historical).map(t =>
+                <TournamentCard key={t.summary.slug} tournament={t.summary} accessToken={session?.access_token || null} />)}
+          </section>
+          <section id="past-tournaments" aria-labelledby="past-events-title" className="space-y-3 pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 id="past-events-title" className="font-serif text-lg font-bold text-[#19271f]">Past tournaments</h3>
+              <span className="text-xs text-gray-500">{tournaments.filter(t => t.historical).length} events</span>
+            </div>
+            {tournaments.filter(t => t.historical).length === 0
+              ? <p className="rounded-xl border bg-white p-4 text-sm text-gray-500">Completed tournaments will appear here.</p>
+              : tournaments.filter(t => t.historical).map(t =>
+                <PastTournamentCard key={t.summary.slug} event={t} />)}
+          </section>
+        </>}
       </div>
     </div>
   )
@@ -122,6 +164,31 @@ function TournamentCard({ tournament: t, accessToken }: { tournament: Tournament
       </div>
     </div>
   )
+}
+
+function PastTournamentCard({ event }: { event: TournamentWithStatus }) {
+  const { summary, score } = event
+  const isArchive = summary.slug === 'ferda-invitational-2026'
+  const winner = !score ? null : score.team1 === score.team2 ? 'Tied event'
+    : `${score.team1 > score.team2 ? summary.team1Name : summary.team2Name} wins`
+  return <Link to={`/t/${summary.slug}`} className="block rounded-xl border border-[#e8e5d8] bg-white p-4 shadow-sm active:bg-gray-50">
+    <div className="flex items-start justify-between gap-3">
+      <h4 className="font-serif italic text-lg font-bold text-[#19271f]">{summary.name}</h4>
+      <span className="shrink-0 rounded-full bg-[#e6f2ec] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#006747]">
+        {isArchive ? 'Archive' : 'Final'}
+      </span>
+    </div>
+    <p className="mt-1 text-xs text-gray-500">{summary.matchCount} matches</p>
+    <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+      <span className="flex-1 font-semibold">{summary.team1Name}</span>
+      <span className="shrink-0 font-serif text-lg font-bold tabular-nums">
+        {score ? `${score.team1} – ${score.team2}` : 'Archived scores'}
+      </span>
+      <span className="flex-1 text-right font-semibold">{summary.team2Name}</span>
+    </div>
+    <p className="mt-2 text-center text-xs text-[#006747]">{winner || (isArchive ? 'Read-only July 2026 results' : 'View final results')}</p>
+    <p className="mt-2 text-center text-xs font-semibold uppercase tracking-wide text-[#006747]">View results →</p>
+  </Link>
 }
 
 function count(n: number, singular: string, plural = `${singular}s`): string {
