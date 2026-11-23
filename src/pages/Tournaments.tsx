@@ -121,10 +121,10 @@ function TournamentCard({ tournament: t, accessToken }: { tournament: Tournament
         >
           Leaderboard
         </Link>
-        <Link to={`/t/${t.slug}/info`}
+        <Link to={`/t/${t.slug}/register`}
           className="flex-1 text-center py-2.5 font-body text-xs uppercase tracking-widest active:bg-gray-100"
           style={{ color: '#006747', borderLeft: '1px solid #f0ece0' }}>
-          Event info
+          RSVP
         </Link>
         {organizer && <Link to={`/t/${t.slug}/organizer`}
           className="flex-1 text-center py-2.5 font-body text-xs uppercase tracking-widest active:bg-gray-100"
