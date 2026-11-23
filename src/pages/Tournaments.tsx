@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { HomeSignIn } from '../components/HomeSignIn'
+import { ProfileMenu } from '../components/ProfileMenu'
 import { consumeAuthCallback, useFerdaSession } from '../lib/ferdaAuth'
 import { fetchTournaments, type TournamentSummary } from '../lib/api'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 
-/**
- * The landing page: every tournament in the database, newest first.
- * There's no sign-in yet, so this is deliberately a public index — anyone
- * with the site URL can find and open any event.
- */
+/** Public tournament hub with account controls in the header. */
 export function Tournaments() {
   const session = useFerdaSession()
   useEffect(() => { consumeAuthCallback() }, [])
@@ -27,39 +23,30 @@ export function Tournaments() {
 
   return (
     <div className="min-h-screen" style={{ background: '#FDF8E8' }}>
-      <div
-        className="text-white text-center py-8 px-4"
+      <header
+        className="relative px-4 py-5 text-white"
         style={{ background: 'linear-gradient(135deg, #004d34 0%, #006747 60%, #004d34 100%)' }}
       >
-        <p className="text-xs uppercase tracking-widest font-body mb-1" style={{ color: '#FFF200', opacity: 0.85 }}>
-          A Tradition Unlike Any Other
-        </p>
-        <h1 className="font-serif italic text-2xl font-bold" style={{ color: '#FFF200' }}>
-          Tournaments
-        </h1>
-      </div>
+        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-body" style={{ color: '#FFF200', opacity: 0.85 }}>
+              A Tradition Unlike Any Other
+            </p>
+            <h1 className="font-serif italic text-2xl font-bold" style={{ color: '#FFF200' }}>Ferda Golf</h1>
+          </div>
+          <ProfileMenu />
+        </div>
+      </header>
 
       <div className="px-4 py-6 max-w-md w-full mx-auto flex flex-col gap-3">
-        <HomeSignIn />
-        {session && <Link to="/profile" className="block rounded-lg bg-white border text-center p-3 text-sm font-semibold text-[#006747]">My player profile · Handicap & photo</Link>}
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            to="/new"
-            className="flex items-center justify-center text-center min-h-12 px-2 py-3 rounded-lg font-body font-semibold text-white leading-snug focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ background: '#006747' }}
-          >
-            Start a tournament
-          </Link>
-          <Link
-            to="/rangefinder"
-            className="flex items-center justify-center text-center min-h-12 px-2 py-3 rounded-lg font-body font-semibold text-white leading-snug focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ background: '#006747' }}
-          >
-            Rangefinder
-          </Link>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-serif text-xl font-bold text-[#19271f]">Tournaments</h2>
+          <Link to="/new" className="rounded-lg bg-[#006747] px-4 py-2.5 text-sm font-semibold text-white">+ New event</Link>
         </div>
-
-        <Link to="/history" className="block text-center rounded-lg py-3 font-body font-semibold" style={{ background: "#FFF200", color: "#003d26" }}>Completed events · History</Link>
+        <nav aria-label="More Ferda tools" className="flex items-center gap-5 text-sm text-[#006747]">
+          <Link to="/history" className="underline underline-offset-4">Past results</Link>
+          <Link to="/rangefinder" className="underline underline-offset-4">Rangefinder</Link>
+        </nav>
 
         {error && (
           <div className="rounded-xl px-4 py-6 text-center" style={{ background: '#fff', border: '1px solid #e8e5d8' }}>
