@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        values($1,$2,$3,$4,$5,$6,$7)
        on conflict (tournament_id,user_id) do update set
          full_name=excluded.full_name,email=excluded.email,phone=excluded.phone,
-         handicap_index=excluded.handicap_index,rsvp_status=excluded.rsvp_status,updated_at=now()
+         rsvp_status=excluded.rsvp_status,updated_at=now()
        returning full_name,email,phone,handicap_index,rsvp_status`,
       [tournament.id, user.id, name, user.email.toLowerCase(), phone, handicap, status],
     )
