@@ -5,6 +5,7 @@ import { useScoreSave } from '../hooks/useScoreSave'
 import { useTournamentRoute, href } from '../lib/paths'
 import { StatusBanner } from '../components/StatusBanner'
 import { ScoreTable } from '../components/ScoreTable'
+import { HoleScoreView } from '../components/HoleScoreView'
 import { HandicapInfo } from '../components/HandicapInfo'
 import { MatchWormChart } from '../components/MatchWormChart'
 import { OverflowMenu } from '../components/OverflowMenu'
@@ -24,6 +25,8 @@ export function Scorecard() {
   const { save } = useScoreSave(API_URL, slug)
   const [showRangefinder, setShowRangefinder] = useState(false)
   const [showTeamPulse, setShowTeamPulse] = useState(false)
+  const [scoreView, setScoreView] = useState<'hole' | 'table'>('hole')
+  const [selectedHole, setSelectedHole] = useState<number | null>(null)
 
   // Local optimistic scores state
   const [localScores, setLocalScores] = useState<MatchScores>({})
@@ -115,6 +118,12 @@ export function Scorecard() {
   // A nine only fills one of the two tables, so skip the empty one entirely.
   const showFront = !!course?.holes.some((h) => h.number <= 9)
   const showBack = !!course?.holes.some((h) => h.number > 9)
+  const holeNumbers = [...(course?.holes ?? [])].map(h => h.number).sort((a, b) => a - b)
+  const activeHole = selectedHole !== null && holeNumbers.includes(selectedHole) ? selectedHole : holeNumbers[0]
+  const moveHole = (delta: number) => {
+    const index = holeNumbers.indexOf(activeHole)
+    setSelectedHole(holeNumbers[Math.max(0, Math.min(holeNumbers.length - 1, index + delta))])
+  }
 
   const subtitle = [
     session.name,
@@ -140,13 +149,17 @@ export function Scorecard() {
         <OverflowMenu />
       </div>
 
-      <TeamPulse data={data} expanded={showTeamPulse} onToggle={() => setShowTeamPulse(v => !v)} />
-
-      <div className="px-4 py-2 flex justify-end" style={{ borderBottom: '1px solid #e8e5d8' }}>
-        <button onClick={() => setShowRangefinder(true)} className="font-body text-sm font-semibold px-3 py-2 rounded-lg" style={{ color: '#006747', border: '1px solid #c5dacc' }}>
-          Rangefinder
-        </button>
+      <div className="sticky top-0 z-20 shadow-sm">
+        <TeamPulse data={data} expanded={showTeamPulse} onToggle={() => setShowTeamPulse(v => !v)} />
+        <StatusBanner status={status} team1={data.teams.team1} team2={data.teams.team2} />
       </div>
+      <div className="mx-auto flex max-w-xl gap-2 px-3 pt-3" role="tablist" aria-label="Scoring display">
+        <button type="button" role="tab" aria-selected={scoreView === 'hole'} onClick={() => setScoreView('hole')} className={`min-h-12 flex-1 rounded-xl px-3 text-sm font-bold ${scoreView === 'hole' ? 'bg-[#006747] text-white' : 'bg-white text-[#006747] border border-[#c5dacc]'}`}>Hole view</button>
+        <button type="button" role="tab" aria-selected={scoreView === 'table'} onClick={() => setScoreView('table')} className={`min-h-12 flex-1 rounded-xl px-3 text-sm font-bold ${scoreView === 'table' ? 'bg-[#006747] text-white' : 'bg-white text-[#006747] border border-[#c5dacc]'}`}>Full scorecard</button>
+      </div>
+      {scoreView === 'hole' && <div className="mx-auto flex max-w-xl justify-end px-3 pt-2">
+        <button type="button" onClick={() => setShowRangefinder(true)} className="rounded-lg border border-[#c5dacc] bg-white px-4 py-2 text-sm font-semibold text-[#006747]">Camera slope tool ↗</button>
+      </div>}
       {showRangefinder && <RangefinderDialog onClose={() => setShowRangefinder(false)} context={course?.name} />}
 
       {saveStatus !== 'idle' && (
@@ -165,10 +178,19 @@ export function Scorecard() {
         </div>
       )}
 
-      <StatusBanner status={status} team1={data.teams.team1} team2={data.teams.team2} />
+      {scoreView === 'hole' && course && activeHole !== undefined && <HoleScoreView
+        match={matchWithLocal}
+        rules={rules}
+        course={course}
+        holeNumber={activeHole}
+        onHoleChange={moveHole}
+        onScoreChange={handleScoreChange}
+        team1Name={data.teams.team1.name}
+        team2Name={data.teams.team2.name}
+      />}
 
-      {/* Score tables */}
-      {course && (
+      {/* Traditional table remains available as a secondary view. */}
+      {scoreView === 'table' && course && (
         <div className="px-0 py-3 flex flex-col gap-4">
           {showFront && (
             <div className="bg-white rounded-xl mx-3 overflow-hidden shadow-sm" style={{ border: '1px solid #e8e5d8' }}>
@@ -200,7 +222,7 @@ export function Scorecard() {
       )}
 
       {/* Worm chart — only shown once at least 1 hole is scored */}
-      {status.holesPlayed > 0 && course && (
+      {scoreView === 'table' && status.holesPlayed > 0 && course && (
         <div className="mx-3 mb-1">
           <MatchWormChart
             match={matchWithLocal}
@@ -213,7 +235,7 @@ export function Scorecard() {
         </div>
       )}
 
-      {course && (
+      {scoreView === 'table' && course && (
         <div className="mx-3">
           <HandicapInfo match={match} rules={rules} players={data.players} course={course} />
         </div>
@@ -289,22 +311,19 @@ function TeamPulse({ data, expanded, onToggle }: {
   const team2 = data.teams.team2.name
   const highlights = tournamentHighlights(data)
   return (
-    <section className="sticky top-0 z-20 overflow-hidden border-b border-emerald-900/20 bg-white shadow-sm" aria-label="Team Pulse">
+    <section className="overflow-hidden border-b border-emerald-900/20 bg-white" aria-label="Team Pulse">
       <button type="button" onClick={onToggle} aria-expanded={expanded}
-        className="w-full bg-[#063d2c] px-4 py-3 text-left text-white">
+        className="w-full bg-[#063d2c] px-4 py-2 text-left text-white">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[.16em]">Ferda Open · Team Pulse</span>
           <span className="text-xs text-emerald-100">{expanded ? 'Collapse ▲' : 'Matches ▼'}</span>
         </div>
-        <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
-          <div><p className="truncate text-xs text-emerald-100">{team1}</p><p className="text-3xl font-black tabular-nums">{fmt(locked.team1)}</p></div>
-          <div className="text-[10px] font-semibold uppercase leading-tight text-emerald-100">Secured<br />points</div>
-          <div><p className="truncate text-xs text-emerald-100">{team2}</p><p className="text-3xl font-black tabular-nums">{fmt(locked.team2)}</p></div>
+        <div className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
+          <div><p className="truncate text-xs text-emerald-100">{team1}</p><p className="text-2xl font-black tabular-nums">{fmt(projected1)}</p></div>
+          <div className="text-[10px] font-semibold uppercase leading-tight text-emerald-100">Projected<br />points</div>
+          <div><p className="truncate text-xs text-emerald-100">{team2}</p><p className="text-2xl font-black tabular-nums">{fmt(projected2)}</p></div>
         </div>
-        <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs">
-          <span>Projected: {fmt(projected1)} – {fmt(projected2)}</span>
-          <span>{live} live {live === 1 ? 'match' : 'matches'}</span>
-        </div>
+        <p className="mt-1 text-center text-[11px] text-emerald-100">Secured {fmt(locked.team1)} – {fmt(locked.team2)} · {live} live {live === 1 ? 'match' : 'matches'}</p>
       </button>
       {expanded && <div className="space-y-3 px-4 py-3 font-body text-sm">
         <div className="rounded-xl bg-amber-50 px-3 py-2 text-amber-950" role="status">
