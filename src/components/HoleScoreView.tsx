@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react'
-import type { Match, SessionCourse, SessionRules } from '../lib/types'
+import type { Match, Player, SessionCourse, SessionRules } from '../lib/types'
+import { computeMatchStrokes } from '../lib/matchPlay'
 import { GolfGps } from './rangefinder/GolfGps'
 
 type Props = {
   match: Match
+  players: Player[]
   rules: SessionRules
   course: SessionCourse
   holeNumber: number
@@ -13,9 +15,10 @@ type Props = {
   team2Name: string
 }
 
-export function HoleScoreView({ match, rules, course, holeNumber, onHoleChange, onScoreChange, team1Name, team2Name }: Props) {
+export function HoleScoreView({ match, players, rules, course, holeNumber, onHoleChange, onScoreChange, team1Name, team2Name }: Props) {
   const [distance, setDistance] = useState<number | null>(null)
   const distanceChanged = useCallback((yards: number | null) => setDistance(yards), [])
+  const allocatedStrokes = computeMatchStrokes(match, rules, players, course)
   const hole = course.holes.find(h => h.number === holeNumber)
   if (!hole) return <p className="p-4 text-sm">This hole is not on the selected scorecard.</p>
   const sides = [
@@ -46,8 +49,20 @@ export function HoleScoreView({ match, rules, course, holeNumber, onHoleChange, 
         <p className="bg-[#e8f5ef] px-4 py-2 text-xs font-bold uppercase tracking-wide text-[#006747]">{side.name}</p>
         {side.players.map(player => {
           const value = match.scores[hole.number]?.[side.key]?.[player]
+          const strokes = rules.format === 'Scramble'
+            ? (side.key === 'team1' ? allocatedStrokes.t1TeamStrokesPerHole[hole.number] : allocatedStrokes.t2TeamStrokesPerHole[hole.number]) ?? 0
+            : (side.key === 'team1' ? allocatedStrokes.t1PlayerStrokes[player]?.[hole.number] : allocatedStrokes.t2PlayerStrokes[player]?.[hole.number]) ?? 0
+          const net = value ? value - strokes : null
           return <div key={player} className="flex min-h-20 items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#19271f]">{player}</span>
+            <span className="min-w-0 flex-1 text-sm font-semibold text-[#19271f]">
+              <span className="inline-flex flex-wrap items-center gap-1">
+                <span>{player}</span>
+                {strokes > 0 && <span aria-label={`${strokes} handicap ${strokes === 1 ? 'stroke' : 'strokes'} received on this hole`} title={`${strokes} handicap strokes on hole ${hole.number}`} className="inline-flex items-center gap-0.5 text-[#006747]">
+                  {Array.from({ length: strokes }, (_, i) => <span aria-hidden="true" key={i} className="text-[10px] leading-none">●</span>)}
+                </span>}
+              </span>
+              <span className="block text-xs font-normal text-gray-500">{net === null ? 'Gross → net automatically' : `Net ${net}`}</span>
+            </span>
             <div className="flex shrink-0 items-center gap-2">
               <button type="button" aria-label={`Decrease ${player} score`} disabled={!value || value <= 1} onClick={() => onScoreChange(hole.number, side.key, player, value - 1)} className="h-12 w-12 rounded-xl border border-[#b8d1c2] bg-white text-2xl font-bold text-[#006747] disabled:opacity-30">−</button>
               <span aria-live="polite" className="w-10 text-center text-2xl font-bold tabular-nums text-[#19271f]">{value || '–'}</span>
@@ -56,7 +71,7 @@ export function HoleScoreView({ match, rules, course, holeNumber, onHoleChange, 
           </div>
         })}
       </div>)}
-      <p className="px-1 text-xs text-gray-500">Tap + to enter par, then adjust. Scores save automatically. Handicap strokes and net scoring remain calculated by Ferda.</p>
+      <p className="px-1 text-xs text-gray-500">Enter gross scores only. Dots indicate handicap strokes received on this hole; Ferda calculates net scores automatically.</p>
     </section>
 
     <nav className="flex gap-3" aria-label="Hole navigation">
