@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchTournament, fetchTournaments } from '../lib/api'
-import { calcMatchStatus, calcSessionTotals, totalPoints } from '../lib/matchPlay'
-import { courseForSession, sessionRules } from '../lib/holes'
-import type { TournamentData } from '../lib/types'
+import { totalPoints } from '../lib/matchPlay'
+import { isHistoricalTournament } from '../lib/tournamentCompletion'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 
@@ -16,19 +15,6 @@ interface CompletedEvent {
   points1: number | null
   points2: number | null
   matches: number
-}
-
-function completed(data: TournamentData): boolean {
-  if (!data.sessions.length) return false
-  return data.sessions.every(session => {
-    if (!session.matches.length) return false
-    const course = courseForSession(data.courses, session)
-    if (!course) return false
-    const rules = sessionRules(session)
-    if (rules.scoring === 'Total Stroke Play')
-      return calcSessionTotals(session, data.players, data.courses).isComplete
-    return session.matches.every(match => calcMatchStatus(match, rules, data.players, course).isComplete)
-  })
 }
 
 export function History() {
@@ -45,7 +31,7 @@ export function History() {
         // The summary endpoint does not expose completion, so inspect each event.
         const results = await Promise.allSettled(summaries.map(async summary => {
           const data = await fetchTournament(API_URL, summary.slug)
-          if (summary.slug !== 'ferda-invitational-2026' && !completed(data)) return null
+          if (!isHistoricalTournament(summary.slug, data)) return null
           const isArchive = summary.slug === 'ferda-invitational-2026'
           const points = isArchive ? null : totalPoints(data.sessions, data.players, data.courses)
           return {
