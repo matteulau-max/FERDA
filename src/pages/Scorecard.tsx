@@ -26,7 +26,7 @@ export function Scorecard() {
   const [showRangefinder, setShowRangefinder] = useState(false)
   const [showTeamPulse, setShowTeamPulse] = useState(false)
   const [scoreView, setScoreView] = useState<'hole' | 'table'>('hole')
-  const [selectedHole, setSelectedHole] = useState<number | null>(null)
+  const [selectedHole, setSelectedHole] = useState<number | null>(() => Number(new URLSearchParams(window.location.search).get('hole')) || null)
 
   // Local optimistic scores state
   const [localScores, setLocalScores] = useState<MatchScores>({})
@@ -150,16 +150,12 @@ export function Scorecard() {
       </div>
 
       <div className="sticky top-0 z-20 shadow-sm">
-        <TeamPulse data={data} expanded={showTeamPulse} onToggle={() => setShowTeamPulse(v => !v)} />
         <StatusBanner status={status} team1={data.teams.team1} team2={data.teams.team2} />
       </div>
       <div className="mx-auto flex max-w-xl gap-2 px-3 pt-3" role="tablist" aria-label="Scoring display">
         <button type="button" role="tab" aria-selected={scoreView === 'hole'} onClick={() => setScoreView('hole')} className={`min-h-12 flex-1 rounded-xl px-3 text-sm font-bold ${scoreView === 'hole' ? 'bg-[#006747] text-white' : 'bg-white text-[#006747] border border-[#c5dacc]'}`}>Hole view</button>
         <button type="button" role="tab" aria-selected={scoreView === 'table'} onClick={() => setScoreView('table')} className={`min-h-12 flex-1 rounded-xl px-3 text-sm font-bold ${scoreView === 'table' ? 'bg-[#006747] text-white' : 'bg-white text-[#006747] border border-[#c5dacc]'}`}>Full scorecard</button>
       </div>
-      {scoreView === 'hole' && <div className="mx-auto flex max-w-xl justify-end px-3 pt-2">
-        <button type="button" onClick={() => setShowRangefinder(true)} className="rounded-lg border border-[#c5dacc] bg-white px-4 py-2 text-sm font-semibold text-[#006747]">Camera slope tool ↗</button>
-      </div>}
       {showRangefinder && <RangefinderDialog onClose={() => setShowRangefinder(false)} context={course?.name} />}
 
       {saveStatus !== 'idle' && (
@@ -189,6 +185,11 @@ export function Scorecard() {
         team1Name={data.teams.team1.name}
         team2Name={data.teams.team2.name}
       />}
+
+      {scoreView === 'hole' && <div className="mx-auto flex max-w-xl justify-end px-3 pt-2">
+        <button type="button" onClick={() => setShowRangefinder(true)} className="rounded-lg border border-[#c5dacc] bg-white px-4 py-2 text-sm font-semibold text-[#006747]">Camera slope tool ↗</button>
+      </div>}
+      <TeamPulse data={data} expanded={showTeamPulse} onToggle={() => setShowTeamPulse(v => !v)} />
 
       {/* Traditional table remains available as a secondary view. */}
       {scoreView === 'table' && course && (
