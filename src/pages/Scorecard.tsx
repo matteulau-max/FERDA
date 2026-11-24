@@ -18,6 +18,11 @@ import type { Match, MatchScores } from '../lib/types'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 export function Scorecard() {
+  const { slug, matchId } = useParams()
+  return <MatchScorecard key={JSON.stringify([slug, matchId])} />
+}
+
+function MatchScorecard() {
   const { matchId } = useParams<{ matchId: string }>()
   const navigate = useNavigate()
   const { slug, base } = useTournamentRoute()
@@ -28,72 +33,80 @@ export function Scorecard() {
   const [scoreView, setScoreView] = useState<'hole' | 'table'>('hole')
   const [selectedHole, setSelectedHole] = useState<number | null>(() => Number(new URLSearchParams(window.location.search).get('hole')) || null)
 
-  // Local optimistic scores state
-  const [localScores, setLocalScores] = useState<MatchScores>({})
+  const prefix = 'ferda-score-v1:' + JSON.stringify([API_URL, slug ?? null, matchId]) + ':'
+  const [pending, setPending] = useState<Record<string, number>>({})
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'waiting' | 'error'>('idle')
+  const busy = useRef(false)
+  const mounted = useRef(true)
+  const session = data?.sessions.find(s => s.matches.some(m => m.id === matchId))
+  const match = session?.matches.find(m => m.id === matchId)
+  const localScores = mergePendingScores(match?.scores ?? {}, pending)
 
-  // Save status indicator
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const inFlightRef = useRef(0)
-  // Only unsynchronized edits override server data; confirmed scores are server-owned.
-  const pendingRef = useRef<Record<string, number>>({})
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>()
-
-  // Find the match + session
-  const session = data?.sessions.find((s) => s.matches.some((m) => m.id === matchId))
-  const match = session?.matches.find((m) => m.id === matchId)
-
-  // Sync local scores with fetched scores (merge — local optimistic wins if same hole)
-  useEffect(() => {
-    if (match) {
-      setLocalScores(mergePendingScores(match.scores, pendingRef.current))
-    }
-  }, [match?.scores]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleScoreChange = useCallback(
-    async (hole: number, side: 'team1' | 'team2', player: string, gross: number | '') => {
-      if (gross === 0) return
-      if (gross === '') {
-        // The API has no delete-score operation; do not show a deletion that cannot persist.
-        setSaveStatus('error')
-        return
-      }
-      const key = scoreKey(hole, side, player)
-      pendingRef.current[key] = gross as number
-      // Optimistic update
-      setLocalScores((prev) => {
-        const updated = { ...prev }
-        if (!updated[hole]) updated[hole] = { team1: {}, team2: {} }
-        updated[hole] = {
-          ...updated[hole],
-          [side]: { ...updated[hole][side], [player]: gross },
+  const sync = useCallback(async () => {
+    if (busy.current || !matchId) return
+    busy.current = true
+    async function drain() {
+      let wrote = false
+      while (mounted.current) {
+        const entries = Object.keys(localStorage).filter(key => key.startsWith(prefix))
+        const edits: Record<string, number> = {}
+        for (const entry of entries) {
+          edits[entry.slice(prefix.length)] = Number(localStorage.getItem(entry))
         }
-        return updated
-      })
-
-      inFlightRef.current++
-      setSaveStatus('saving')
-      clearTimeout(savedTimerRef.current)
-
-      try {
-        await save({ matchId: matchId!, hole, side, player, grossScore: gross as number })
-        // A subsequent authoritative fetch reconciles this optimistic edit.
-        void refetch()
-      } catch {
-        delete pendingRef.current[key]
-        void refetch()
-        inFlightRef.current--
-        setSaveStatus('error')
-        return
+        setPending(edits)
+        if (!entries.length) {
+          if (wrote) setSaveStatus('saved')
+          return
+        }
+        if (!navigator.onLine) { setSaveStatus('waiting'); return }
+        setSaveStatus('saving')
+        const entry = entries[0]
+        const raw = localStorage.getItem(entry)
+        if (raw === null) continue
+        const [hole, side, player] = JSON.parse(entry.slice(prefix.length)) as [number, 'team1' | 'team2', string]
+        if (!API_URL) throw new Error('Missing score service')
+        await save({ matchId: matchId!, hole, side, player, grossScore: Number(raw) })
+        if (localStorage.getItem(entry) === raw) localStorage.removeItem(entry)
+        wrote = true
+        await refetch()
       }
+    }
+    try {
+      if (navigator.locks) await navigator.locks.request(prefix, drain)
+      else await drain()
+    } catch (err) {
+      if (mounted.current) setSaveStatus(err instanceof TypeError || !navigator.onLine ? 'waiting' : 'error')
+    } finally {
+      busy.current = false
+    }
+  }, [prefix, matchId, save, refetch])
 
-      inFlightRef.current--
-      if (inFlightRef.current === 0) {
-        setSaveStatus('saved')
-        savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000)
-      }
-    },
-    [matchId, save, refetch],
-  )
+  useEffect(() => {
+    mounted.current = true
+    void sync()
+    const retry = window.setInterval(sync, 15000)
+    window.addEventListener('online', sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      mounted.current = false
+      window.clearInterval(retry)
+      window.removeEventListener('online', sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [sync])
+
+  const handleScoreChange = (hole: number, side: 'team1' | 'team2', player: string, gross: number | '') => {
+    if (!gross) { setSaveStatus('error'); return }
+    const key = scoreKey(hole, side, player)
+    try {
+      localStorage.setItem(prefix + key, String(gross))
+      setPending(previous => ({ ...previous, [key]: gross }))
+      setSaveStatus(navigator.onLine ? 'saving' : 'waiting')
+      void sync()
+    } catch {
+      setSaveStatus('error')
+    }
+  }
 
   if (loading) return <ScorecardSkeleton />
 
@@ -168,9 +181,10 @@ export function Scorecard() {
             borderColor: saveStatus === 'error' ? '#fcd5d0' : '#c3e6d5',
           }}
         >
+          {saveStatus === 'waiting' && 'Saved on this device · waiting to sync'}
           {saveStatus === 'saving' && 'Saving...'}
           {saveStatus === 'saved' && 'Saved'}
-          {saveStatus === 'error' && 'Save failed — check your connection'}
+          {saveStatus === 'error' && 'Score not confirmed · check your connection and score'}
         </div>
       )}
 
@@ -260,10 +274,6 @@ function mergePendingScores(server: MatchScores, pending: Record<string, number>
   const result: MatchScores = structuredClone(server)
   for (const [key, value] of Object.entries(pending)) {
     const [hole, side, player] = JSON.parse(key) as [number, 'team1' | 'team2', string]
-    if (server[hole]?.[side]?.[player] === value) {
-      delete pending[key]
-      continue
-    }
     if (!result[hole]) result[hole] = { team1: {}, team2: {} }
     result[hole][side][player] = value
   }
