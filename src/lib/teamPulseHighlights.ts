@@ -6,7 +6,7 @@ export interface PulseHighlight {
   id: string
   matchId: string
   hole: number
-  kind: 'comeback' | 'lead-change' | 'streak' | 'close-finish'
+  kind: 'comeback' | 'lead-change' | 'streak' | 'close-finish' | 'hole-win'
   text: string
   priority: number
 }
@@ -37,11 +37,11 @@ export function tournamentHighlights(data: TournamentData): PulseHighlight[] {
     if (!course) continue
     for (const match of session.matches) {
       const states = snapshots(match, rules, data.players, course)
-      if (states.length < 2) continue
+      if (!states.length) continue
       const label = match.team1Players.join(' / ') + ' vs ' + match.team2Players.join(' / ')
       const sideName = (lead: number) => lead > 0 ? data.teams.team1.name : data.teams.team2.name
       const last = states[states.length - 1]
-      const previous = states[states.length - 2]
+      const previous = states[states.length - 2] ?? { lead: 0 }
       const isMatchPlay = rules.scoring === 'Match Play'
       const marginUnit = isMatchPlay ? 'holes' : 'strokes'
       const margin = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1)
@@ -71,6 +71,12 @@ export function tournamentHighlights(data: TournamentData): PulseHighlight[] {
       }
       if (isMatchPlay) {
         const winners = holeWinnerHighlights(match, rules, data.players, course)
+        const winner = winners[last.hole]?.side
+        if (winner) {
+          const names = (winner === 'team1' ? match.team1Players : match.team2Players).join(' and ')
+          highlights.push({ id: id('hole-win', last.hole), matchId: match.id, hole: last.hole, kind: 'hole-win', priority: 50,
+            text: `${names} won hole ${last.hole}.` })
+        }
         let side: 'team1' | 'team2' | null = null
         let streak = 0
         // Only contiguous completed holes count; ties and missing scores break a streak.
