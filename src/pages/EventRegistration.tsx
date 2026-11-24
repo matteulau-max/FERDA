@@ -1,3 +1,4 @@
+import { InviteMatch } from '../components/ResumeMatch'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { HomeSignIn } from '../components/HomeSignIn'
@@ -102,6 +103,7 @@ export function EventRegistration() {
     </header>
     <main className="max-w-lg mx-auto p-4 space-y-4">
       <p className="text-sm text-gray-600">Sign in or create a Ferda account, then RSVP for this event. Your registration is separate from team selection and scoring.</p>
+      {session && <InviteMatch />}
       {!session ? <HomeSignIn returnPath={`/t/${slug}/register`} /> : <section className="bg-white rounded-xl border p-5 space-y-4">
         <h2 className="text-lg font-semibold">{saved ? 'Update your RSVP' : 'RSVP for this event'}</h2>
         <p className="text-xs text-gray-600">Signed in as {email || 'your verified account'}</p>
