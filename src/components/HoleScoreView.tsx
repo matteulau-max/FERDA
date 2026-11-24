@@ -29,18 +29,14 @@ export function HoleScoreView({ match, players, rules, course, holeNumber, onHol
   const index = holes.findIndex(h => h.number === holeNumber)
 
   return <div className="mx-auto max-w-xl space-y-3 px-3 pb-8 pt-3">
-    <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
-      <button className="min-h-11 rounded-lg px-3 text-2xl text-[#006747] disabled:opacity-30" disabled={index <= 0} onClick={() => onHoleChange(-1)} aria-label="Previous hole">‹</button>
+    <div className="flex items-center justify-between rounded-xl bg-[#123d31] px-3 py-3 text-white">
+      <button className="min-h-11 rounded-lg px-3 text-2xl text-white disabled:opacity-30" disabled={index <= 0} onClick={() => onHoleChange(-1)} aria-label="Previous hole">‹</button>
       <div className="text-center">
-        <p className="text-xs uppercase tracking-widest text-gray-500">Hole {hole.number} of {holes.length}</p>
-        <p className="font-serif text-xl font-bold text-[#19271f]">Par {hole.par} <span className="text-sm font-normal text-gray-500">· SI {hole.strokeIndex}</span></p>
-        <p className="text-xs text-gray-500">{distance === null ? 'GPS distance unavailable' : `Middle · ${Math.round(distance)} yd GPS`}</p>
+        <p className="font-serif text-3xl font-bold tabular-nums">Hole {hole.number}</p>
+        <p className="text-sm font-semibold text-white">Par {hole.par} <span className="text-sm font-normal text-white/80">· Stroke index {hole.strokeIndex}</span></p>
+        {distance !== null && <p className="text-xs text-white/80">Middle · {Math.round(distance)} yd</p>}
       </div>
-      <button className="min-h-11 rounded-lg px-3 text-2xl text-[#006747] disabled:opacity-30" disabled={index >= holes.length - 1} onClick={() => onHoleChange(1)} aria-label="Next hole">›</button>
-    </div>
-
-    <div className="overflow-hidden rounded-xl border border-[#e8e5d8] bg-white">
-      <GolfGps embeddedCourseName={course.name} selectedHole={hole.number} onEmbeddedHoleChange={onHoleChange} onDistanceChange={distanceChanged} />
+      <button className="min-h-11 rounded-lg px-3 text-2xl text-white disabled:opacity-30" disabled={index >= holes.length - 1} onClick={() => onHoleChange(1)} aria-label="Next hole">›</button>
     </div>
 
     <section className="space-y-3" aria-label={`Scores for hole ${hole.number}`}>
@@ -64,15 +60,22 @@ export function HoleScoreView({ match, players, rules, course, holeNumber, onHol
               <span className="block text-xs font-normal text-gray-500">{net === null ? 'Gross → net automatically' : `Net ${net}`}</span>
             </span>
             <div className="flex shrink-0 items-center gap-2">
+              {!value ? <button type="button" onClick={() => onScoreChange(hole.number, side.key, player, hole.par)} className="min-h-12 rounded-lg bg-[#006747] px-5 font-bold text-white" aria-label={`Enter par ${hole.par} for ${player}`}>Enter {hole.par}</button> : <>
               <button type="button" aria-label={`Decrease ${player} score`} disabled={!value || value <= 1} onClick={() => onScoreChange(hole.number, side.key, player, value - 1)} className="h-12 w-12 rounded-xl border border-[#b8d1c2] bg-white text-2xl font-bold text-[#006747] disabled:opacity-30">−</button>
               <span aria-live="polite" className="w-10 text-center text-2xl font-bold tabular-nums text-[#19271f]">{value || '–'}</span>
               <button type="button" aria-label={`Increase ${player} score`} disabled={!!value && value >= 15} onClick={() => onScoreChange(hole.number, side.key, player, value ? value + 1 : hole.par)} className="h-12 w-12 rounded-xl bg-[#006747] text-2xl font-bold text-white">+</button>
+              </>}
             </div>
           </div>
         })}
       </div>)}
       <p className="px-1 text-xs text-gray-500">Enter gross scores only. Dots indicate handicap strokes received on this hole; Ferda calculates net scores automatically.</p>
     </section>
+
+    <details className="overflow-hidden rounded-xl border border-[#e8e5d8] bg-white">
+      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[#006747]">Hole map &amp; GPS</summary>
+      <GolfGps embeddedCourseName={course.name} selectedHole={hole.number} onEmbeddedHoleChange={onHoleChange} onDistanceChange={distanceChanged} />
+    </details>
 
     <nav className="flex gap-3" aria-label="Hole navigation">
       <button type="button" disabled={index <= 0} onClick={() => onHoleChange(-1)} className="min-h-12 flex-1 rounded-xl border border-[#006747] bg-white px-3 font-semibold text-[#006747] disabled:opacity-30">← Previous</button>
