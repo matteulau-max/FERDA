@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react'
+import { useFerdaSession } from '../lib/ferdaAuth'
+import { calcMatchStatus } from '../lib/matchPlay'
 import { Link } from 'react-router-dom'
 import { useTournament } from '../hooks/useTournament'
 import { useTournamentRoute } from '../lib/paths'
-import { courseForSession } from '../lib/holes'
+import { courseForSession, sessionRules } from '../lib/holes'
 import { HeroScoreboard } from '../components/HeroScoreboard'
 import { SessionCard } from '../components/SessionCard'
 import { PlayerLeaderboard } from '../components/PlayerLeaderboard'
@@ -11,8 +14,24 @@ import { OverflowMenu } from '../components/OverflowMenu'
 const API_URL = import.meta.env.VITE_API_URL as string
 
 export function Leaderboard() {
-  const { slug } = useTournamentRoute()
+  const { slug, base } = useTournamentRoute()
   const { data, loading, error } = useTournament(API_URL, slug)
+
+  const account = useFerdaSession()
+  const token = account?.access_token
+  const [identity, setIdentity] = useState<{ token: string; name: string; phone: string } | null>(null)
+  useEffect(() => {
+    if (!token) return
+    const controller = new AbortController()
+    void fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal })
+      .then(async response => response.ok ? response.json() : null)
+      .then(result => {
+        if (!controller.signal.aborted && result?.profile) {
+          setIdentity({ token, name: result.profile.full_name || '', phone: result.profile.phone || '' })
+        }
+      }).catch(() => {})
+    return () => controller.abort()
+  }, [token])
 
   if (loading) return <LoadingSkeleton />
 
@@ -54,6 +73,27 @@ export function Leaderboard() {
   }
 
   const { teams, players, courses, sessions } = data
+  const profile = identity && identity.token === token ? identity : null
+  const normalizePhone = (value = '') => value.replace(/\D/g, '')
+  const byPhone = profile?.phone ? players.filter(p => normalizePhone(p.phone) === normalizePhone(profile.phone)) : []
+  const candidates = byPhone.length ? byPhone : players.filter(p => profile?.name && p.name.trim().toLowerCase() === profile.name.trim().toLowerCase())
+  const player = candidates.length === 1 ? candidates[0] : null
+  const matches = player ? [...sessions].sort((a, b) => a.sortOrder - b.sortOrder).flatMap(session => {
+    const course = courseForSession(courses, session)
+    if (!course) return []
+    const rules = sessionRules(session)
+    return session.matches.filter(m => [...m.team1Players, ...m.team2Players].includes(player.name)).flatMap(match => {
+      const status = calcMatchStatus(match, rules, players, course)
+      if (status.isComplete) return []
+      const hole = [...course.holes].sort((a, b) => a.number - b.number).find(h =>
+        (['team1', 'team2'] as const).some(side => {
+          const names = side === 'team1' ? match.team1Players : match.team2Players
+          return (rules.format === 'Scramble' ? names.slice(0, 1) : names).some(name => !match.scores[h.number]?.[side]?.[name])
+        }))
+      return hole ? [{ match, hole, started: Object.keys(match.scores).length > 0 }] : []
+    })
+  }) : []
+  const current = matches.find(m => m.started) ?? matches[0]
 
   return (
     <div className="min-h-screen" style={{ background: '#FDF8E8' }}>
@@ -63,6 +103,9 @@ export function Leaderboard() {
       </div>
 
       <div className="px-3 py-4 flex flex-col gap-4">
+        {current && <Link to={`${base}/match/${encodeURIComponent(current.match.id)}?hole=${current.hole.number}`} className="flex min-h-12 items-center justify-between rounded-xl bg-[#123d31] px-4 py-3 font-bold text-white">
+          <span>My match</span><span>Hole {current.hole.number} →</span>
+        </Link>}
         {[...sessions]
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((session) => {
