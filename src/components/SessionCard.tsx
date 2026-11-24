@@ -134,7 +134,7 @@ export function SessionCard({ session, players, course, courses, team1, team2 }:
 
       {/* Matches */}
       {open && (
-        <div className="p-3 flex flex-col gap-2">
+        <div className="flex flex-col">
           {session.matches.map((match) => (
             <MatchRow
               key={match.id}
